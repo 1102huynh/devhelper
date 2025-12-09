@@ -65,18 +65,26 @@ export default function NotesPage() {
   }
 
   const filterNotes = () => {
-    if (!searchQuery) {
-      setFilteredNotes(notes)
-      return
+    let filtered = notes
+
+    if (searchQuery) {
+      filtered = notes.filter(
+        (note) =>
+          note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          note.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          note.tags.toLowerCase().includes(searchQuery.toLowerCase())
+      )
     }
 
-    const filtered = notes.filter(
-      (note) =>
-        note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        note.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        note.tags.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-    setFilteredNotes(filtered)
+    // Sort: pinned notes first, then by updated date
+    const sorted = [...filtered].sort((a, b) => {
+      if (a.pinned === b.pinned) {
+        return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      }
+      return a.pinned ? -1 : 1
+    })
+
+    setFilteredNotes(sorted)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -122,10 +130,24 @@ export default function NotesPage() {
 
   const handleTogglePin = async (id: number) => {
     try {
-      await notesApi.togglePin(id)
-      fetchNotes()
+      // Optimistically update UI
+      setNotes(prevNotes =>
+        prevNotes.map(note =>
+          note.id === id ? { ...note, pinned: !note.pinned } : note
+        )
+      )
+
+      const response = await notesApi.togglePin(id)
+      console.log('Toggle pin response:', response.data)
+
+      // Fetch fresh data to ensure sync
+      await fetchNotes()
+      toast.success(response.data.pinned ? 'Note pinned' : 'Note unpinned')
     } catch (error) {
+      console.error('Toggle pin error:', error)
       toast.error('Failed to toggle pin')
+      // Revert optimistic update
+      fetchNotes()
     }
   }
 
@@ -270,7 +292,7 @@ export default function NotesPage() {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.3, delay: index * 0.05 }}
               >
-                <Card className={`hover:shadow-lg transition-shadow h-full ${note.pinned ? 'border-primary' : ''}`}>
+                <Card className={`hover:shadow-lg transition-all h-full ${note.pinned ? 'border-2 border-primary shadow-md' : ''}`}>
                   <CardHeader>
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1">
@@ -287,9 +309,10 @@ export default function NotesPage() {
                           size="icon"
                           variant="ghost"
                           onClick={() => handleTogglePin(note.id)}
-                          className="h-8 w-8"
+                          className={`h-8 w-8 ${note.pinned ? 'text-primary hover:text-primary/80' : 'hover:text-primary'}`}
+                          title={note.pinned ? 'Unpin note' : 'Pin note'}
                         >
-                          <Pin className={`w-4 h-4 ${note.pinned ? 'fill-current text-primary' : ''}`} />
+                          <Pin className={`w-4 h-4 ${note.pinned ? 'fill-current' : ''}`} />
                         </Button>
                         <Button
                           size="icon"
