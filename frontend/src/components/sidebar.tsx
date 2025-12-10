@@ -8,6 +8,7 @@ import { Code2, FileJson, Terminal, Zap, StickyNote, Home, Moon, Sun, Binary, Li
 import { Button } from './ui/button'
 import { useTheme } from 'next-themes'
 import { motion } from 'framer-motion'
+import GitHubStarButton from './github-star-button'
 
 const navigation = [
   { name: 'Home', href: '/', icon: Home, color: 'text-blue-500' },
@@ -113,17 +114,27 @@ export function Sidebar() {
       </nav>
 
       {/* Footer with theme toggle */}
-      <div className="p-4 border-t border-border/50 bg-gradient-to-br from-secondary/30 to-transparent">
+      <div className="p-4 border-t border-border/50 bg-gradient-to-br from-secondary/30 to-transparent space-y-3">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
         >
+          {/* GitHub Star Button */}
+          {mounted && (
+            <GitHubStarButton
+              repoUrl="https://github.com/1102huynh/devhelper"
+              text="Star on GitHub"
+              variant="outline"
+            />
+          )}
+
+          {/* Theme Toggle */}
           {!mounted ? (
             <Button
               variant="outline"
               size="sm"
-              className="w-full"
+              className="w-full mt-2"
               disabled
             >
               <Sun className="w-4 h-4 mr-2" />
@@ -134,7 +145,7 @@ export function Sidebar() {
               variant="outline"
               size="sm"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="w-full group hover:shadow-lg transition-all duration-300"
+              className="w-full group hover:shadow-lg transition-all duration-300 mt-2"
             >
               {theme === 'dark' ? (
                 <>

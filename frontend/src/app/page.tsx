@@ -5,6 +5,7 @@ import { Code2, FileJson, Terminal, Zap, StickyNote, Binary, Link2, Hash, KeyRou
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
+import GitHubStarButton from '@/components/github-star-button'
 
 const tools = [
   {
@@ -217,15 +218,17 @@ export default function Home() {
               Built for engineers who demand excellence.
             </p>
 
-            <div className="flex flex-wrap gap-4 justify-center">
-              <Button size="lg" className="rounded-xl shadow-lg hover:shadow-xl transition-all">
-                <Rocket className="w-5 h-5 mr-2" />
-                Get Started
-              </Button>
-              <Button size="lg" variant="outline" className="rounded-xl">
-                <Star className="w-5 h-5 mr-2" />
-                Star on GitHub
-              </Button>
+            <div className="flex flex-wrap gap-4 justify-center items-center">
+              <Link href="#tools">
+                <Button size="lg" className="rounded-xl shadow-lg hover:shadow-xl transition-all">
+                  <Rocket className="w-5 h-5 mr-2" />
+                  Get Started
+                </Button>
+              </Link>
+              <GitHubStarButton
+                variant="full"
+                repoUrl="https://github.com/1102huynh/devhelper"
+              />
             </div>
 
             {/* Stats */}
@@ -253,7 +256,7 @@ export default function Home() {
       </section>
 
       {/* Tools Grid */}
-      <section className="container mx-auto px-4 py-16">
+      <section id="tools" className="container mx-auto px-4 py-16">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
