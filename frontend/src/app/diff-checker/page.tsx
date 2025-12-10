@@ -23,7 +23,7 @@ export default function DiffCheckerPage() {
 
   const compareDiff = async () => {
     try {
-      const response = await api.post('/api/diff/compare', { text1, text2 })
+      const response = await api.post('/diff/compare', { text1, text2 })
       setDifferences(response.data.differences)
       setStats({
         totalLines: response.data.totalLines,

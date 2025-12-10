@@ -29,7 +29,7 @@ export default function TextUtilsPage() {
 
   const convertText = async (operation: string) => {
     try {
-      const response = await api.post('/api/text/convert', { text: input, operation })
+      const response = await api.post('/text/convert', { text: input, operation })
       setOutput(response.data.result)
       setStats({
         originalLength: response.data.originalLength,

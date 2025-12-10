@@ -17,7 +17,7 @@ export default function XmlFormatterPage() {
   const formatXml = async () => {
     try {
       setError('')
-      const response = await api.post('/api/xml/format', { xml: input, indent: 2 })
+      const response = await api.post('/xml/format', { xml: input, indent: 2 })
       setOutput(response.data.formatted)
       setIsValid(response.data.valid)
       if (!response.data.valid) {
@@ -32,7 +32,7 @@ export default function XmlFormatterPage() {
   const validateXml = async () => {
     try {
       setError('')
-      const response = await api.post('/api/xml/validate', { xml: input })
+      const response = await api.post('/xml/validate', { xml: input })
       setIsValid(response.data.valid)
       if (response.data.valid) {
         setError('✓ Valid XML')

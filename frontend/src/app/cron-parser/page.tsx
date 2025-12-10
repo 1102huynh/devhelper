@@ -28,7 +28,7 @@ export default function CronParserPage() {
   const parseCron = async () => {
     try {
       setError('')
-      const response = await api.post('/api/cron/parse', { expression })
+      const response = await api.post('/cron/parse', { expression })
       setDescription(response.data.description)
       if (!response.data.valid) {
         setError(response.data.error)
