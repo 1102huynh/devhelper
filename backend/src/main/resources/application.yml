@@ -35,7 +35,7 @@ server:
 
 # CORS Configuration
 cors:
-  allowed-origins: http://localhost:3000,http://localhost:3001
+  allowed-origins: http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:3003,http://localhost:3004
   allowed-methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
   allowed-headers: "*"
   allow-credentials: true
