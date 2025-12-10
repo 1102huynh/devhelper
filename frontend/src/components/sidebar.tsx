@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { Code2, FileJson, Terminal, Zap, StickyNote, Home, Moon, Sun } from 'lucide-react'
+import { Code2, FileJson, Terminal, Zap, StickyNote, Home, Moon, Sun, Binary, Link2, Hash, KeyRound, Clock } from 'lucide-react'
 import { Button } from './ui/button'
 import { useTheme } from 'next-themes'
 
@@ -12,6 +12,11 @@ const navigation = [
   { name: 'Home', href: '/', icon: Home },
   { name: 'Regex Tester', href: '/regex-tester', icon: Code2 },
   { name: 'JSON Formatter', href: '/json-formatter', icon: FileJson },
+  { name: 'Base64', href: '/base64', icon: Binary },
+  { name: 'URL Encoder', href: '/url-encoder', icon: Link2 },
+  { name: 'Hash Generator', href: '/hash-generator', icon: Hash },
+  { name: 'JWT Decoder', href: '/jwt-decoder', icon: KeyRound },
+  { name: 'Timestamp', href: '/timestamp', icon: Clock },
   { name: 'SSH Commands', href: '/ssh-commands', icon: Terminal },
   { name: 'API Tester', href: '/api-tester', icon: Zap },
   { name: 'Notes', href: '/notes', icon: StickyNote },

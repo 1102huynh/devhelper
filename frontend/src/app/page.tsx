@@ -1,7 +1,7 @@
 'use client'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Code2, FileJson, Terminal, Zap, StickyNote } from 'lucide-react'
+import { Code2, FileJson, Terminal, Zap, StickyNote, Binary, Link2, Hash, KeyRound, Clock } from 'lucide-react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 
@@ -19,6 +19,41 @@ const tools = [
     icon: FileJson,
     href: '/json-formatter',
     color: 'text-green-500',
+  },
+  {
+    title: 'Base64 Encoder',
+    description: 'Encode and decode Base64 strings',
+    icon: Binary,
+    href: '/base64',
+    color: 'text-orange-500',
+  },
+  {
+    title: 'URL Encoder',
+    description: 'Encode and decode URLs and query parameters',
+    icon: Link2,
+    href: '/url-encoder',
+    color: 'text-cyan-500',
+  },
+  {
+    title: 'Hash Generator',
+    description: 'Generate MD5, SHA-1, SHA-256, SHA-512 hashes',
+    icon: Hash,
+    href: '/hash-generator',
+    color: 'text-indigo-500',
+  },
+  {
+    title: 'JWT Decoder',
+    description: 'Decode and inspect JSON Web Tokens',
+    icon: KeyRound,
+    href: '/jwt-decoder',
+    color: 'text-emerald-500',
+  },
+  {
+    title: 'Timestamp Converter',
+    description: 'Convert Unix timestamps to readable dates',
+    icon: Clock,
+    href: '/timestamp',
+    color: 'text-teal-500',
   },
   {
     title: 'SSH Commands',
