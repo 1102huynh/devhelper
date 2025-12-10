@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { Code2, FileJson, Terminal, Zap, StickyNote, Home, Moon, Sun, Binary, Link2, Hash, KeyRound, Clock } from 'lucide-react'
+import { Code2, FileJson, Terminal, Zap, StickyNote, Home, Moon, Sun, Binary, Link2, Hash, KeyRound, Clock, Fingerprint, FileCode, Calendar, GitCompare, Type, Palette, Code, FileText, QrCode, Info } from 'lucide-react'
 import { Button } from './ui/button'
 import { useTheme } from 'next-themes'
 
@@ -12,11 +12,21 @@ const navigation = [
   { name: 'Home', href: '/', icon: Home },
   { name: 'Regex Tester', href: '/regex-tester', icon: Code2 },
   { name: 'JSON Formatter', href: '/json-formatter', icon: FileJson },
+  { name: 'XML Formatter', href: '/xml-formatter', icon: FileCode },
   { name: 'Base64', href: '/base64', icon: Binary },
   { name: 'URL Encoder', href: '/url-encoder', icon: Link2 },
+  { name: 'HTML Encoder', href: '/html-encoder', icon: Code },
   { name: 'Hash Generator', href: '/hash-generator', icon: Hash },
   { name: 'JWT Decoder', href: '/jwt-decoder', icon: KeyRound },
+  { name: 'UUID Generator', href: '/uuid-generator', icon: Fingerprint },
   { name: 'Timestamp', href: '/timestamp', icon: Clock },
+  { name: 'Cron Parser', href: '/cron-parser', icon: Calendar },
+  { name: 'Diff Checker', href: '/diff-checker', icon: GitCompare },
+  { name: 'Text Utils', href: '/text-utils', icon: Type },
+  { name: 'Color Converter', href: '/color-converter', icon: Palette },
+  { name: 'Lorem Ipsum', href: '/lorem-ipsum', icon: FileText },
+  { name: 'QR Generator', href: '/qr-generator', icon: QrCode },
+  { name: 'HTTP Status', href: '/http-status', icon: Info },
   { name: 'SSH Commands', href: '/ssh-commands', icon: Terminal },
   { name: 'API Tester', href: '/api-tester', icon: Zap },
   { name: 'Notes', href: '/notes', icon: StickyNote },

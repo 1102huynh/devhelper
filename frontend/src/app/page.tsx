@@ -1,7 +1,7 @@
 'use client'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Code2, FileJson, Terminal, Zap, StickyNote, Binary, Link2, Hash, KeyRound, Clock } from 'lucide-react'
+import { Code2, FileJson, Terminal, Zap, StickyNote, Binary, Link2, Hash, KeyRound, Clock, Fingerprint, FileCode, Calendar, GitCompare, Type, Palette, Code, FileText, QrCode, Info } from 'lucide-react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 
@@ -19,6 +19,13 @@ const tools = [
     icon: FileJson,
     href: '/json-formatter',
     color: 'text-green-500',
+  },
+  {
+    title: 'XML Formatter',
+    description: 'Format, validate, and beautify XML documents',
+    icon: FileCode,
+    href: '/xml-formatter',
+    color: 'text-amber-500',
   },
   {
     title: 'Base64 Encoder',
@@ -49,11 +56,74 @@ const tools = [
     color: 'text-emerald-500',
   },
   {
+    title: 'UUID Generator',
+    description: 'Generate random UUIDs (v4)',
+    icon: Fingerprint,
+    href: '/uuid-generator',
+    color: 'text-violet-500',
+  },
+  {
     title: 'Timestamp Converter',
     description: 'Convert Unix timestamps to readable dates',
     icon: Clock,
     href: '/timestamp',
     color: 'text-teal-500',
+  },
+  {
+    title: 'Cron Parser',
+    description: 'Parse and understand cron expressions',
+    icon: Calendar,
+    href: '/cron-parser',
+    color: 'text-rose-500',
+  },
+  {
+    title: 'Diff Checker',
+    description: 'Compare two text blocks and highlight differences',
+    icon: GitCompare,
+    href: '/diff-checker',
+    color: 'text-slate-500',
+  },
+  {
+    title: 'Text Utilities',
+    description: 'Transform and manipulate text with various operations',
+    icon: Type,
+    href: '/text-utils',
+    color: 'text-fuchsia-500',
+  },
+  {
+    title: 'Color Converter',
+    description: 'Convert between HEX, RGB, and HSL color formats',
+    icon: Palette,
+    href: '/color-converter',
+    color: 'text-red-500',
+  },
+  {
+    title: 'HTML Encoder',
+    description: 'Encode and decode HTML entities',
+    icon: Code,
+    href: '/html-encoder',
+    color: 'text-lime-500',
+  },
+  {
+    title: 'Lorem Ipsum',
+    description: 'Generate placeholder text for your designs',
+    icon: FileText,
+    href: '/lorem-ipsum',
+    color: 'text-sky-500',
+  },
+  {
+    title: 'QR Code Generator',
+    description: 'Generate QR codes for URLs, text, and more',
+    icon: QrCode,
+    href: '/qr-generator',
+    color: 'text-neutral-500',
+  },
+  {
+    title: 'HTTP Status Codes',
+    description: 'Quick reference guide for HTTP status codes',
+    icon: Info,
+    href: '/http-status',
+    color: 'text-blue-600',
   },
   {
     title: 'SSH Commands',

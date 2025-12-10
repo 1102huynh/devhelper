@@ -53,3 +53,5 @@ export const notesApi = {
   delete: (id: number) => api.delete(`/notes/${id}`),
 };
 
+export default api;
+
