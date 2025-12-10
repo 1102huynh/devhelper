@@ -57,20 +57,68 @@ export function Sidebar() {
       transition={{ duration: 0.3, ease: 'easeInOut' }}
       className="border-r bg-card/50 backdrop-blur-xl flex flex-col h-screen overflow-hidden relative"
     >
-      {/* Toggle Button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => setIsOpen(!isOpen)}
-        className="absolute top-4 -right-4 z-50 rounded-full bg-card border border-border shadow-lg hover:shadow-xl transition-all"
-        aria-label={isOpen ? 'Close sidebar' : 'Open sidebar'}
+      {/* Toggle Button - Beautiful Design */}
+      <motion.div
+        className="absolute top-6 -right-5 z-50"
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.95 }}
       >
-        {isOpen ? (
-          <ChevronLeft className="w-4 h-4" />
-        ) : (
-          <Menu className="w-4 h-4" />
-        )}
-      </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setIsOpen(!isOpen)}
+          className={cn(
+            "relative rounded-full w-10 h-10 group overflow-hidden",
+            "bg-gradient-to-br from-primary/90 via-primary to-primary/80",
+            "border-2 border-primary-foreground/20",
+            "shadow-[0_4px_14px_0_rgba(0,118,255,0.39)]",
+            "hover:shadow-[0_6px_20px_rgba(0,118,255,0.6)]",
+            "transition-all duration-300 ease-out",
+            "before:absolute before:inset-0 before:rounded-full",
+            "before:bg-gradient-to-br before:from-white/20 before:to-transparent",
+            "before:opacity-0 hover:before:opacity-100 before:transition-opacity"
+          )}
+          aria-label={isOpen ? 'Close sidebar' : 'Open sidebar'}
+        >
+          {/* Animated background pulse */}
+          <motion.div
+            className="absolute inset-0 rounded-full bg-primary/30"
+            animate={{
+              scale: [1, 1.2, 1],
+              opacity: [0.5, 0.2, 0.5],
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          />
+
+          {/* Icon with rotation animation */}
+          <motion.div
+            animate={{ rotate: isOpen ? 0 : 180 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="relative z-10"
+          >
+            {isOpen ? (
+              <ChevronLeft className="w-5 h-5 text-primary-foreground drop-shadow-md" />
+            ) : (
+              <Menu className="w-5 h-5 text-primary-foreground drop-shadow-md" />
+            )}
+          </motion.div>
+
+          {/* Shine effect */}
+          <motion.div
+            className="absolute inset-0 rounded-full bg-gradient-to-r from-transparent via-white/40 to-transparent"
+            initial={{ x: '-100%', opacity: 0 }}
+            whileHover={{
+              x: '100%',
+              opacity: 1,
+              transition: { duration: 0.6, ease: "easeInOut" }
+            }}
+          />
+        </Button>
+      </motion.div>
 
       {/* Header with gradient */}
       <div className="p-6 border-b border-border/50 bg-gradient-to-br from-primary/10 via-purple-500/5 to-pink-500/10">
