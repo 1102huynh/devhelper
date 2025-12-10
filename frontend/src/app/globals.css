@@ -4,12 +4,13 @@
 
 @layer base {
   :root {
+    /* Modern Light Theme - Professional & Clean */
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 222.2 47.4% 11.2%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 222.2 47.4% 11.2%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 222.2 47.4% 11.2%;
     --primary: 221.2 83.2% 53.3%;
     --primary-foreground: 210 40% 98%;
     --secondary: 210 40% 96.1%;
@@ -23,15 +24,23 @@
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%;
-    --radius: 0.5rem;
+    --radius: 0.75rem;
+
+    /* Custom gradient variables */
+    --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --gradient-success: linear-gradient(135deg, #81FBB8 0%, #28C76F 100%);
+    --gradient-warning: linear-gradient(135deg, #FFD26F 0%, #FF8C42 100%);
+    --gradient-danger: linear-gradient(135deg, #FF6B9D 0%, #C449C2 100%);
+    --gradient-info: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%);
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    /* Modern Dark Theme - Deep & Elegant */
+    --background: 222.2 47.4% 11.2%;
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
+    --card: 217.2 32.6% 17.5%;
     --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
+    --popover: 217.2 32.6% 17.5%;
     --popover-foreground: 210 40% 98%;
     --primary: 217.2 91.2% 59.8%;
     --primary-foreground: 222.2 47.4% 11.2%;
@@ -53,8 +62,219 @@
   * {
     @apply border-border;
   }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Custom scrollbar - Modern & Sleek */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-secondary;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/30 rounded-full;
+    transition: background-color 0.2s;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/50;
+  }
+
+  /* Selection styling */
+  ::selection {
+    @apply bg-primary/20 text-foreground;
+  }
+}
+
+@layer components {
+  /* Glassmorphism card effect */
+  .glass-card {
+    @apply backdrop-blur-lg bg-card/80 border border-border/50 shadow-xl;
+  }
+
+  /* Gradient backgrounds */
+  .gradient-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+
+  .gradient-success {
+    background: linear-gradient(135deg, #81FBB8 0%, #28C76F 100%);
+  }
+
+  .gradient-warning {
+    background: linear-gradient(135deg, #FFD26F 0%, #FF8C42 100%);
+  }
+
+  .gradient-danger {
+    background: linear-gradient(135deg, #FF6B9D 0%, #C449C2 100%);
+  }
+
+  .gradient-info {
+    background: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%);
+  }
+
+  /* Animated gradient text */
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-purple-500 to-pink-500;
+    background-size: 200% auto;
+    animation: gradient-shift 3s linear infinite;
+  }
+
+  @keyframes gradient-shift {
+    to {
+      background-position: 200% center;
+    }
+  }
+
+  /* Hover glow effect */
+  .glow-effect {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .glow-effect:hover {
+    box-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
+    transform: translateY(-2px);
+  }
+
+  /* Floating animation */
+  .float-animation {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  /* Pulse animation for icons */
+  .pulse-icon {
+    animation: pulse-icon 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes pulse-icon {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+
+  /* Shimmer loading effect */
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.1) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  /* Modern card with hover effect */
+  .modern-card {
+    @apply rounded-2xl border border-border/50 bg-card shadow-lg transition-all duration-300;
+  }
+
+  .modern-card:hover {
+    @apply shadow-2xl border-primary/30 -translate-y-1;
+  }
+
+  /* Badge with gradient */
+  .badge-gradient {
+    @apply relative overflow-hidden;
+  }
+
+  .badge-gradient::before {
+    content: '';
+    @apply absolute inset-0 opacity-0 transition-opacity duration-300;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+  }
+
+  .badge-gradient:hover::before {
+    @apply opacity-100;
+  }
+
+  /* Smooth focus rings */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background;
+  }
+
+  /* Code block styling */
+  code {
+    @apply px-1.5 py-0.5 rounded-md bg-muted text-sm font-mono;
+  }
+
+  pre code {
+    @apply px-0 py-0 bg-transparent;
+  }
+
+  /* Kbd element styling */
+  kbd {
+    @apply px-2 py-1 text-xs font-semibold bg-muted rounded-md border border-border shadow-sm;
+  }
+}
+
+@layer utilities {
+  /* Text gradient utilities */
+  .text-gradient-primary {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600;
+  }
+
+  .text-gradient-success {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-emerald-600;
+  }
+
+  .text-gradient-warning {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-orange-600;
+  }
+
+  .text-gradient-danger {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-red-400 to-pink-600;
+  }
+
+  /* Backdrop blur utilities */
+  .backdrop-blur-glass {
+    backdrop-filter: blur(12px) saturate(180%);
+  }
+
+  /* Animation delays */
+  .animation-delay-200 {
+    animation-delay: 200ms;
+  }
+
+  .animation-delay-400 {
+    animation-delay: 400ms;
+  }
+
+  .animation-delay-600 {
+    animation-delay: 600ms;
   }
 }
 

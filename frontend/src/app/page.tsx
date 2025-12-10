@@ -1,9 +1,10 @@
 'use client'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Code2, FileJson, Terminal, Zap, StickyNote, Binary, Link2, Hash, KeyRound, Clock, Fingerprint, FileCode, Calendar, GitCompare, Type, Palette, Code, FileText, QrCode, Info } from 'lucide-react'
+import { Code2, FileJson, Terminal, Zap, StickyNote, Binary, Link2, Hash, KeyRound, Clock, Fingerprint, FileCode, Calendar, GitCompare, Type, Palette, Code, FileText, QrCode, Info, Sparkles, Rocket, Star } from 'lucide-react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
+import { Button } from '@/components/ui/button'
 
 const tools = [
   {
@@ -150,63 +151,232 @@ const tools = [
 
 export default function Home() {
   return (
-    <div className="container mx-auto py-8 px-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Welcome to Dev Helper</h1>
-          <p className="text-muted-foreground text-lg">
-            Your comprehensive suite of developer productivity tools
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {tools.map((tool, index) => (
+    <div className="min-h-screen">
+      {/* Hero Section */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-primary/10 via-purple-500/5 to-pink-500/10 border-b border-border/50">
+        <div className="absolute inset-0 bg-grid-white/10 bg-[size:20px_20px]" />
+        <div className="container mx-auto px-4 py-16 relative">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7 }}
+            className="text-center max-w-4xl mx-auto"
+          >
             <motion.div
-              key={tool.href}
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6"
+            >
+              <Sparkles className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium">20 Professional Tools</span>
+            </motion.div>
+
+            <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
+              Welcome to{' '}
+              <span className="gradient-text">Dev Helper</span>
+            </h1>
+
+            <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+              Your comprehensive suite of professional developer productivity tools.
+              Built for engineers who demand excellence.
+            </p>
+
+            <div className="flex flex-wrap gap-4 justify-center">
+              <Button size="lg" className="rounded-xl shadow-lg hover:shadow-xl transition-all">
+                <Rocket className="w-5 h-5 mr-2" />
+                Get Started
+              </Button>
+              <Button size="lg" variant="outline" className="rounded-xl">
+                <Star className="w-5 h-5 mr-2" />
+                Star on GitHub
+              </Button>
+            </div>
+
+            {/* Stats */}
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
+              transition={{ duration: 0.7, delay: 0.4 }}
+              className="grid grid-cols-3 gap-8 mt-16 max-w-2xl mx-auto"
             >
-              <Link href={tool.href}>
-                <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
-                  <CardHeader>
-                    <div className="flex items-center gap-4">
-                      <div className={`${tool.color} p-3 rounded-lg bg-secondary`}>
-                        <tool.icon className="w-6 h-6" />
-                      </div>
-                      <CardTitle className="text-xl">{tool.title}</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <CardDescription className="text-base">
-                      {tool.description}
-                    </CardDescription>
-                  </CardContent>
-                </Card>
-              </Link>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-primary mb-1">20</div>
+                <div className="text-sm text-muted-foreground">Tools</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-purple-500 mb-1">25+</div>
+                <div className="text-sm text-muted-foreground">APIs</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-pink-500 mb-1">100%</div>
+                <div className="text-sm text-muted-foreground">Free</div>
+              </div>
             </motion.div>
-          ))}
+          </motion.div>
         </div>
+      </section>
 
+      {/* Tools Grid */}
+      <section className="container mx-auto px-4 py-16">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
-          className="mt-12 p-6 rounded-lg bg-secondary"
+          transition={{ duration: 0.5, delay: 0.3 }}
         >
-          <h2 className="text-2xl font-semibold mb-4">Quick Tips</h2>
-          <ul className="space-y-2 text-muted-foreground">
-            <li>• Press <kbd className="px-2 py-1 bg-muted rounded">Ctrl+Space</kbd> anywhere to quickly add a note</li>
-            <li>• All tools work offline with mock data</li>
-            <li>• Toggle dark/light theme from the sidebar</li>
-            <li>• Use keyboard shortcuts for faster workflow</li>
-          </ul>
+          <h2 className="text-3xl font-bold mb-8 text-center">
+            All Tools
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {tools.map((tool, index) => (
+              <motion.div
+                key={tool.href}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: index * 0.03 }}
+              >
+                <Link href={tool.href}>
+                  <Card className="modern-card group cursor-pointer h-full">
+                    <CardHeader>
+                      <div className="flex items-center gap-4">
+                        <motion.div
+                          whileHover={{ scale: 1.1, rotate: 5 }}
+                          className={`${tool.color} p-3 rounded-xl bg-secondary/50 group-hover:bg-secondary transition-colors`}
+                        >
+                          <tool.icon className="w-6 h-6" />
+                        </motion.div>
+                        <CardTitle className="text-lg group-hover:text-primary transition-colors">
+                          {tool.title}
+                        </CardTitle>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription className="text-sm leading-relaxed">
+                        {tool.description}
+                      </CardDescription>
+                    </CardContent>
+                  </Card>
+                </Link>
+              </motion.div>
+            ))}
+          </div>
         </motion.div>
-      </motion.div>
+      </section>
+
+      {/* Features Section */}
+      <section className="bg-secondary/30 border-y border-border/50 py-16">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7 }}
+            className="max-w-4xl mx-auto"
+          >
+            <h2 className="text-3xl font-bold mb-8 text-center">Why Dev Helper?</h2>
+
+            <div className="grid md:grid-cols-2 gap-8">
+              <Card className="glass-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Zap className="w-5 h-5 text-yellow-500" />
+                    Lightning Fast
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">
+                    All tools are optimized for speed. No waiting, no lag. Just instant results.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="glass-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-primary" />
+                    Beautiful Design
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">
+                    Modern, clean interface with dark mode support. Professional and pleasing to use.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="glass-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Terminal className="w-5 h-5 text-purple-500" />
+                    Developer First
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">
+                    Built by developers, for developers. Every tool is designed with your workflow in mind.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="glass-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Rocket className="w-5 h-5 text-pink-500" />
+                    Always Free
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">
+                    All 20 tools are completely free. No subscriptions, no limits, no catches.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Quick Tips Section */}
+      <section className="container mx-auto px-4 py-16">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7 }}
+          className="max-w-2xl mx-auto"
+        >
+          <Card className="modern-card overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-purple-500/5" />
+            <CardHeader className="relative">
+              <CardTitle className="text-2xl">⚡ Quick Tips</CardTitle>
+              <CardDescription>Master Dev Helper in seconds</CardDescription>
+            </CardHeader>
+            <CardContent className="relative">
+              <ul className="space-y-3">
+                <li className="flex items-start gap-3">
+                  <span className="text-primary font-semibold">•</span>
+                  <span>
+                    Press <kbd>Ctrl+Space</kbd> anywhere to quickly add a note
+                  </span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-purple-500 font-semibold">•</span>
+                  <span>All tools work offline with mock data</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-pink-500 font-semibold">•</span>
+                  <span>Toggle dark/light theme from the sidebar</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-blue-500 font-semibold">•</span>
+                  <span>One-click copy functionality on all outputs</span>
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </section>
     </div>
   )
 }
