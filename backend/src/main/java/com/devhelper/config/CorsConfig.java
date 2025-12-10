@@ -30,7 +30,7 @@ public class CorsConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
-                .allowedOrigins(allowedOrigins.split(","))
+                .allowedOriginPatterns(allowedOrigins.split(","))
                 .allowedMethods(allowedMethods.split(","))
                 .allowedHeaders(allowedHeaders.split(","))
                 .allowCredentials(allowCredentials)
@@ -45,8 +45,8 @@ public class CorsConfig implements WebMvcConfigurer {
         // Allow credentials
         config.setAllowCredentials(allowCredentials);
 
-        // Allow specific origins
-        config.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
+        // Use allowedOriginPatterns instead of allowedOrigins when credentials are enabled
+        config.setAllowedOriginPatterns(Arrays.asList(allowedOrigins.split(",")));
 
         // Allow all headers
         config.addAllowedHeader("*");

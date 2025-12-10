@@ -9,7 +9,6 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/api/text")
-@CrossOrigin(origins = "*")
 public class TextUtilsController {
 
     @PostMapping("/convert")

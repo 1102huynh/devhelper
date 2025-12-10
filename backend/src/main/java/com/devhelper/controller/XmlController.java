@@ -18,7 +18,6 @@ import java.io.StringWriter;
 
 @RestController
 @RequestMapping("/api/xml")
-@CrossOrigin(origins = "*")
 public class XmlController {
 
     @PostMapping("/format")

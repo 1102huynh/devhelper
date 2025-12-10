@@ -9,7 +9,6 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/api/cron")
-@CrossOrigin(origins = "*")
 public class CronController {
 
     @PostMapping("/parse")
