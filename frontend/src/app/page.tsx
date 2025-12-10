@@ -1,7 +1,7 @@
 'use client'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Code2, FileJson, Terminal, Zap, StickyNote, Binary, Link2, Hash, KeyRound, Clock, Fingerprint, FileCode, Calendar, GitCompare, Type, Palette, Code, FileText, QrCode, Info, Sparkles, Rocket, Star } from 'lucide-react'
+import { Code2, FileJson, Terminal, Zap, StickyNote, Binary, Link2, Hash, KeyRound, Clock, Fingerprint, FileCode, Calendar, GitCompare, Type, Palette, Code, FileText, QrCode, Info, Sparkles, Rocket, Star, Database, Target, FileCheck, Globe, Server } from 'lucide-react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
@@ -147,6 +147,41 @@ const tools = [
     href: '/notes',
     color: 'text-pink-500',
   },
+  {
+    title: 'Test Data Generator',
+    description: 'Generate realistic test data for automation testing',
+    icon: Database,
+    href: '/test-data-generator',
+    color: 'text-purple-600',
+  },
+  {
+    title: 'Selector Tester',
+    description: 'Test and validate CSS selectors and XPath expressions',
+    icon: Target,
+    href: '/selector-tester',
+    color: 'text-cyan-600',
+  },
+  {
+    title: 'JSON Schema Validator',
+    description: 'Validate JSON data against schemas for API testing',
+    icon: FileCheck,
+    href: '/json-schema-validator',
+    color: 'text-emerald-600',
+  },
+  {
+    title: 'HTTP Headers Analyzer',
+    description: 'Analyze security, caching, and performance headers',
+    icon: Globe,
+    href: '/http-headers-analyzer',
+    color: 'text-orange-600',
+  },
+  {
+    title: 'Mock API Generator',
+    description: 'Generate mock API responses for testing',
+    icon: Server,
+    href: '/mock-api-generator',
+    color: 'text-indigo-600',
+  },
 ]
 
 export default function Home() {
@@ -169,7 +204,7 @@ export default function Home() {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6"
             >
               <Sparkles className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium">20 Professional Tools</span>
+              <span className="text-sm font-medium">25 Professional Tools</span>
             </motion.div>
 
             <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">

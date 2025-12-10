@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { Code2, FileJson, Terminal, Zap, StickyNote, Home, Moon, Sun, Binary, Link2, Hash, KeyRound, Clock, Fingerprint, FileCode, Calendar, GitCompare, Type, Palette, Code, FileText, QrCode, Info, Sparkles } from 'lucide-react'
+import { Code2, FileJson, Terminal, Zap, StickyNote, Home, Moon, Sun, Binary, Link2, Hash, KeyRound, Clock, Fingerprint, FileCode, Calendar, GitCompare, Type, Palette, Code, FileText, QrCode, Info, Sparkles, Database, Target, FileCheck, Globe, Server } from 'lucide-react'
 import { Button } from './ui/button'
 import { useTheme } from 'next-themes'
 import { motion } from 'framer-motion'
@@ -31,6 +31,12 @@ const navigation = [
   { name: 'SSH Commands', href: '/ssh-commands', icon: Terminal, color: 'text-purple-500' },
   { name: 'API Tester', href: '/api-tester', icon: Zap, color: 'text-yellow-500' },
   { name: 'Notes', href: '/notes', icon: StickyNote, color: 'text-pink-500' },
+  // Automation Testing Tools
+  { name: 'Test Data Generator', href: '/test-data-generator', icon: Database, color: 'text-purple-600' },
+  { name: 'Selector Tester', href: '/selector-tester', icon: Target, color: 'text-cyan-600' },
+  { name: 'JSON Schema Validator', href: '/json-schema-validator', icon: FileCheck, color: 'text-emerald-600' },
+  { name: 'HTTP Headers Analyzer', href: '/http-headers-analyzer', icon: Globe, color: 'text-orange-600' },
+  { name: 'Mock API Generator', href: '/mock-api-generator', icon: Server, color: 'text-indigo-600' },
 ]
 
 export function Sidebar() {
@@ -57,7 +63,7 @@ export function Sidebar() {
               Dev Helper
             </h1>
           </div>
-          <p className="text-xs text-muted-foreground">20 Professional Tools</p>
+          <p className="text-xs text-muted-foreground">25 Professional Tools</p>
         </motion.div>
       </div>
 
