@@ -1,5 +1,6 @@
 package com.devhelper.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -8,6 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class JsonFormatResponse {
+    @JsonProperty("isValid")
     private boolean isValid;
     private String formatted;
     private String minified;
