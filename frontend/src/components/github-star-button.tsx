@@ -23,11 +23,11 @@ export default function GitHubStarButton({
         href={repoUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#24292f] dark:bg-[#1a1e22] text-white hover:bg-[#1c2127] dark:hover:bg-[#0d1117] transition-colors duration-200 text-sm font-medium shadow-lg hover:shadow-xl ${className}`}
+        className={`inline-flex items-center gap-2 px-8 py-2.5 rounded-xl bg-[#24292f] dark:bg-[#1a1e22] text-white hover:bg-[#1c2127] dark:hover:bg-[#0d1117] transition-colors duration-200 text-base font-medium shadow-lg hover:shadow-xl ${className}`}
       >
-        <Github className="w-4 h-4" />
+        <Github className="w-5 h-5" />
         <span>{text}</span>
-        <Star className="w-4 h-4" />
+        <Star className="w-5 h-5" />
       </a>
     )
   }
