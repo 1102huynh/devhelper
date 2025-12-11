@@ -8,67 +8,66 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequestMapping("/api/notes")
+@CrossOrigin(originPatterns = "*", allowCredentials = "true")
 public class NoteController {
 
     @Autowired
     private NoteService noteService;
 
     @GetMapping
-    public ResponseEntity<List<Note>> getAllNotes(
+    public CompletableFuture<ResponseEntity<List<Note>>> getAllNotes(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String tag) {
 
         if (search != null && !search.isEmpty()) {
-            return ResponseEntity.ok(noteService.searchNotes(search));
+            return noteService.searchNotes(search)
+                    .thenApply(ResponseEntity::ok);
         }
 
         if (tag != null && !tag.isEmpty()) {
-            return ResponseEntity.ok(noteService.getNotesByTag(tag));
+            return noteService.getNotesByTag(tag)
+                    .thenApply(ResponseEntity::ok);
         }
 
-        return ResponseEntity.ok(noteService.getAllNotes());
+        return noteService.getAllNotes()
+                .thenApply(ResponseEntity::ok);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Note> getNoteById(@PathVariable Long id) {
+    public CompletableFuture<ResponseEntity<Note>> getNoteById(@PathVariable String id) {
         return noteService.getNoteById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .thenApply(note -> note.map(ResponseEntity::ok)
+                        .orElse(ResponseEntity.notFound().build()));
     }
 
     @PostMapping
-    public ResponseEntity<Note> createNote(@RequestBody Note note) {
-        Note created = noteService.createNote(note);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    public CompletableFuture<ResponseEntity<Note>> createNote(@RequestBody Note note) {
+        return noteService.createNote(note)
+                .thenApply(created -> ResponseEntity.status(HttpStatus.CREATED).body(created));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Note> updateNote(@PathVariable Long id, @RequestBody Note note) {
-        try {
-            Note updated = noteService.updateNote(id, note);
-            return ResponseEntity.ok(updated);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+    public CompletableFuture<ResponseEntity<Note>> updateNote(@PathVariable String id, @RequestBody Note note) {
+        return noteService.updateNote(id, note)
+                .thenApply(ResponseEntity::ok)
+                .exceptionally(e -> ResponseEntity.notFound().build());
     }
 
     @PatchMapping("/{id}/pin")
-    public ResponseEntity<Note> togglePin(@PathVariable Long id) {
-        try {
-            Note updated = noteService.togglePin(id);
-            return ResponseEntity.ok(updated);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+    public CompletableFuture<ResponseEntity<Note>> togglePin(@PathVariable String id) {
+        return noteService.togglePin(id)
+                .thenApply(ResponseEntity::ok)
+                .exceptionally(e -> ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteNote(@PathVariable Long id) {
-        noteService.deleteNote(id);
-        return ResponseEntity.noContent().build();
+    public CompletableFuture<ResponseEntity<Void>> deleteNote(@PathVariable String id) {
+        return noteService.deleteNote(id)
+                .thenApply(v -> ResponseEntity.noContent().<Void>build());
     }
 }
 

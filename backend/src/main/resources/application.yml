@@ -2,30 +2,15 @@ spring:
   application:
     name: devhelper-backend
 
-  datasource:
-    url: jdbc:h2:mem:devhelper
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
-
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
-
-  jpa:
-    hibernate:
-      ddl-auto: create-drop
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-        dialect: org.hibernate.dialect.H2Dialect
-
   jackson:
     default-property-inclusion: non_null
     serialization:
       indent_output: true
+
+# Firebase Configuration
+firebase:
+  credentials-path: classpath:abc.json
+  database-url: https://test-c3845-default-rtdb.firebaseio.com
 
 server:
   port: 8080
@@ -44,4 +29,3 @@ logging:
   level:
     com.devhelper: DEBUG
     org.springframework.web: INFO
-

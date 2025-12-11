@@ -8,57 +8,65 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequestMapping("/api/ssh")
+@CrossOrigin(originPatterns = "*", allowCredentials = "true")
 public class SshCommandController {
 
     @Autowired
     private SshCommandService sshCommandService;
 
     @GetMapping
-    public ResponseEntity<List<SshCommand>> getAllCommands(
+    public CompletableFuture<ResponseEntity<List<SshCommand>>> getAllCommands(
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String search) {
 
         if (search != null && !search.isEmpty()) {
-            return ResponseEntity.ok(sshCommandService.searchCommands(search));
+            return sshCommandService.searchCommands(search)
+                    .thenApply(ResponseEntity::ok);
         }
 
         if (category != null && !category.isEmpty()) {
-            return ResponseEntity.ok(sshCommandService.getCommandsByCategory(category));
+            return sshCommandService.getCommandsByCategory(category)
+                    .thenApply(ResponseEntity::ok);
         }
 
-        return ResponseEntity.ok(sshCommandService.getAllCommands());
+        return sshCommandService.getAllCommands()
+                .thenApply(ResponseEntity::ok);
+    }
+
+    @GetMapping("/categories")
+    public CompletableFuture<ResponseEntity<List<String>>> getAllCategories() {
+        return sshCommandService.getAllCategories()
+                .thenApply(ResponseEntity::ok);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<SshCommand> getCommandById(@PathVariable Long id) {
+    public CompletableFuture<ResponseEntity<SshCommand>> getCommandById(@PathVariable String id) {
         return sshCommandService.getCommandById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .thenApply(command -> command.map(ResponseEntity::ok)
+                        .orElse(ResponseEntity.notFound().build()));
     }
 
     @PostMapping
-    public ResponseEntity<SshCommand> createCommand(@RequestBody SshCommand command) {
-        SshCommand created = sshCommandService.createCommand(command);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    public CompletableFuture<ResponseEntity<SshCommand>> createCommand(@RequestBody SshCommand command) {
+        return sshCommandService.createCommand(command)
+                .thenApply(created -> ResponseEntity.status(HttpStatus.CREATED).body(created));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<SshCommand> updateCommand(@PathVariable Long id, @RequestBody SshCommand command) {
-        try {
-            SshCommand updated = sshCommandService.updateCommand(id, command);
-            return ResponseEntity.ok(updated);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+    public CompletableFuture<ResponseEntity<SshCommand>> updateCommand(@PathVariable String id, @RequestBody SshCommand command) {
+        return sshCommandService.updateCommand(id, command)
+                .thenApply(ResponseEntity::ok)
+                .exceptionally(e -> ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCommand(@PathVariable Long id) {
-        sshCommandService.deleteCommand(id);
-        return ResponseEntity.noContent().build();
+    public CompletableFuture<ResponseEntity<Void>> deleteCommand(@PathVariable String id) {
+        return sshCommandService.deleteCommand(id)
+                .thenApply(v -> ResponseEntity.noContent().<Void>build());
     }
 }
 

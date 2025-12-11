@@ -2,8 +2,8 @@ package com.devhelper.config;
 
 import com.devhelper.model.Note;
 import com.devhelper.model.SshCommand;
-import com.devhelper.repository.NoteRepository;
-import com.devhelper.repository.SshCommandRepository;
+import com.devhelper.repository.FirebaseNoteRepository;
+import com.devhelper.repository.FirebaseSshCommandRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
 public class DataInitializer {
 
     @Bean
-    CommandLineRunner initDatabase(SshCommandRepository sshRepo, NoteRepository noteRepo) {
+    CommandLineRunner initDatabase(FirebaseSshCommandRepository sshRepo, FirebaseNoteRepository noteRepo) {
         return args -> {
             // Initialize SSH Commands
             sshRepo.save(createSshCommand(
@@ -20,35 +20,35 @@ public class DataInitializer {
                 "ssh user@hostname -p 22",
                 "Connect to remote server via SSH",
                 "Connection"
-            ));
+            )).join();
 
             sshRepo.save(createSshCommand(
                 "SSH with key",
                 "ssh -i ~/.ssh/id_rsa user@hostname",
                 "Connect using SSH key authentication",
                 "Connection"
-            ));
+            )).join();
 
             sshRepo.save(createSshCommand(
                 "Copy file to server",
                 "scp /local/file.txt user@hostname:/remote/path/",
                 "Copy file from local to remote server",
                 "File Transfer"
-            ));
+            )).join();
 
             sshRepo.save(createSshCommand(
                 "Copy file from server",
                 "scp user@hostname:/remote/file.txt /local/path/",
                 "Copy file from remote server to local",
                 "File Transfer"
-            ));
+            )).join();
 
             sshRepo.save(createSshCommand(
                 "SSH tunnel",
                 "ssh -L 8080:localhost:80 user@hostname",
                 "Create SSH tunnel for port forwarding",
                 "Tunneling"
-            ));
+            )).join();
 
             sshRepo.save(createSshCommand(
                 "Execute remote command",
