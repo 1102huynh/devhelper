@@ -49,6 +49,13 @@ A comprehensive, production-ready suite of **20 professional developer tools** d
 - shadcn/ui components
 - Framer Motion
 
+### Testing
+- **Cucumber BDD** - Behavior-Driven Development
+- **REST Assured** - Backend API testing
+- **Playwright** - Frontend E2E testing
+- **JUnit 5** - Test runner
+- **Spring Boot Test** - Integration testing
+
 ## 📦 Project Structure
 
 ```
@@ -178,7 +185,112 @@ Base URL: `http://localhost:8080/api`
 - **API Endpoints:** 25+
 - **DTOs:** 14
 - **Lines of Code:** 5000+
+- **Test Scenarios:** 40+
+- **Test Coverage:** Backend API + Frontend E2E
 - **Technologies:** Java 17, Spring Boot 3, Next.js 14, TypeScript
+
+## 🧪 Testing with Cucumber BDD
+
+This project includes comprehensive **Behavior-Driven Development (BDD)** testing with **Cucumber**.
+
+### ✅ Test Coverage
+
+**Backend API Tests (Java):**
+- ✅ Notes CRUD operations
+- ✅ JSON formatter, validator, minifier
+- ✅ Diff checker comparisons
+- ✅ UUID generation
+- ✅ Error handling
+- ✅ Integration tests
+
+**Frontend E2E Tests (JavaScript):**
+- ✅ Navigation and routing
+- ✅ JSON formatter UI
+- ✅ Notes management UI
+- ✅ UUID generator UI
+- ✅ Regex tester UI
+- ✅ End-to-end workflows
+- ✅ Theme toggling
+- ✅ Sidebar interactions
+
+### 🚀 Running Tests
+
+**Quick Start - Run All Tests:**
+```bash
+# Windows
+.\run-cucumber-tests.bat
+
+# Mac/Linux
+chmod +x run-cucumber-tests.sh
+./run-cucumber-tests.sh
+```
+
+**Backend Tests Only:**
+```bash
+cd backend
+mvn test
+
+# Generate HTML report
+mvn clean verify
+
+# View report: backend/target/cucumber-reports/cucumber.html
+```
+
+**Frontend Tests Only:**
+```bash
+# Start servers first (Terminal 1 & 2)
+cd backend && mvn spring-boot:run
+cd frontend && npm run dev
+
+# Run tests (Terminal 3)
+cd frontend
+npm run test:e2e:report
+
+# View report: frontend/test-results/cucumber-report.html
+```
+
+**Run by Tags:**
+```bash
+# Backend
+mvn test -Dcucumber.filter.tags="@smoke"
+mvn test -Dcucumber.filter.tags="@api"
+
+# Frontend
+npx cucumber-js --tags "@e2e"
+npx cucumber-js --tags "@integration"
+```
+
+### 📚 Testing Documentation
+
+- 📖 **[Quick Start Guide](CUCUMBER_QUICK_START.md)** - Get started in 5 minutes
+- 📖 **[Complete Implementation Guide](CUCUMBER_IMPLEMENTATION.md)** - Full details
+- 📖 **[Backend Testing](backend/src/test/resources/CUCUMBER_README.md)** - Backend API tests
+- 📖 **[Frontend Testing](frontend/tests/e2e/CUCUMBER_README.md)** - Frontend E2E tests
+- ✅ **[Implementation Summary](CUCUMBER_COMPLETE.md)** - What we've built
+
+### 🎯 Example Test Scenario
+
+```gherkin
+Feature: Notes Management
+  As a developer
+  I want to manage my notes
+  So that I can quickly save and retrieve information
+
+  Scenario: Create a new note
+    Given I have a note with title "Test Note" and content "Test content"
+    When I create a new note
+    Then the response status should be 201
+    And the response should contain the note with title "Test Note"
+```
+
+### 🛠️ Testing Technologies
+
+- **Cucumber** - BDD framework with Gherkin syntax
+- **REST Assured** - API testing library (Backend)
+- **Playwright** - Browser automation (Frontend)
+- **JUnit 5** - Test runner
+- **Spring Boot Test** - Integration testing
+- **H2 Database** - In-memory test database
 
 ## 🎯 Perfect for Java Developers
 
