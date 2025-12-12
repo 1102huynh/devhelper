@@ -1,0 +1,2543 @@
+[
+  {
+    "description": "  As a developer\n  I want to use multiple tools in sequence\n  So that I can complete my development tasks efficiently",
+    "elements": [
+      {
+        "description": "",
+        "id": "end-to-end-workflow;complete-development-workflow",
+        "keyword": "Scenario",
+        "line": 7,
+        "name": "Complete development workflow",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 553625499
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 8,
+            "name": "I am on the home page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:4"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 1091376200
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 9,
+            "name": "I click on \"UUID Generator\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:40"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 610619700
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 10,
+            "name": "I click the generate button",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\uuid-generator-steps.js:4"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 1587225800
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 11,
+            "name": "I should see generated UUIDs",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\uuid-generator-steps.js:21"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 511947699
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 13,
+            "name": "I click on \"JSON Formatter\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:40"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 40936500
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 14,
+            "name": "I enter JSON '{\"id\":\"12345\",\"name\":\"John Doe\",\"email\":\"john@example.com\"}'",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\json-formatter-steps.js:4"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 1864287500
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 15,
+            "name": "I click the format button",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\json-formatter-steps.js:8"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 338333999
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 16,
+            "name": "I should see formatted JSON output",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\json-formatter-steps.js:20"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 4975100
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 18,
+            "name": "I click on \"Notes\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:40"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 48313799
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 19,
+            "name": "I click the create note button",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\notes-steps.js:4"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 1440939400
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 20,
+            "name": "I enter note title \"Project Setup\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\notes-steps.js:8"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 14970000
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 21,
+            "name": "I enter note content \"UUID generated and JSON formatted successfully\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\notes-steps.js:12"
+            },
+            "result": {
+              "status": "failed",
+              "duration": 30012129099,
+              "error_message": "page.fill: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('textarea[placeholder*=\"content\" i], textarea[name=\"content\"]')\u001b[22m\n\n    at World.<anonymous> (D:\\practices\\devhelper\\frontend\\tests\\e2e\\step-definitions\\notes-steps.js:13:19)"
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 22,
+            "name": "I save the note",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\notes-steps.js:16"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 23,
+            "name": "I should see the note \"Project Setup\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\notes-steps.js:29"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 77458599
+            }
+          }
+        ],
+        "tags": [
+          {
+            "name": "@e2e",
+            "line": 6
+          },
+          {
+            "name": "@integration",
+            "line": 6
+          }
+        ],
+        "type": "scenario"
+      },
+      {
+        "description": "",
+        "id": "end-to-end-workflow;quick-smoke-test-of-main-features",
+        "keyword": "Scenario",
+        "line": 26,
+        "name": "Quick smoke test of main features",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 208036999
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 27,
+            "name": "I am on the home page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:4"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 1121304699
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 28,
+            "name": "I should see \"DevHelper\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:61"
+            },
+            "result": {
+              "status": "failed",
+              "duration": 10022833800,
+              "error_message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('text=DevHelper')\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"to.be.visible\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('text=DevHelper')\u001b[22m\n\n    at Proxy.<anonymous> (D:\\practices\\devhelper\\frontend\\node_modules\\playwright\\lib\\matchers\\expect.js:224:24)\n    at World.<anonymous> (D:\\practices\\devhelper\\frontend\\tests\\e2e\\step-definitions\\common-steps.js:62:51)"
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 29,
+            "name": "I should see \"Developer Tools\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:61"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 31,
+            "name": "I click on \"JSON Formatter\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:40"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 32,
+            "name": "I should be on the \"json-formatter\" page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:74"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 34,
+            "name": "I click on \"UUID Generator\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:40"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 35,
+            "name": "I should be on the \"uuid-generator\" page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:74"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 37,
+            "name": "I click on \"Notes\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:40"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 38,
+            "name": "I should be on the \"notes\" page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:74"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 57061000
+            }
+          }
+        ],
+        "tags": [
+          {
+            "name": "@smoke",
+            "line": 25
+          },
+          {
+            "name": "@quick",
+            "line": 25
+          }
+        ],
+        "type": "scenario"
+      },
+      {
+        "description": "",
+        "id": "end-to-end-workflow;check-sidebar-navigation",
+        "keyword": "Scenario",
+        "line": 41,
+        "name": "Check sidebar navigation",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 198085399
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 42,
+            "name": "I am on the home page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:4"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 857303900
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 43,
+            "name": "I should see \"JSON Formatter\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:61"
+            },
+            "result": {
+              "status": "failed",
+              "duration": 58951199,
+              "error_message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('text=JSON Formatter')\nExpected: visible\nError: strict mode violation: locator('text=JSON Formatter') resolved to 2 elements:\n    1) <span class=\"relative z-10 whitespace-nowrap\">JSON Formatter</span> aka getByRole('link', { name: 'JSON Formatter', exact: true })\n    2) <h3 class=\"font-semibold tracking-tight text-lg group-hover:text-primary transition-colors\">JSON Formatter</h3> aka getByRole('link', { name: 'JSON Formatter Format,' })\n\nCall log:\n\u001b[2m  - Expect \"to.be.visible\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('text=JSON Formatter')\u001b[22m\n\n    at Proxy.<anonymous> (D:\\practices\\devhelper\\frontend\\node_modules\\playwright\\lib\\matchers\\expect.js:224:24)\n    at World.<anonymous> (D:\\practices\\devhelper\\frontend\\tests\\e2e\\step-definitions\\common-steps.js:62:51)"
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 44,
+            "name": "I should see \"UUID Generator\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:61"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 45,
+            "name": "I should see \"Notes\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:61"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 46,
+            "name": "I should see \"Regex Tester\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:61"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 47,
+            "name": "I should see \"Hash Generator\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:61"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 48,
+            "name": "I should see \"Base64\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:61"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 80048099
+            }
+          }
+        ],
+        "tags": [
+          {
+            "name": "@accessibility",
+            "line": 40
+          }
+        ],
+        "type": "scenario"
+      },
+      {
+        "description": "",
+        "id": "end-to-end-workflow;toggle-dark/light-theme",
+        "keyword": "Scenario",
+        "line": 51,
+        "name": "Toggle dark/light theme",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 192078399
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 52,
+            "name": "I am on the home page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:4"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 848870900
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 53,
+            "name": "I click on \"Toggle theme\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:40"
+            },
+            "result": {
+              "status": "failed",
+              "duration": 30007901899,
+              "error_message": "page.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('text=Toggle theme')\u001b[22m\n\n    at World.<anonymous> (D:\\practices\\devhelper\\frontend\\tests\\e2e\\step-definitions\\common-steps.js:41:19)"
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 54,
+            "name": "the theme should change",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\integration-steps.js:10"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 55,
+            "name": "I click on \"Toggle theme\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:40"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 56,
+            "name": "the theme should change",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\integration-steps.js:10"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 75832500
+            }
+          }
+        ],
+        "tags": [
+          {
+            "name": "@theme",
+            "line": 50
+          }
+        ],
+        "type": "scenario"
+      },
+      {
+        "description": "",
+        "id": "end-to-end-workflow;collapse-sidebar",
+        "keyword": "Scenario",
+        "line": 59,
+        "name": "Collapse sidebar",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 241336300
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 60,
+            "name": "I am on the home page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:4"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 888499500
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 61,
+            "name": "I click the sidebar toggle button",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\integration-steps.js:5"
+            },
+            "result": {
+              "status": "failed",
+              "duration": 30001913799,
+              "error_message": "page.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"sidebar-toggle\"], button[aria-label*=\"toggle\" i], button[aria-label*=\"menu\" i]')\u001b[22m\n\n    at World.<anonymous> (D:\\practices\\devhelper\\frontend\\tests\\e2e\\step-definitions\\integration-steps.js:6:19)"
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 62,
+            "name": "the sidebar should be collapsed",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\integration-steps.js:18"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 63,
+            "name": "I click the sidebar toggle button",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\integration-steps.js:5"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 64,
+            "name": "the sidebar should be expanded",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\integration-steps.js:31"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 51749600
+            }
+          }
+        ],
+        "tags": [
+          {
+            "name": "@responsive",
+            "line": 58
+          }
+        ],
+        "type": "scenario"
+      }
+    ],
+    "id": "end-to-end-workflow",
+    "line": 1,
+    "keyword": "Feature",
+    "name": "End-to-End Workflow",
+    "tags": [],
+    "uri": "tests\\e2e\\features\\integration.feature"
+  },
+  {
+    "description": "  As a developer\n  I want to format, validate and minify JSON\n  So that I can work with JSON data efficiently in the UI",
+    "elements": [
+      {
+        "description": "",
+        "id": "json-formatter;format-valid-json",
+        "keyword": "Scenario",
+        "line": 9,
+        "name": "Format valid JSON",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 210400200
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 7,
+            "name": "I am on the \"JSON Formatter\" page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:9"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 869428899
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 10,
+            "name": "I enter JSON '{\"name\":\"John\",\"age\":30}'",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\json-formatter-steps.js:4"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 36061499
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 11,
+            "name": "I click the format button",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\json-formatter-steps.js:8"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 404397499
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 12,
+            "name": "I should see formatted JSON output",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\json-formatter-steps.js:20"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 25235799
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 70276299
+            }
+          }
+        ],
+        "tags": [],
+        "type": "scenario"
+      },
+      {
+        "description": "",
+        "id": "json-formatter;validate-valid-json",
+        "keyword": "Scenario",
+        "line": 14,
+        "name": "Validate valid JSON",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 204679799
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 7,
+            "name": "I am on the \"JSON Formatter\" page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:9"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 839202600
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 15,
+            "name": "I enter JSON '{\"name\":\"John\",\"age\":30}'",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\json-formatter-steps.js:4"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 33561699
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 16,
+            "name": "I click the validate button",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\json-formatter-steps.js:12"
+            },
+            "result": {
+              "status": "failed",
+              "duration": 30008547899,
+              "error_message": "page.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button:has-text(\"Validate\")')\u001b[22m\n\n    at World.<anonymous> (D:\\practices\\devhelper\\frontend\\tests\\e2e\\step-definitions\\json-formatter-steps.js:13:19)"
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 17,
+            "name": "I should see a validation success message",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\json-formatter-steps.js:26"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 64627799
+            }
+          }
+        ],
+        "tags": [],
+        "type": "scenario"
+      },
+      {
+        "description": "",
+        "id": "json-formatter;validate-invalid-json",
+        "keyword": "Scenario",
+        "line": 19,
+        "name": "Validate invalid JSON",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 250654700
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 7,
+            "name": "I am on the \"JSON Formatter\" page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:9"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 858879599
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 20,
+            "name": "I enter JSON '{\"name\":\"John\",\"age\":30'",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\json-formatter-steps.js:4"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 46613500
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 21,
+            "name": "I click the validate button",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\json-formatter-steps.js:12"
+            },
+            "result": {
+              "status": "failed",
+              "duration": 30005931800,
+              "error_message": "page.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button:has-text(\"Validate\")')\u001b[22m\n\n    at World.<anonymous> (D:\\practices\\devhelper\\frontend\\tests\\e2e\\step-definitions\\json-formatter-steps.js:13:19)"
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 22,
+            "name": "I should see a validation error message",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\json-formatter-steps.js:30"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 52377000
+            }
+          }
+        ],
+        "tags": [],
+        "type": "scenario"
+      },
+      {
+        "description": "",
+        "id": "json-formatter;minify-json",
+        "keyword": "Scenario",
+        "line": 24,
+        "name": "Minify JSON",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 173749100
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 7,
+            "name": "I am on the \"JSON Formatter\" page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:9"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 828873200
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 25,
+            "name": "I enter JSON '{ \"name\": \"John\", \"age\": 30 }'",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\json-formatter-steps.js:4"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 38334700
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 26,
+            "name": "I click the minify button",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\json-formatter-steps.js:16"
+            },
+            "result": {
+              "status": "failed",
+              "duration": 30007370599,
+              "error_message": "page.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button:has-text(\"Minify\")')\u001b[22m\n\n    at World.<anonymous> (D:\\practices\\devhelper\\frontend\\tests\\e2e\\step-definitions\\json-formatter-steps.js:17:19)"
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 27,
+            "name": "I should see minified JSON",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\json-formatter-steps.js:34"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 56637300
+            }
+          }
+        ],
+        "tags": [],
+        "type": "scenario"
+      },
+      {
+        "description": "",
+        "id": "json-formatter;format-complex-nested-json",
+        "keyword": "Scenario",
+        "line": 29,
+        "name": "Format complex nested JSON",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 181303299
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 7,
+            "name": "I am on the \"JSON Formatter\" page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:9"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 874373399
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 30,
+            "name": "I enter JSON '{\"user\":{\"name\":\"John\",\"address\":{\"city\":\"NYC\"}}}'",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\json-formatter-steps.js:4"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 39238500
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 31,
+            "name": "I click the format button",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\json-formatter-steps.js:8"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 463098900
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 32,
+            "name": "I should see formatted JSON output",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\json-formatter-steps.js:20"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 6959200
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 56444400
+            }
+          }
+        ],
+        "tags": [],
+        "type": "scenario"
+      },
+      {
+        "description": "",
+        "id": "json-formatter;format-json-array",
+        "keyword": "Scenario",
+        "line": 34,
+        "name": "Format JSON array",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 192388799
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 7,
+            "name": "I am on the \"JSON Formatter\" page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:9"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 847415100
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 35,
+            "name": "I enter JSON '[{\"id\":1,\"name\":\"John\"},{\"id\":2,\"name\":\"Jane\"}]'",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\json-formatter-steps.js:4"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 35713500
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 36,
+            "name": "I click the format button",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\json-formatter-steps.js:8"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 417506099
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 37,
+            "name": "I should see formatted JSON output",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\json-formatter-steps.js:20"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 24529699
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 72624599
+            }
+          }
+        ],
+        "tags": [],
+        "type": "scenario"
+      }
+    ],
+    "id": "json-formatter",
+    "line": 1,
+    "keyword": "Feature",
+    "name": "JSON Formatter",
+    "tags": [],
+    "uri": "tests\\e2e\\features\\json-formatter.feature"
+  },
+  {
+    "description": "  As a developer\n  I want to navigate through the DevHelper application\n  So that I can access different tools",
+    "elements": [
+      {
+        "description": "",
+        "id": "navigation;view-home-page",
+        "keyword": "Scenario",
+        "line": 6,
+        "name": "View home page",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 190908900
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 7,
+            "name": "I am on the home page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:4"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 859138200
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 8,
+            "name": "I should see \"DevHelper\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:61"
+            },
+            "result": {
+              "status": "failed",
+              "duration": 10009599400,
+              "error_message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('text=DevHelper')\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"to.be.visible\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('text=DevHelper')\u001b[22m\n\n    at Proxy.<anonymous> (D:\\practices\\devhelper\\frontend\\node_modules\\playwright\\lib\\matchers\\expect.js:224:24)\n    at World.<anonymous> (D:\\practices\\devhelper\\frontend\\tests\\e2e\\step-definitions\\common-steps.js:62:51)"
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 9,
+            "name": "I should see \"Developer Tools\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:61"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 60048999
+            }
+          }
+        ],
+        "tags": [],
+        "type": "scenario"
+      },
+      {
+        "description": "",
+        "id": "navigation;navigate-to-json-formatter",
+        "keyword": "Scenario",
+        "line": 11,
+        "name": "Navigate to JSON Formatter",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 192412299
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 12,
+            "name": "I am on the home page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:4"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 829085599
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 13,
+            "name": "I click on \"JSON Formatter\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:40"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 250341599
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 14,
+            "name": "I should be on the \"json-formatter\" page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:74"
+            },
+            "result": {
+              "status": "failed",
+              "duration": 2347899,
+              "error_message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected substring: \u001b[32m\"json-formatter\"\u001b[39m\nReceived string:    \u001b[31m\"http://localhost:3000/\"\u001b[39m\n    at Proxy.<anonymous> (D:\\practices\\devhelper\\frontend\\node_modules\\playwright\\lib\\matchers\\expect.js:224:24)\n    at World.<anonymous> (D:\\practices\\devhelper\\frontend\\tests\\e2e\\step-definitions\\common-steps.js:76:15)"
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 88585399
+            }
+          }
+        ],
+        "tags": [],
+        "type": "scenario"
+      },
+      {
+        "description": "",
+        "id": "navigation;navigate-to-uuid-generator",
+        "keyword": "Scenario",
+        "line": 16,
+        "name": "Navigate to UUID Generator",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 190225000
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 17,
+            "name": "I am on the home page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:4"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 914194599
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 18,
+            "name": "I click on \"UUID Generator\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:40"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 381527299
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 19,
+            "name": "I should be on the \"uuid-generator\" page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:74"
+            },
+            "result": {
+              "status": "failed",
+              "duration": 991399,
+              "error_message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected substring: \u001b[32m\"uuid-generator\"\u001b[39m\nReceived string:    \u001b[31m\"http://localhost:3000/\"\u001b[39m\n    at Proxy.<anonymous> (D:\\practices\\devhelper\\frontend\\node_modules\\playwright\\lib\\matchers\\expect.js:224:24)\n    at World.<anonymous> (D:\\practices\\devhelper\\frontend\\tests\\e2e\\step-definitions\\common-steps.js:76:15)"
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 60925900
+            }
+          }
+        ],
+        "tags": [],
+        "type": "scenario"
+      },
+      {
+        "description": "",
+        "id": "navigation;navigate-to-notes",
+        "keyword": "Scenario",
+        "line": 21,
+        "name": "Navigate to Notes",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 194194300
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 22,
+            "name": "I am on the home page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:4"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 859633300
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 23,
+            "name": "I click on \"Notes\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:40"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 74698700
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 24,
+            "name": "I should be on the \"notes\" page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:74"
+            },
+            "result": {
+              "status": "failed",
+              "duration": 845399,
+              "error_message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected substring: \u001b[32m\"notes\"\u001b[39m\nReceived string:    \u001b[31m\"http://localhost:3000/\"\u001b[39m\n    at Proxy.<anonymous> (D:\\practices\\devhelper\\frontend\\node_modules\\playwright\\lib\\matchers\\expect.js:224:24)\n    at World.<anonymous> (D:\\practices\\devhelper\\frontend\\tests\\e2e\\step-definitions\\common-steps.js:76:15)"
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 68809999
+            }
+          }
+        ],
+        "tags": [],
+        "type": "scenario"
+      },
+      {
+        "description": "",
+        "id": "navigation;navigate-to-regex-tester",
+        "keyword": "Scenario",
+        "line": 26,
+        "name": "Navigate to Regex Tester",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 281868499
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 27,
+            "name": "I am on the home page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:4"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 950397800
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 28,
+            "name": "I click on \"Regex Tester\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:40"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 382841500
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 29,
+            "name": "I should be on the \"regex-tester\" page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:74"
+            },
+            "result": {
+              "status": "failed",
+              "duration": 794099,
+              "error_message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected substring: \u001b[32m\"regex-tester\"\u001b[39m\nReceived string:    \u001b[31m\"http://localhost:3000/\"\u001b[39m\n    at Proxy.<anonymous> (D:\\practices\\devhelper\\frontend\\node_modules\\playwright\\lib\\matchers\\expect.js:224:24)\n    at World.<anonymous> (D:\\practices\\devhelper\\frontend\\tests\\e2e\\step-definitions\\common-steps.js:76:15)"
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 90507899
+            }
+          }
+        ],
+        "tags": [],
+        "type": "scenario"
+      },
+      {
+        "description": "",
+        "id": "navigation;check-github-star-button",
+        "keyword": "Scenario",
+        "line": 31,
+        "name": "Check GitHub Star button",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 253744799
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 32,
+            "name": "I am on the home page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:4"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 3750893699
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 33,
+            "name": "I should see \"Star on GitHub\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:61"
+            },
+            "result": {
+              "status": "failed",
+              "duration": 74731799,
+              "error_message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('text=Star on GitHub')\nExpected: visible\nError: strict mode violation: locator('text=Star on GitHub') resolved to 2 elements:\n    1) <a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://github.com/1102huynh/devhelper\" class=\"inline-flex items-center justify-center whitespace-nowrap rounded-xl font-medium ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-95 border-2 border-input bg-background hover:bg-accent hover:text-accent-foreground hover:border-primary/50 h-9 px-3 text-xs w-full group…>…</a> aka getByRole('link', { name: 'Star on GitHub' }).first()\n    2) <span>Star on GitHub</span> aka getByRole('main').getByRole('link', { name: 'Star on GitHub' })\n\nCall log:\n\u001b[2m  - Expect \"to.be.visible\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('text=Star on GitHub')\u001b[22m\n\n    at Proxy.<anonymous> (D:\\practices\\devhelper\\frontend\\node_modules\\playwright\\lib\\matchers\\expect.js:224:24)\n    at World.<anonymous> (D:\\practices\\devhelper\\frontend\\tests\\e2e\\step-definitions\\common-steps.js:62:51)"
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 79329099
+            }
+          }
+        ],
+        "tags": [],
+        "type": "scenario"
+      }
+    ],
+    "id": "navigation",
+    "line": 1,
+    "keyword": "Feature",
+    "name": "Navigation",
+    "tags": [],
+    "uri": "tests\\e2e\\features\\navigation.feature"
+  },
+  {
+    "description": "  As a developer\n  I want to manage my quick notes\n  So that I can quickly save and retrieve important information",
+    "elements": [
+      {
+        "description": "",
+        "id": "notes-management;create-a-new-note",
+        "keyword": "Scenario",
+        "line": 9,
+        "name": "Create a new note",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 216001999
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 7,
+            "name": "I am on the \"Notes\" page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:9"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 1253357499
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 10,
+            "name": "I click the create note button",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\notes-steps.js:4"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 112596199
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 11,
+            "name": "I enter note title \"Test Note\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\notes-steps.js:8"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 17498900
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 12,
+            "name": "I enter note content \"This is a test note content\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\notes-steps.js:12"
+            },
+            "result": {
+              "status": "failed",
+              "duration": 30004954600,
+              "error_message": "page.fill: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('textarea[placeholder*=\"content\" i], textarea[name=\"content\"]')\u001b[22m\n\n    at World.<anonymous> (D:\\practices\\devhelper\\frontend\\tests\\e2e\\step-definitions\\notes-steps.js:13:19)"
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 13,
+            "name": "I save the note",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\notes-steps.js:16"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 14,
+            "name": "I should see the note \"Test Note\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\notes-steps.js:29"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 83882700
+            }
+          }
+        ],
+        "tags": [],
+        "type": "scenario"
+      },
+      {
+        "description": "",
+        "id": "notes-management;pin-a-note",
+        "keyword": "Scenario",
+        "line": 16,
+        "name": "Pin a note",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 464994699
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 7,
+            "name": "I am on the \"Notes\" page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:9"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 1632077699
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 17,
+            "name": "I click the create note button",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\notes-steps.js:4"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 649887199
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 18,
+            "name": "I enter note title \"Important Note\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\notes-steps.js:8"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 119907999
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 19,
+            "name": "I enter note content \"This note should be pinned\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\notes-steps.js:12"
+            },
+            "result": {
+              "status": "failed",
+              "duration": 30009390300,
+              "error_message": "page.fill: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('textarea[placeholder*=\"content\" i], textarea[name=\"content\"]')\u001b[22m\n\n    at World.<anonymous> (D:\\practices\\devhelper\\frontend\\tests\\e2e\\step-definitions\\notes-steps.js:13:19)"
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 20,
+            "name": "I save the note",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\notes-steps.js:16"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 21,
+            "name": "I click the pin button for the note",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\notes-steps.js:21"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 22,
+            "name": "the note should be pinned",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\notes-steps.js:33"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 117071200
+            }
+          }
+        ],
+        "tags": [],
+        "type": "scenario"
+      },
+      {
+        "description": "",
+        "id": "notes-management;delete-a-note",
+        "keyword": "Scenario",
+        "line": 24,
+        "name": "Delete a note",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 429489300
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 7,
+            "name": "I am on the \"Notes\" page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:9"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 1225223499
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 25,
+            "name": "I click the create note button",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\notes-steps.js:4"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 1162280499
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 26,
+            "name": "I enter note title \"Temporary Note\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\notes-steps.js:8"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 89678000
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 27,
+            "name": "I enter note content \"This note will be deleted\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\notes-steps.js:12"
+            },
+            "result": {
+              "status": "failed",
+              "duration": 30014857300,
+              "error_message": "page.fill: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('textarea[placeholder*=\"content\" i], textarea[name=\"content\"]')\u001b[22m\n\n    at World.<anonymous> (D:\\practices\\devhelper\\frontend\\tests\\e2e\\step-definitions\\notes-steps.js:13:19)"
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 28,
+            "name": "I save the note",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\notes-steps.js:16"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 29,
+            "name": "I click the delete button for the note",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\notes-steps.js:25"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 30,
+            "name": "the note should be deleted",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\notes-steps.js:37"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 154275399
+            }
+          }
+        ],
+        "tags": [],
+        "type": "scenario"
+      },
+      {
+        "description": "",
+        "id": "notes-management;view-all-notes",
+        "keyword": "Scenario",
+        "line": 32,
+        "name": "View all notes",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 220855800
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 7,
+            "name": "I am on the \"Notes\" page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:9"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 1392540299
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 33,
+            "name": "I am on the \"Notes\" page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:9"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 1152302000
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 34,
+            "name": "I should see \"Notes\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:61"
+            },
+            "result": {
+              "status": "failed",
+              "duration": 64288800,
+              "error_message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('text=Notes')\nExpected: visible\nError: strict mode violation: locator('text=Notes') resolved to 4 elements:\n    1) <span class=\"relative z-10 whitespace-nowrap\">Notes</span> aka getByRole('link', { name: 'Notes' })\n    2) <h1 class=\"text-4xl font-bold\">Task Notes</h1> aka getByRole('heading', { name: 'Task Notes' })\n    3) <p class=\"text-muted-foreground text-lg\">…</p> aka getByText('Lightning-fast notes • Press')\n    4) <p class=\"text-sm text-muted-foreground whitespace-pre-wrap line-clamp-6\">This is your quick notes area. Press Ctrl+Space t…</p> aka getByText('This is your quick notes area')\n\nCall log:\n\u001b[2m  - Expect \"to.be.visible\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('text=Notes')\u001b[22m\n\n    at Proxy.<anonymous> (D:\\practices\\devhelper\\frontend\\node_modules\\playwright\\lib\\matchers\\expect.js:224:24)\n    at World.<anonymous> (D:\\practices\\devhelper\\frontend\\tests\\e2e\\step-definitions\\common-steps.js:62:51)"
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 35,
+            "name": "I should see \"Add Note\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:61"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 62513099
+            }
+          }
+        ],
+        "tags": [],
+        "type": "scenario"
+      }
+    ],
+    "id": "notes-management",
+    "line": 1,
+    "keyword": "Feature",
+    "name": "Notes Management",
+    "tags": [],
+    "uri": "tests\\e2e\\features\\notes.feature"
+  },
+  {
+    "description": "  As a developer\n  I want to test regular expressions\n  So that I can validate and debug regex patterns",
+    "elements": [
+      {
+        "description": "",
+        "id": "regex-tester;test-simple-regex-pattern",
+        "keyword": "Scenario",
+        "line": 9,
+        "name": "Test simple regex pattern",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 206149099
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 7,
+            "name": "I am on the \"Regex Tester\" page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:9"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 837565200
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 10,
+            "name": "I fill the input with \"test@example.com\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:53"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 55156900
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 11,
+            "name": "I should see \"Regex Tester\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:61"
+            },
+            "result": {
+              "status": "failed",
+              "duration": 17198700,
+              "error_message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('text=Regex Tester')\nExpected: visible\nError: strict mode violation: locator('text=Regex Tester') resolved to 2 elements:\n    1) <span class=\"relative z-10 whitespace-nowrap\">Regex Tester</span> aka getByRole('link', { name: 'Regex Tester' })\n    2) <h1 class=\"text-4xl font-bold\">Regex Tester</h1> aka getByRole('heading', { name: 'Regex Tester' })\n\nCall log:\n\u001b[2m  - Expect \"to.be.visible\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('text=Regex Tester')\u001b[22m\n\n    at Proxy.<anonymous> (D:\\practices\\devhelper\\frontend\\node_modules\\playwright\\lib\\matchers\\expect.js:224:24)\n    at World.<anonymous> (D:\\practices\\devhelper\\frontend\\tests\\e2e\\step-definitions\\common-steps.js:62:51)"
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 66270299
+            }
+          }
+        ],
+        "tags": [],
+        "type": "scenario"
+      },
+      {
+        "description": "",
+        "id": "regex-tester;test-email-validation-regex",
+        "keyword": "Scenario",
+        "line": 13,
+        "name": "Test email validation regex",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 206743900
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 7,
+            "name": "I am on the \"Regex Tester\" page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:9"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 851275399
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 14,
+            "name": "I fill the input with \"user@domain.com\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:53"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 52365600
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 15,
+            "name": "I should see \"Test String\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:61"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 7918599
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 49887199
+            }
+          }
+        ],
+        "tags": [],
+        "type": "scenario"
+      },
+      {
+        "description": "",
+        "id": "regex-tester;test-phone-number-regex",
+        "keyword": "Scenario",
+        "line": 17,
+        "name": "Test phone number regex",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 204394800
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 7,
+            "name": "I am on the \"Regex Tester\" page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:9"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 838886200
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 18,
+            "name": "I fill the input with \"+1-234-567-8900\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:53"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 60125999
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 19,
+            "name": "I should see \"Regex Tester\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:61"
+            },
+            "result": {
+              "status": "failed",
+              "duration": 25561300,
+              "error_message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('text=Regex Tester')\nExpected: visible\nError: strict mode violation: locator('text=Regex Tester') resolved to 2 elements:\n    1) <span class=\"relative z-10 whitespace-nowrap\">Regex Tester</span> aka getByRole('link', { name: 'Regex Tester' })\n    2) <h1 class=\"text-4xl font-bold\">Regex Tester</h1> aka getByRole('heading', { name: 'Regex Tester' })\n\nCall log:\n\u001b[2m  - Expect \"to.be.visible\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('text=Regex Tester')\u001b[22m\n\n    at Proxy.<anonymous> (D:\\practices\\devhelper\\frontend\\node_modules\\playwright\\lib\\matchers\\expect.js:224:24)\n    at World.<anonymous> (D:\\practices\\devhelper\\frontend\\tests\\e2e\\step-definitions\\common-steps.js:62:51)"
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 76120999
+            }
+          }
+        ],
+        "tags": [],
+        "type": "scenario"
+      }
+    ],
+    "id": "regex-tester",
+    "line": 1,
+    "keyword": "Feature",
+    "name": "Regex Tester",
+    "tags": [],
+    "uri": "tests\\e2e\\features\\regex-tester.feature"
+  },
+  {
+    "description": "  As a developer\n  I want to generate UUIDs\n  So that I can use them as unique identifiers in my projects",
+    "elements": [
+      {
+        "description": "",
+        "id": "uuid-generator;generate-a-single-uuid",
+        "keyword": "Scenario",
+        "line": 9,
+        "name": "Generate a single UUID",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 233392899
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 7,
+            "name": "I am on the \"UUID Generator\" page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:9"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 871343999
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 10,
+            "name": "I click the generate button",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\uuid-generator-steps.js:4"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 438197699
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 11,
+            "name": "I should see generated UUIDs",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\uuid-generator-steps.js:21"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 517110700
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 54263800
+            }
+          }
+        ],
+        "tags": [],
+        "type": "scenario"
+      },
+      {
+        "description": "",
+        "id": "uuid-generator;generate-multiple-uuids",
+        "keyword": "Scenario",
+        "line": 13,
+        "name": "Generate multiple UUIDs",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 205306200
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 7,
+            "name": "I am on the \"UUID Generator\" page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:9"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 817517200
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 14,
+            "name": "I select to generate 5 UUIDs",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\uuid-generator-steps.js:8"
+            },
+            "result": {
+              "status": "failed",
+              "duration": 30003972399,
+              "error_message": "page.selectOption: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('select')\u001b[22m\n\n    at World.<anonymous> (D:\\practices\\devhelper\\frontend\\tests\\e2e\\step-definitions\\uuid-generator-steps.js:9:19)"
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 15,
+            "name": "I click the generate button",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\uuid-generator-steps.js:4"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 16,
+            "name": "I should see 5 UUID",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\uuid-generator-steps.js:12"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 52671099
+            }
+          }
+        ],
+        "tags": [],
+        "type": "scenario"
+      },
+      {
+        "description": "",
+        "id": "uuid-generator;generate-uuid-on-page-load",
+        "keyword": "Scenario",
+        "line": 18,
+        "name": "Generate UUID on page load",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 221254199
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 7,
+            "name": "I am on the \"UUID Generator\" page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:9"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 950380999
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 19,
+            "name": "I am on the \"UUID Generator\" page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:9"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 841180700
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 20,
+            "name": "I should see generated UUIDs",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\uuid-generator-steps.js:21"
+            },
+            "result": {
+              "status": "failed",
+              "duration": 30512627799,
+              "error_message": "locator.textContent: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('textarea, pre, code, .uuid-output').last()\u001b[22m\n\n    at World.<anonymous> (D:\\practices\\devhelper\\frontend\\tests\\e2e\\step-definitions\\uuid-generator-steps.js:23:86)"
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 74357699
+            }
+          }
+        ],
+        "tags": [],
+        "type": "scenario"
+      },
+      {
+        "description": "",
+        "id": "uuid-generator;copy-uuid-to-clipboard",
+        "keyword": "Scenario",
+        "line": 22,
+        "name": "Copy UUID to clipboard",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 215226900
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 7,
+            "name": "I am on the \"UUID Generator\" page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:9"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 845134599
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 23,
+            "name": "I am on the \"UUID Generator\" page",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:9"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 837317500
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 24,
+            "name": "I click the generate button",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\uuid-generator-steps.js:4"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 425302700
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 25,
+            "name": "I should see \"Copy\"",
+            "match": {
+              "location": "tests\\e2e\\step-definitions\\common-steps.js:61"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 4596499
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 77218699
+            }
+          }
+        ],
+        "tags": [],
+        "type": "scenario"
+      }
+    ],
+    "id": "uuid-generator",
+    "line": 1,
+    "keyword": "Feature",
+    "name": "UUID Generator",
+    "tags": [],
+    "uri": "tests\\e2e\\features\\uuid-generator.feature"
+  }
+]

@@ -215,6 +215,13 @@ This project includes comprehensive **Behavior-Driven Development (BDD)** testin
 
 ### 🚀 Running Tests
 
+**📖 Complete Documentation:**
+- **Quick Start**: [`CUCUMBER_QUICK_START.md`](CUCUMBER_QUICK_START.md) - 5-minute setup
+- **Troubleshooting**: [`CUCUMBER_TROUBLESHOOTING.md`](CUCUMBER_TROUBLESHOOTING.md) - 13 common issues & solutions
+- **Checklist**: [`CUCUMBER_CHECKLIST.md`](CUCUMBER_CHECKLIST.md) - Complete execution guide
+- **Fix Summary**: [`CUCUMBER_FIX_SUMMARY.md`](CUCUMBER_FIX_SUMMARY.md) - Technical details
+- **Complete Guide**: [`CUCUMBER_COMPLETE.md`](CUCUMBER_COMPLETE.md) - Full overview
+
 **Quick Start - Run All Tests:**
 ```bash
 # Windows
@@ -238,6 +245,11 @@ mvn clean verify
 
 **Frontend Tests Only:**
 ```bash
+# FIRST TIME SETUP (Required):
+cd frontend
+npm install
+npx playwright install chromium  # ← Install browsers
+
 # Start servers first (Terminal 1 & 2)
 cd backend && mvn spring-boot:run
 cd frontend && npm run dev
@@ -248,6 +260,8 @@ npm run test:e2e:report
 
 # View report: frontend/test-results/cucumber-report.html
 ```
+
+**⚠️ Important**: Playwright browsers must be installed before running E2E tests. See [CUCUMBER_QUICK_START.md](CUCUMBER_QUICK_START.md) for details.
 
 **Run by Tags:**
 ```bash

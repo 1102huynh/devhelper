@@ -1,11 +1,11 @@
 package com.devhelper.cucumber.stepdefs;
 
 import com.devhelper.cucumber.CucumberSpringConfiguration;
+import com.devhelper.cucumber.TestContext;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import io.restassured.RestAssured;
-import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -20,14 +20,14 @@ public class DiffCheckerStepDefs {
     @Autowired
     private CucumberSpringConfiguration config;
 
+    @Autowired
+    private TestContext testContext;
+
     private RequestSpecification request;
-    private Response response;
-    private String originalText;
-    private String modifiedText;
 
     @Given("I have original text {string}")
     public void iHaveOriginalText(String text) {
-        this.originalText = text;
+        testContext.setOriginalText(text);
         RestAssured.baseURI = config.getBaseUrl();
         request = given()
                 .contentType("application/json")
@@ -36,37 +36,37 @@ public class DiffCheckerStepDefs {
 
     @Given("I have modified text {string}")
     public void iHaveModifiedText(String text) {
-        this.modifiedText = text;
+        testContext.setModifiedText(text);
     }
 
     @When("I compare the texts")
     public void iCompareTheTexts() {
         String requestBody = String.format(
                 "{\"original\":\"%s\",\"modified\":\"%s\"}",
-                originalText, modifiedText
+                testContext.getOriginalText(), testContext.getModifiedText()
         );
 
-        response = request
+        testContext.setResponse(request
                 .body(requestBody)
                 .when()
-                .post("/api/diff/compare");
+                .post("/api/diff/compare"));
     }
 
     @Then("the response should contain diff results")
     public void theResponseShouldContainDiffResults() {
-        response.then()
+        testContext.getResponse().then()
                 .body("diff", notNullValue());
     }
 
     @Then("the diff should show changes")
     public void theDiffShouldShowChanges() {
-        response.then()
+        testContext.getResponse().then()
                 .body("hasChanges", equalTo(true));
     }
 
     @Then("the diff should show no changes")
     public void theDiffShouldShowNoChanges() {
-        response.then()
+        testContext.getResponse().then()
                 .body("hasChanges", equalTo(false));
     }
 }

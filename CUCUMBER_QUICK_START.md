@@ -16,6 +16,10 @@ cd devhelper
 # Install frontend dependencies
 cd frontend
 npm install
+
+# Install Playwright browsers (required for E2E tests)
+npx playwright install chromium
+
 cd ..
 ```
 
@@ -43,17 +47,24 @@ mvn clean verify
 cd backend
 mvn spring-boot:run
 
-# Terminal 2 - Frontend
+# Terminal 2 - Frontend (wait for backend to start)
 cd frontend
 npm run dev
 
-# Terminal 3 - Tests
+# Terminal 3 - Tests (wait for both servers to be ready)
 cd frontend
+npm run test:e2e
+
+# Or with HTML report
 npm run test:e2e:report
 
 # View report
 # Open: test-results/cucumber-report.html
 ```
+
+**Note**: Make sure both servers are fully started before running tests:
+- Backend should be at http://localhost:8080
+- Frontend should be at http://localhost:3000
 
 ## 🚀 Automated Testing (One Command)
 
@@ -246,17 +257,17 @@ frontend/test-results/cucumber-report.html
 
 ## 🔧 Common Issues & Solutions
 
-### Issue 1: Tests timeout
+**📖 See detailed troubleshooting guide**: `CUCUMBER_TROUBLESHOOTING.md`
 
-**Solution**:
-```javascript
-// Frontend: Edit tests/e2e/support/hooks.js
-setDefaultTimeout(120000); // Increase timeout
+### Quick Fixes
+
+#### Issue 1: Configuration errors
+```bash
+# Fix: Update cucumber.js to use latest format
+publish: false  # Instead of publishQuiet: true
 ```
 
-### Issue 2: Port already in use
-
-**Solution**:
+#### Issue 2: Port already in use
 ```bash
 # Windows
 netstat -ano | findstr :3000
@@ -266,22 +277,21 @@ taskkill /PID <PID> /F
 lsof -ti:3000 | xargs kill -9
 ```
 
-### Issue 3: Backend tests fail - connection refused
-
-**Solution**:
-```yaml
-# Edit backend/src/test/resources/application-test.yml
-server:
-  port: 0  # Use random port
-```
-
-### Issue 4: Frontend tests fail - element not found
-
-**Solution**:
+#### Issue 3: Tests timeout
 ```javascript
-// Add explicit wait
-await this.page.waitForSelector('selector', { timeout: 10000 });
+// Frontend: Edit tests/e2e/support/hooks.js
+setDefaultTimeout(120000); // Increase timeout
 ```
+
+#### Issue 4: Cannot read properties of undefined
+```bash
+# Ensure servers are running:
+# Terminal 1: cd backend && mvn spring-boot:run
+# Terminal 2: cd frontend && npm run dev
+# Terminal 3: cd frontend && npm run test:e2e
+```
+
+For more issues and solutions, see **CUCUMBER_TROUBLESHOOTING.md**
 
 ## 📚 Useful Commands Cheat Sheet
 

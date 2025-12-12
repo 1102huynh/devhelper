@@ -1,10 +1,6 @@
 const { When, Then } = require('@cucumber/cucumber');
 const { expect } = require('@playwright/test');
 
-When('I click on {string}', async function (linkText) {
-  await this.page.click(`text=${linkText}`);
-  await this.page.waitForLoadState('networkidle');
-});
 
 When('I click the sidebar toggle button', async function () {
   await this.page.click('[data-testid="sidebar-toggle"], button[aria-label*="toggle" i], button[aria-label*="menu" i]');

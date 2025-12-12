@@ -1,11 +1,11 @@
 package com.devhelper.cucumber.stepdefs;
 
 import com.devhelper.cucumber.CucumberSpringConfiguration;
+import com.devhelper.cucumber.TestContext;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import io.restassured.RestAssured;
-import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -21,11 +21,12 @@ public class NotesStepDefs {
     @Autowired
     private CucumberSpringConfiguration config;
 
+    @Autowired
+    private TestContext testContext;
+
     private RequestSpecification request;
-    private Response response;
     private String noteTitle;
     private String noteContent;
-    private Long createdNoteId;
 
     @Given("the API is available")
     public void theApiIsAvailable() {
@@ -48,28 +49,28 @@ public class NotesStepDefs {
                 noteTitle, noteContent
         );
 
-        response = request
+        testContext.setResponse(request
                 .body(requestBody)
                 .when()
-                .post("/api/notes");
+                .post("/api/notes"));
 
-        if (response.getStatusCode() == 201) {
-            createdNoteId = response.jsonPath().getLong("id");
+        if (testContext.getResponse().getStatusCode() == 201) {
+            testContext.setCurrentNoteId(testContext.getResponse().jsonPath().getLong("id"));
         }
     }
 
     @When("I retrieve all notes")
     public void iRetrieveAllNotes() {
-        response = request
+        testContext.setResponse(request
                 .when()
-                .get("/api/notes");
+                .get("/api/notes"));
     }
 
     @When("I retrieve the note by ID")
     public void iRetrieveTheNoteById() {
-        response = request
+        testContext.setResponse(request
                 .when()
-                .get("/api/notes/" + createdNoteId);
+                .get("/api/notes/" + testContext.getCurrentNoteId()));
     }
 
     @When("I update the note content to {string}")
@@ -79,52 +80,52 @@ public class NotesStepDefs {
                 noteTitle, newContent
         );
 
-        response = request
+        testContext.setResponse(request
                 .body(requestBody)
                 .when()
-                .put("/api/notes/" + createdNoteId);
+                .put("/api/notes/" + testContext.getCurrentNoteId()));
     }
 
     @When("I delete the note")
     public void iDeleteTheNote() {
-        response = request
+        testContext.setResponse(request
                 .when()
-                .delete("/api/notes/" + createdNoteId);
+                .delete("/api/notes/" + testContext.getCurrentNoteId()));
     }
 
     @When("I pin the note")
     public void iPinTheNote() {
-        response = request
+        testContext.setResponse(request
                 .when()
-                .patch("/api/notes/" + createdNoteId + "/pin");
+                .patch("/api/notes/" + testContext.getCurrentNoteId() + "/pin"));
     }
 
     @Then("the response status should be {int}")
     public void theResponseStatusShouldBe(int statusCode) {
-        assertEquals(statusCode, response.getStatusCode());
+        assertEquals(statusCode, testContext.getResponse().getStatusCode());
     }
 
     @Then("the response should contain the note with title {string}")
     public void theResponseShouldContainTheNoteWithTitle(String title) {
-        response.then()
+        testContext.getResponse().then()
                 .body("title", equalTo(title));
     }
 
     @Then("the response should contain at least one note")
     public void theResponseShouldContainAtLeastOneNote() {
-        response.then()
+        testContext.getResponse().then()
                 .body("size()", greaterThan(0));
     }
 
     @Then("the note should be pinned")
     public void theNoteShouldBePinned() {
-        response.then()
+        testContext.getResponse().then()
                 .body("pinned", equalTo(true));
     }
 
     @Then("the note content should be {string}")
     public void theNoteContentShouldBe(String content) {
-        response.then()
+        testContext.getResponse().then()
                 .body("content", equalTo(content));
     }
 }
