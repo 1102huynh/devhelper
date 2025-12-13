@@ -29,7 +29,7 @@ server:
 
 # CORS Configuration
 cors:
-  allowed-origins: https://devhelper.vercel.app,https://*.vercel.app,http://localhost:3000
+  allowed-origins: https://devhelper-iota.vercel.app,https://*.vercel.app,http://localhost:3000
   allowed-methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
   allowed-headers: "*"
   allow-credentials: true
