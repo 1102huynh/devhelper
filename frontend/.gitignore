@@ -25,7 +25,11 @@ yarn-error.log*
 
 # Local env files
 .env*.local
-.env
+.env.local
+!.env.local.example
+
+# Production env (commit this for Vercel)
+# .env.production is committed
 
 # Vercel
 .vercel

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
@@ -19,7 +20,9 @@ import java.util.List;
 public class FileStorageService {
 
     private static final Logger logger = LoggerFactory.getLogger(FileStorageService.class);
-    private static final String DATA_DIR = "D:/devhelper-data/";
+
+    @Value("${file.storage.base-path:D:/devhelper-data/}")
+    private String DATA_DIR;
 
     private final ObjectMapper objectMapper;
 

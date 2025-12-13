@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: devhelper-backend
+    env: docker
+    region: singapore
+    plan: free
+    branch: main
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /actuator/health
+    autoDeploy: true
+    envVars:
+      - key: JAVA_TOOL_OPTIONS
+        value: -Xmx512m -Xms256m
+      - key: SPRING_PROFILES_ACTIVE
+        value: production
+      - key: SERVER_PORT
+        value: 10000
+      - key: FILE_STORAGE_BASE_PATH
+        value: /opt/render/project/data
+      - key: FIREBASE_ENABLED
+        value: false
+    disk:
+      name: devhelper-data
+      mountPath: /opt/render/project/data
+      sizeGB: 1
+

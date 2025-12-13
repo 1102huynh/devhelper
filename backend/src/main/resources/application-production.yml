@@ -1,0 +1,53 @@
+spring:
+  application:
+    name: devhelper-backend
+
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      indent_output: true
+
+# Firebase Configuration (Disabled in production)
+firebase:
+  enabled: false
+  credentials-path: classpath:test-c3845-firebase-adminsdk-fbsvc-a0817d969a.json
+  database-url: https://test-c3845-default-rtdb.firebaseio.com
+
+# File Storage Configuration
+file:
+  storage:
+    base-path: ${FILE_STORAGE_BASE_PATH:/opt/render/project/data}
+
+server:
+  port: ${PORT:10000}
+  error:
+    include-message: always
+    include-binding-errors: always
+  compression:
+    enabled: true
+  forward-headers-strategy: framework
+
+# CORS Configuration
+cors:
+  allowed-origins: https://devhelper.vercel.app,https://*.vercel.app,http://localhost:3000
+  allowed-methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
+  allowed-headers: "*"
+  allow-credentials: true
+
+logging:
+  level:
+    com.devhelper: INFO
+    org.springframework.web: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+# Actuator for health checks
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+
