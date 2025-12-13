@@ -1,0 +1,4 @@
+# Local Development Environment Variables
+# Override storage path for Windows development
+file.storage.base-path=D:/devhelper-data/
+

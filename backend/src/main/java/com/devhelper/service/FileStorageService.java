@@ -21,7 +21,8 @@ public class FileStorageService {
 
     private static final Logger logger = LoggerFactory.getLogger(FileStorageService.class);
 
-    @Value("${file.storage.base-path:D:/devhelper-data/}")
+    // Use Render persistent disk path as default (will be overridden by env var if set)
+    @Value("${file.storage.base-path:/opt/render/project/data}")
     private String DATA_DIR;
 
     private final ObjectMapper objectMapper;
