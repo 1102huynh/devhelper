@@ -10,12 +10,12 @@ services:
     healthCheckPath: /actuator/health
     autoDeploy: true
     envVars:
+      - key: PORT
+        value: 10000
       - key: JAVA_TOOL_OPTIONS
         value: -Xmx512m -Xms256m
       - key: SPRING_PROFILES_ACTIVE
         value: production
-      - key: SERVER_PORT
-        value: 10000
       - key: FILE_STORAGE_BASE_PATH
         value: /opt/render/project/data
       - key: FIREBASE_ENABLED
