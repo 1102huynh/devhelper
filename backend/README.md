@@ -37,10 +37,11 @@ backend/
 │   │   ├── Note.java
 │   │   └── SshCommand.java
 │   ├── repository/
-│   │   ├── NoteRepository.java
-│   │   └── SshCommandRepository.java
+│   │   ├── FirebaseNoteRepository.java
+│   │   └── FirebaseSshCommandRepository.java
 │   └── service/
 │       ├── ApiTesterService.java
+│       ├── FirebaseService.java
 │       ├── JsonService.java
 │       ├── NoteService.java
 │       ├── RegexService.java

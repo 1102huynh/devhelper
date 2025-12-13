@@ -31,16 +31,24 @@ A comprehensive, production-ready suite of **20 professional developer tools** d
 18. **Timestamp Converter** - Convert Unix timestamps to readable dates
 
 ### 📝 Productivity
-19. **SSH Commands Manager** - Store and manage frequently used SSH commands
-20. **Task Notes** - Lightning-fast notes with Ctrl+Space shortcut
+19. **SSH Commands Manager** - Store and manage frequently used SSH commands (Firebase)
+20. **Task Notes** - Lightning-fast notes with Ctrl+Space shortcut (Firebase)
+
+### 🎯 Bonus Tools
+21. **HTTP Headers Analyzer** - Analyze HTTP request/response headers
+22. **JSON Schema Validator** - Validate JSON against schemas
+23. **CSS Selector Tester** - Test CSS selectors
+24. **Mock API Generator** - Generate mock REST APIs
+25. **Test Data Generator** - Generate test data sets
 
 ## 🛠️ Tech Stack
 
 ### Backend
 - Java 17+
-- Spring Boot 3.x
+- Spring Boot 3.2.1
 - Maven
-- In-memory storage (H2)
+- Firebase Realtime Database
+- REST API with CORS support
 
 ### Frontend
 - Next.js 14+ (App Router)
