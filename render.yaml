@@ -4,7 +4,7 @@ services:
     env: docker
     region: singapore
     plan: free
-    branch: main
+    branch: develop
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     healthCheckPath: /actuator/health
