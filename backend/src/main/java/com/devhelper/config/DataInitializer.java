@@ -2,8 +2,8 @@ package com.devhelper.config;
 
 import com.devhelper.model.Note;
 import com.devhelper.model.SshCommand;
-import com.devhelper.repository.FirebaseNoteRepository;
-import com.devhelper.repository.FirebaseSshCommandRepository;
+import com.devhelper.repository.FileNoteRepository;
+import com.devhelper.repository.FileSshCommandRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,11 +12,11 @@ import org.springframework.context.annotation.Configuration;
 public class DataInitializer {
 
     @Bean
-    CommandLineRunner initDatabase(FirebaseSshCommandRepository sshRepo, FirebaseNoteRepository noteRepo) {
+    CommandLineRunner initDatabase(FileSshCommandRepository sshRepo, FileNoteRepository noteRepo) {
         return args -> {
             // Check if data already exists
-            long sshCommandsCount = sshRepo.findAll().join().size();
-            long notesCount = noteRepo.findAll().join().size();
+            long sshCommandsCount = sshRepo.count();
+            long notesCount = noteRepo.count();
 
             if (sshCommandsCount > 0 && notesCount > 0) {
                 System.out.println("⏩ Data already exists. Skipping initialization.");
@@ -32,70 +32,70 @@ public class DataInitializer {
                     "ssh user@hostname -p 22",
                     "Connect to remote server via SSH",
                     "Connection"
-                )).join();
+                ));
 
                 sshRepo.save(createSshCommand(
                     "SSH with key",
                     "ssh -i ~/.ssh/id_rsa user@hostname",
                     "Connect using SSH key authentication",
                     "Connection"
-                )).join();
+                ));
 
                 sshRepo.save(createSshCommand(
                     "Copy file to server",
                     "scp /local/file.txt user@hostname:/remote/path/",
                     "Copy file from local to remote server",
                     "File Transfer"
-                )).join();
+                ));
 
                 sshRepo.save(createSshCommand(
                     "Copy file from server",
                     "scp user@hostname:/remote/file.txt /local/path/",
                     "Copy file from remote server to local",
                     "File Transfer"
-                )).join();
+                ));
 
                 sshRepo.save(createSshCommand(
                     "SSH tunnel",
                     "ssh -L 8080:localhost:80 user@hostname",
                     "Create SSH tunnel for port forwarding",
                     "Tunneling"
-                )).join();
+                ));
 
                 sshRepo.save(createSshCommand(
                     "Execute remote command",
                     "ssh user@hostname 'ls -la /var/www'",
                     "Execute command on remote server",
                     "Remote Execution"
-                )).join();
+                ));
 
                 sshRepo.save(createSshCommand(
                     "Check disk usage",
                     "ssh user@hostname 'df -h'",
                     "Check disk space on remote server",
                     "Monitoring"
-                )).join();
+                ));
 
                 sshRepo.save(createSshCommand(
                     "Restart service",
                     "ssh user@hostname 'sudo systemctl restart nginx'",
                     "Restart service on remote server",
                     "System Admin"
-                )).join();
+                ));
 
                 sshRepo.save(createSshCommand(
                     "View logs",
                     "ssh user@hostname 'tail -f /var/log/application.log'",
                     "Stream logs from remote server",
                     "Monitoring"
-                )).join();
+                ));
 
                 sshRepo.save(createSshCommand(
                     "Copy directory",
                     "scp -r /local/dir user@hostname:/remote/path/",
                     "Recursively copy directory to remote server",
                     "File Transfer"
-                )).join();
+                ));
 
                 System.out.println("✅ SSH Commands initialized!");
             }
@@ -106,43 +106,43 @@ public class DataInitializer {
                     "Welcome to Dev Helper",
                     "This is your quick notes area. Press Ctrl+Space to quickly add notes!",
                     "welcome,getting-started",
-                    true
-                )).join();
+                    false
+                ));
 
                 noteRepo.save(createNote(
                     "Regex Pattern Examples",
                     "Email: ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$\nURL: https?:\\/\\/(www\\.)?[-a-zA-Z0-9@:%._\\+~#=]{1,256}\\.[a-zA-Z0-9()]{1,6}\\b",
                     "regex,reference",
-                    true
-                )).join();
+                    false
+                ));
 
                 noteRepo.save(createNote(
                     "Common Git Commands",
                     "git status\ngit add .\ngit commit -m \"message\"\ngit push origin main\ngit pull\ngit branch -a",
                     "git,commands",
                     false
-                )).join();
+                ));
 
                 noteRepo.save(createNote(
                     "Docker Quick Reference",
                     "docker ps\ndocker images\ndocker build -t name .\ndocker run -p 8080:80 image\ndocker-compose up -d",
                     "docker,reference",
                     false
-                )).join();
+                ));
 
                 noteRepo.save(createNote(
                     "API Testing Tips",
                     "- Always check response status codes\n- Validate response schema\n- Test error scenarios\n- Check response times\n- Use proper authentication",
                     "api,testing,tips",
                     false
-                )).join();
+                ));
 
                 noteRepo.save(createNote(
                     "JSON Formatting Shortcuts",
                     "Ctrl+Shift+F - Format\nCtrl+Shift+M - Minify\nCtrl+Shift+V - Validate",
                     "json,shortcuts",
                     false
-                )).join();
+                ));
 
                 System.out.println("✅ Notes initialized!");
             }

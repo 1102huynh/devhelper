@@ -1,7 +1,7 @@
 package com.devhelper.service;
 
 import com.devhelper.model.Note;
-import com.devhelper.repository.FirebaseNoteRepository;
+import com.devhelper.repository.FileNoteRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -13,62 +13,54 @@ import java.util.concurrent.CompletableFuture;
 public class NoteService {
 
     @Autowired
-    private FirebaseNoteRepository repository;
+    private FileNoteRepository repository;
 
     public CompletableFuture<List<Note>> getAllNotes() {
-        return repository.findAll();
+        return CompletableFuture.completedFuture(repository.findAll());
     }
 
     public CompletableFuture<Optional<Note>> getNoteById(String id) {
-        return repository.findById(id);
+        return CompletableFuture.completedFuture(repository.findById(id));
     }
 
     public CompletableFuture<List<Note>> searchNotes(String query) {
-        return repository.searchByTitleOrContent(query);
+        return CompletableFuture.completedFuture(repository.searchByTitleOrContent(query));
     }
 
     public CompletableFuture<List<Note>> getNotesByTag(String tag) {
-        return repository.findAll()
-                .thenApply(notes -> notes.stream()
-                        .filter(note -> note.getTags() != null && note.getTags().contains(tag))
-                        .toList());
+        return CompletableFuture.completedFuture(repository.findByTag(tag));
     }
 
     public CompletableFuture<Note> createNote(Note note) {
-        return repository.save(note);
+        return CompletableFuture.completedFuture(repository.save(note));
     }
 
     public CompletableFuture<Note> updateNote(String id, Note note) {
-        return repository.findById(id)
-                .thenCompose(existing -> {
-                    if (existing.isPresent()) {
-                        Note existingNote = existing.get();
-                        existingNote.setTitle(note.getTitle());
-                        existingNote.setContent(note.getContent());
-                        existingNote.setTags(note.getTags());
-                        if (note.isPinned() != existingNote.isPinned()) {
-                            existingNote.setPinned(note.isPinned());
-                        }
-                        return repository.save(existingNote);
-                    }
-                    throw new RuntimeException("Note not found");
-                });
+        Optional<Note> existing = repository.findById(id);
+        if (existing.isPresent()) {
+            Note existingNote = existing.get();
+            existingNote.setTitle(note.getTitle());
+            existingNote.setContent(note.getContent());
+            existingNote.setTags(note.getTags());
+            if (note.isPinned() != existingNote.isPinned()) {
+                existingNote.setPinned(note.isPinned());
+            }
+            return CompletableFuture.completedFuture(repository.save(existingNote));
+        }
+        return CompletableFuture.failedFuture(new RuntimeException("Note not found"));
     }
 
     public CompletableFuture<Note> togglePin(String id) {
-        return repository.findById(id)
-                .thenCompose(existing -> {
-                    if (existing.isPresent()) {
-                        Note note = existing.get();
-                        note.setPinned(!note.isPinned());
-                        return repository.save(note);
-                    }
-                    throw new RuntimeException("Note not found");
-                });
+        Note note = repository.togglePin(id);
+        if (note != null) {
+            return CompletableFuture.completedFuture(note);
+        }
+        return CompletableFuture.failedFuture(new RuntimeException("Note not found"));
     }
 
     public CompletableFuture<Void> deleteNote(String id) {
-        return repository.deleteById(id);
+        repository.deleteById(id);
+        return CompletableFuture.completedFuture(null);
     }
 }
 

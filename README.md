@@ -47,7 +47,8 @@ A comprehensive, production-ready suite of **20 professional developer tools** d
 - Java 17+
 - Spring Boot 3.2.1
 - Maven
-- Firebase Realtime Database
+- **File Storage** (Local JSON files) - Primary storage
+- Firebase Realtime Database (Optional, config preserved)
 - REST API with CORS support
 
 ### Frontend

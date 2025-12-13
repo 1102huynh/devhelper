@@ -1,7 +1,7 @@
 package com.devhelper.service;
 
 import com.devhelper.model.SshCommand;
-import com.devhelper.repository.FirebaseSshCommandRepository;
+import com.devhelper.repository.FileSshCommandRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -13,49 +13,48 @@ import java.util.concurrent.CompletableFuture;
 public class SshCommandService {
 
     @Autowired
-    private FirebaseSshCommandRepository repository;
+    private FileSshCommandRepository repository;
 
     public CompletableFuture<List<SshCommand>> getAllCommands() {
-        return repository.findAll();
+        return CompletableFuture.completedFuture(repository.findAll());
     }
 
     public CompletableFuture<Optional<SshCommand>> getCommandById(String id) {
-        return repository.findById(id);
+        return CompletableFuture.completedFuture(repository.findById(id));
     }
 
     public CompletableFuture<List<SshCommand>> getCommandsByCategory(String category) {
-        return repository.findByCategory(category);
+        return CompletableFuture.completedFuture(repository.findByCategory(category));
     }
 
     public CompletableFuture<List<SshCommand>> searchCommands(String query) {
-        return repository.searchByNameOrDescription(query);
+        return CompletableFuture.completedFuture(repository.searchByNameOrDescription(query));
     }
 
     public CompletableFuture<SshCommand> createCommand(SshCommand command) {
-        return repository.save(command);
+        return CompletableFuture.completedFuture(repository.save(command));
     }
 
     public CompletableFuture<SshCommand> updateCommand(String id, SshCommand command) {
-        return repository.findById(id)
-                .thenCompose(existing -> {
-                    if (existing.isPresent()) {
-                        SshCommand existingCommand = existing.get();
-                        existingCommand.setName(command.getName());
-                        existingCommand.setCommand(command.getCommand());
-                        existingCommand.setDescription(command.getDescription());
-                        existingCommand.setCategory(command.getCategory());
-                        return repository.save(existingCommand);
-                    }
-                    throw new RuntimeException("SSH Command not found");
-                });
+        Optional<SshCommand> existing = repository.findById(id);
+        if (existing.isPresent()) {
+            SshCommand existingCommand = existing.get();
+            existingCommand.setName(command.getName());
+            existingCommand.setCommand(command.getCommand());
+            existingCommand.setDescription(command.getDescription());
+            existingCommand.setCategory(command.getCategory());
+            return CompletableFuture.completedFuture(repository.save(existingCommand));
+        }
+        return CompletableFuture.failedFuture(new RuntimeException("SSH Command not found"));
     }
 
     public CompletableFuture<Void> deleteCommand(String id) {
-        return repository.deleteById(id);
+        repository.deleteById(id);
+        return CompletableFuture.completedFuture(null);
     }
 
     public CompletableFuture<List<String>> getAllCategories() {
-        return repository.findAllCategories();
+        return CompletableFuture.completedFuture(repository.findAllCategories());
     }
 }
 

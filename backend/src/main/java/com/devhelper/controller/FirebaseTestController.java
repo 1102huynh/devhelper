@@ -3,6 +3,7 @@ package com.devhelper.controller;
 import com.devhelper.service.FirebaseService;
 import com.google.firebase.database.DataSnapshot;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,6 +14,7 @@ import java.util.concurrent.CompletableFuture;
 @RestController
 @RequestMapping("/api/firebase")
 @CrossOrigin(originPatterns = "*", allowCredentials = "true")
+@ConditionalOnProperty(name = "firebase.enabled", havingValue = "true", matchIfMissing = false)
 public class FirebaseTestController {
 
     @Autowired

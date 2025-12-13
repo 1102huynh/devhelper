@@ -4,6 +4,7 @@ import com.devhelper.model.SshCommand;
 import com.devhelper.service.FirebaseService;
 import com.google.firebase.database.DataSnapshot;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Repository;
 
 import java.util.*;
@@ -12,6 +13,7 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 @Repository
+@ConditionalOnProperty(name = "firebase.enabled", havingValue = "true", matchIfMissing = false)
 public class FirebaseSshCommandRepository {
 
     private static final String SSH_COMMANDS_PATH = "ssh_commands";

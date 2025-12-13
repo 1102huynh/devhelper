@@ -1,11 +1,13 @@
 package com.devhelper.service;
 
 import com.google.firebase.database.*;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.CompletableFuture;
 
 @Service
+@ConditionalOnProperty(name = "firebase.enabled", havingValue = "true", matchIfMissing = false)
 public class FirebaseService {
 
     private final DatabaseReference databaseReference;

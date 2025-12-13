@@ -29,6 +29,7 @@ Welcome to Dev Helper! This index will help you quickly find what you need.
 |------|---------|--------------|
 | **[QUICK_REFERENCE.md](./QUICK_REFERENCE.md)** | Quick reference card | Daily development |
 | **[FEATURE_LIST.md](./FEATURE_LIST.md)** | Complete list of 25+ tools | Understanding features |
+| **[FILE_STORAGE.md](./FILE_STORAGE.md)** | File Storage documentation | Understanding local storage |
 | **[FIREBASE_QUICK_REFERENCE.md](./FIREBASE_QUICK_REFERENCE.md)** | Firebase API reference | Working with Firebase APIs |
 
 ### 📊 Project Analysis
