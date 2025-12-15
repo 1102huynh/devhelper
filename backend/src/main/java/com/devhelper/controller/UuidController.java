@@ -9,6 +9,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/uuid")
+@CrossOrigin(originPatterns = "*", allowCredentials = "true")
 public class UuidController {
 
     @GetMapping("/generate")

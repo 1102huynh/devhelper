@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/json")
+@CrossOrigin(originPatterns = "*", allowCredentials = "true")
 public class JsonController {
 
     @Autowired

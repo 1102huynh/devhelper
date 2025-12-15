@@ -8,6 +8,7 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/api/diff")
+@CrossOrigin(originPatterns = "*", allowCredentials = "true")
 public class DiffController {
 
     @PostMapping("/compare")

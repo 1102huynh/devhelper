@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/api-tester")
+@CrossOrigin(originPatterns = "*", allowCredentials = "true")
 public class ApiTesterController {
 
     @Autowired
