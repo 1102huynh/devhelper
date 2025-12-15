@@ -1,395 +1,338 @@
-# Dev Helper - Professional Developer Productivity Suite 🚀
+# DevHelper - Developer Tools Platform
 
-A comprehensive, production-ready suite of **20 professional developer tools** designed specifically for Software Engineers. Built with Java/Spring Boot backend and Next.js/React frontend.
+## 🎯 Overview
 
-## ✨ All 20 Tools
+DevHelper is an integrated platform of essential tools for Software Engineers. It provides a modern web interface and powerful backend API.
 
-### 🔧 Text & Code Processing
-1. **Regex Tester** - Test regular expressions with live matching and highlighting
-2. **JSON Formatter** - Format, validate, and beautify JSON with syntax highlighting
-3. **XML Formatter** - Format and validate XML documents
-4. **HTML Encoder/Decoder** - Encode and decode HTML entities
-5. **Text Utilities** - 10+ text transformations (uppercase, camelCase, snake_case, etc.)
-6. **Lorem Ipsum Generator** - Generate placeholder text for designs
-
-### 🔐 Security & Encoding
-7. **Base64 Encoder/Decoder** - Encode and decode Base64 strings
-8. **Hash Generator** - Generate MD5, SHA-1, SHA-256, SHA-512 hashes
-9. **JWT Decoder** - Decode and inspect JSON Web Tokens
-10. **UUID Generator** - Generate random UUIDs (v4) in batch
-
-### 🌐 Web Development
-11. **URL Encoder/Decoder** - Encode and decode URLs and query parameters
-12. **Color Converter** - Convert between HEX, RGB, and HSL formats
-13. **QR Code Generator** - Generate QR codes for URLs, WiFi, etc.
-14. **HTTP Status Codes** - Complete HTTP status code reference
-
-### ⚙️ Developer Tools
-15. **API Tester** - Quick REST API testing tool with all HTTP methods
-16. **Cron Expression Parser** - Parse and understand cron expressions
-17. **Diff Checker** - Compare two text blocks line-by-line
-18. **Timestamp Converter** - Convert Unix timestamps to readable dates
-
-### 📝 Productivity
-19. **SSH Commands Manager** - Store and manage frequently used SSH commands (Firebase)
-20. **Task Notes** - Lightning-fast notes with Ctrl+Space shortcut (Firebase)
-
-### 🎯 Bonus Tools
-21. **HTTP Headers Analyzer** - Analyze HTTP request/response headers
-22. **JSON Schema Validator** - Validate JSON against schemas
-23. **CSS Selector Tester** - Test CSS selectors
-24. **Mock API Generator** - Generate mock REST APIs
-25. **Test Data Generator** - Generate test data sets
-
-## 🛠️ Tech Stack
-
-### Backend
-- Java 17+
-- Spring Boot 3.2.1
-- Maven
-- **File Storage** (Local JSON files) - Primary storage
-- Firebase Realtime Database (Optional, config preserved)
-- REST API with CORS support
+## 🚀 Tech Stack
 
 ### Frontend
-- Next.js 14+ (App Router)
-- TypeScript
-- Tailwind CSS
-- shadcn/ui components
-- Framer Motion
+- **Framework**: Next.js 14 (React)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **UI Components**: Radix UI
+- **Deployment**: Vercel
+- **URL**: https://devhelper-iota.vercel.app
 
-### Testing
-- **Cucumber BDD** - Behavior-Driven Development
-- **REST Assured** - Backend API testing
-- **Playwright** - Frontend E2E testing
-- **JUnit 5** - Test runner
-- **Spring Boot Test** - Integration testing
+### Backend
+- **Framework**: Spring Boot 3.2.1
+- **Language**: Java 17
+- **Build Tool**: Maven
+- **Storage**: File-based (JSON)
+- **Deployment**: Render (Docker)
+- **URL**: https://devhelper-37jw.onrender.com
 
-## 📦 Project Structure
+## 🛠️ Features
+
+### 1. Text & Data Processing
+- **JSON Formatter** - Format, validate, minify JSON
+- **XML Formatter** - Format and validate XML
+- **Regex Tester** - Test regular expressions
+- **Text Utils** - Case conversion, encoding, etc.
+- **Diff Checker** - Compare text differences
+
+### 2. Development Tools
+- **UUID Generator** - Generate UUIDs
+- **API Tester** - Test HTTP APIs
+- **Cron Parser** - Parse cron expressions
+- **Hash Generator** - MD5, SHA256, etc.
+
+### 3. Productivity
+- **Notes** - Quick note-taking with pin support
+- **SSH Commands** - Quick SSH command reference
+- **Mock API Generator** - Generate mock API responses
+
+### 4. Testing
+- **E2E Tests** - Cucumber + Playwright
+- **API Tests** - REST Assured
+
+## 📁 Project Structure
 
 ```
 devhelper/
-├── backend/          # Spring Boot application
+├── frontend/              # Next.js application
 │   ├── src/
-│   ├── pom.xml
-│   └── README.md
-├── frontend/         # Next.js application
+│   │   ├── app/          # Next.js app router pages
+│   │   ├── components/   # React components
+│   │   └── lib/          # Utilities & API client
+│   ├── tests/            # E2E tests (Cucumber + Playwright)
+│   └── package.json
+│
+├── backend/              # Spring Boot application
 │   ├── src/
-│   ├── package.json
-│   └── README.md
-└── docker-compose.yml
+│   │   ├── main/
+│   │   │   ├── java/com/devhelper/
+│   │   │   │   ├── controller/    # REST controllers
+│   │   │   │   ├── service/       # Business logic
+│   │   │   │   ├── repository/    # Data access
+│   │   │   │   ├── model/         # Domain models
+│   │   │   │   ├── dto/           # Data transfer objects
+│   │   │   │   └── config/        # Configuration
+│   │   │   └── resources/
+│   │   │       ├── application.yml
+│   │   │       └── application-production.yml
+│   │   └── test/         # Backend tests
+│   ├── Dockerfile
+│   └── pom.xml
+│
+├── render.yaml           # Render deployment config
+└── README.md            # This file
 ```
 
 ## 🚀 Quick Start
 
-### Option 1: One-Click Start (Recommended)
+### Prerequisites
+- **Node.js** 18+ and npm
+- **Java** 17
+- **Maven** 3.9+
+- **Git**
 
-**Windows:**
+### Development Setup
+
+#### 1. Clone Repository
 ```bash
-.\start-all.bat
+git clone https://github.com/1102huynh/devhelper.git
+cd devhelper
 ```
 
-**Mac/Linux:**
-```bash
-chmod +x start-all.sh
-./start-all.sh
-```
-
-This will automatically start both backend and frontend servers!
-
-### Option 2: Manual Start
-
-**Backend:**
+#### 2. Start Backend
 ```bash
 cd backend
 mvn spring-boot:run
 ```
-Server will start on http://localhost:8080
+Backend runs on: http://localhost:8080
 
-**Frontend:**
+#### 3. Start Frontend
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-Application will start on http://localhost:3000
+Frontend runs on: http://localhost:3000
 
-### Option 3: Docker
-```bash
-docker-compose up
+### Production Deployment
+
+#### Backend (Render)
+- **Auto-deploy**: Enabled on `develop` branch
+- **Build**: Docker-based
+- **Storage**: `/opt/render/project/data`
+- **Environment**: 
+  - `PORT=10000`
+  - `SPRING_PROFILES_ACTIVE=production`
+
+#### Frontend (Vercel)
+- **Auto-deploy**: Enabled on `develop` branch
+- **Build**: Next.js
+- **Environment**:
+  - `NEXT_PUBLIC_API_URL=https://devhelper-37jw.onrender.com`
+
+## 🔧 Configuration
+
+### Backend Environment Variables
+
+**Development** (`application.yml`):
+```yaml
+server:
+  port: 8080
+
+logging:
+  level:
+    com.devhelper: DEBUG
 ```
 
-## 📝 API Documentation
+**Production** (`application-production.yml`):
+```yaml
+server:
+  port: ${PORT:10000}
 
-Base URL: `http://localhost:8080/api`
+file:
+  storage:
+    base-path: ${FILE_STORAGE_BASE_PATH:/opt/render/project/data}
 
-### All API Endpoints (25+)
-
-**Text Processing:**
-- `POST /regex/test` - Test regex patterns
-- `POST /json/format` - Format JSON
-- `POST /xml/format` - Format XML
-- `POST /xml/validate` - Validate XML
-- `POST /text/convert` - Text transformations
-- `POST /text/stats` - Text statistics
-
-**Security & Encoding:**
-- `GET /uuid/generate` - Generate UUIDs
-- `POST /cron/parse` - Parse cron expressions
-
-**Comparison & Analysis:**
-- `POST /diff/compare` - Compare text differences
-
-**Data Management:**
-- `GET /ssh` - Get SSH commands
-- `POST /ssh` - Create SSH command
-- `PUT /ssh/{id}` - Update SSH command
-- `DELETE /ssh/{id}` - Delete SSH command
-
-**API Testing:**
-- `POST /api-tester/request` - Test API requests
-
-**Notes:**
-- `GET /notes` - Get all notes
-- `POST /notes` - Create note
-- `PUT /notes/{id}` - Update note
-- `PATCH /notes/{id}/pin` - Toggle pin
-- `DELETE /notes/{id}` - Delete note
-
-## 🎨 UI/UX Features
-
-✨ **Modern Design**
-- Beautiful, clean interface
-- Professional color schemes
-- Smooth animations (Framer Motion)
-- Consistent styling across all pages
-
-🌗 **Theme Support**
-- Dark/Light theme toggle
-- Automatic theme persistence
-- No hydration issues
-
-📱 **Responsive Layout**
-- Works on all devices
-- Mobile-first design
-- Adaptive grid system
-
-⌨️ **Productivity**
-- Keyboard shortcuts (Ctrl+Space for notes)
-- One-click copy functionality
-- Quick navigation sidebar
-- Search and filter options
-
-⚡ **Performance**
-- Fast page loads
-- Optimized rendering
-- Lazy loading
-- Code splitting
-
-## 📊 Project Statistics
-
-- **Total Tools:** 20
-- **Backend Controllers:** 10
-- **Frontend Pages:** 20
-- **API Endpoints:** 25+
-- **DTOs:** 14
-- **Lines of Code:** 5000+
-- **Test Scenarios:** 40+
-- **Test Coverage:** Backend API + Frontend E2E
-- **Technologies:** Java 17, Spring Boot 3, Next.js 14, TypeScript
-
-## 🧪 Testing with Cucumber BDD
-
-This project includes comprehensive **Behavior-Driven Development (BDD)** testing with **Cucumber**.
-
-### ✅ Test Coverage
-
-**Backend API Tests (Java):**
-- ✅ Notes CRUD operations
-- ✅ JSON formatter, validator, minifier
-- ✅ Diff checker comparisons
-- ✅ UUID generation
-- ✅ Error handling
-- ✅ Integration tests
-
-**Frontend E2E Tests (JavaScript):**
-- ✅ Navigation and routing
-- ✅ JSON formatter UI
-- ✅ Notes management UI
-- ✅ UUID generator UI
-- ✅ Regex tester UI
-- ✅ End-to-end workflows
-- ✅ Theme toggling
-- ✅ Sidebar interactions
-
-### 🚀 Running Tests
-
-**📖 Complete Documentation:**
-- **Quick Start**: [`CUCUMBER_QUICK_START.md`](CUCUMBER_QUICK_START.md) - 5-minute setup
-- **Troubleshooting**: [`CUCUMBER_TROUBLESHOOTING.md`](CUCUMBER_TROUBLESHOOTING.md) - 13 common issues & solutions
-- **Checklist**: [`CUCUMBER_CHECKLIST.md`](CUCUMBER_CHECKLIST.md) - Complete execution guide
-- **Fix Summary**: [`CUCUMBER_FIX_SUMMARY.md`](CUCUMBER_FIX_SUMMARY.md) - Technical details
-- **Complete Guide**: [`CUCUMBER_COMPLETE.md`](CUCUMBER_COMPLETE.md) - Full overview
-
-**Quick Start - Run All Tests:**
-```bash
-# Windows
-.\run-cucumber-tests.bat
-
-# Mac/Linux
-chmod +x run-cucumber-tests.sh
-./run-cucumber-tests.sh
+logging:
+  level:
+    com.devhelper: INFO
 ```
 
-**Backend Tests Only:**
+### Frontend Environment Variables
+
+**Development** (`.env.local`):
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8080
+```
+
+**Production** (`.env.production`):
+```env
+NEXT_PUBLIC_API_URL=https://devhelper-37jw.onrender.com
+```
+
+## 📡 API Endpoints
+
+### Notes API
+```
+GET    /api/notes           - Get all notes
+POST   /api/notes           - Create note
+GET    /api/notes/{id}      - Get note by ID
+PUT    /api/notes/{id}      - Update note
+DELETE /api/notes/{id}      - Delete note
+PATCH  /api/notes/{id}/pin  - Toggle pin
+```
+
+### SSH Commands API
+```
+GET    /api/ssh             - Get SSH commands
+POST   /api/ssh             - Create SSH command
+PUT    /api/ssh/{id}        - Update SSH command
+DELETE /api/ssh/{id}        - Delete SSH command
+```
+
+### Utility APIs
+```
+POST   /api/json/format     - Format JSON
+POST   /api/json/validate   - Validate JSON
+POST   /api/json/minify     - Minify JSON
+GET    /api/uuid/generate   - Generate UUIDs
+POST   /api/regex/test      - Test regex
+POST   /api/diff/compare    - Compare text
+POST   /api/text/convert    - Convert text
+POST   /api/xml/format      - Format XML
+POST   /api/cron/parse      - Parse cron
+```
+
+### Health Check
+```
+GET    /actuator/health     - Health status
+```
+
+## 🧪 Testing
+
+### Frontend E2E Tests
+```bash
+cd frontend
+npm run test:e2e
+```
+
+### Backend Tests
 ```bash
 cd backend
 mvn test
-
-# Generate HTML report
-mvn clean verify
-
-# View report: backend/target/cucumber-reports/cucumber.html
 ```
 
-**Frontend Tests Only:**
+## 🔒 CORS Configuration
+
+Backend allows all origins via pattern matching:
+```java
+@Configuration
+public class CorsConfig {
+    config.addAllowedOriginPattern("*");
+    config.setAllowCredentials(true);
+}
+```
+
+## 📦 Storage
+
+### File-Based Storage
+Data is stored in JSON files:
+- **Development**: `./data/`
+- **Production**: `/opt/render/project/data/`
+
+Files:
+- `notes.json` - User notes
+- `ssh-commands.json` - SSH commands
+
+## 🛠️ Scripts
+
+### Backend
 ```bash
-# FIRST TIME SETUP (Required):
-cd frontend
-npm install
-npx playwright install chromium  # ← Install browsers
-
-# Start servers first (Terminal 1 & 2)
-cd backend && mvn spring-boot:run
-cd frontend && npm run dev
-
-# Run tests (Terminal 3)
-cd frontend
-npm run test:e2e:report
-
-# View report: frontend/test-results/cucumber-report.html
+mvn clean install        # Build
+mvn spring-boot:run      # Run dev
+mvn test                 # Run tests
 ```
 
-**⚠️ Important**: Playwright browsers must be installed before running E2E tests. See [CUCUMBER_QUICK_START.md](CUCUMBER_QUICK_START.md) for details.
+### Frontend
+```bash
+npm install              # Install dependencies
+npm run dev              # Run dev server
+npm run build            # Build for production
+npm run start            # Start production server
+npm run test:e2e         # Run E2E tests
+```
 
-**Run by Tags:**
+### Docker
 ```bash
 # Backend
-mvn test -Dcucumber.filter.tags="@smoke"
-mvn test -Dcucumber.filter.tags="@api"
+cd backend
+docker build -t devhelper-backend .
+docker run -p 8080:8080 devhelper-backend
 
+# Full stack
+docker-compose up
+```
+
+## 🐛 Troubleshooting
+
+### Port Already in Use
+```bash
+# Kill process on port 3000 (frontend)
+netstat -ano | findstr :3000
+taskkill /PID <PID> /F
+
+# Kill process on port 8080 (backend)
+netstat -ano | findstr :8080
+taskkill /PID <PID> /F
+```
+
+### CORS Issues
+- Check backend logs for CORS configuration
+- Verify `NEXT_PUBLIC_API_URL` in frontend
+- Ensure backend is running
+
+### Build Failures
+```bash
 # Frontend
-npx cucumber-js --tags "@e2e"
-npx cucumber-js --tags "@integration"
+rm -rf node_modules package-lock.json
+npm install
+
+# Backend
+mvn clean
+mvn install
 ```
-
-### 📚 Testing Documentation
-
-- 📖 **[Quick Start Guide](CUCUMBER_QUICK_START.md)** - Get started in 5 minutes
-- 📖 **[Complete Implementation Guide](CUCUMBER_IMPLEMENTATION.md)** - Full details
-- 📖 **[Backend Testing](backend/src/test/resources/CUCUMBER_README.md)** - Backend API tests
-- 📖 **[Frontend Testing](frontend/tests/e2e/CUCUMBER_README.md)** - Frontend E2E tests
-- ✅ **[Implementation Summary](CUCUMBER_COMPLETE.md)** - What we've built
-
-### 🎯 Example Test Scenario
-
-```gherkin
-Feature: Notes Management
-  As a developer
-  I want to manage my notes
-  So that I can quickly save and retrieve information
-
-  Scenario: Create a new note
-    Given I have a note with title "Test Note" and content "Test content"
-    When I create a new note
-    Then the response status should be 201
-    And the response should contain the note with title "Test Note"
-```
-
-### 🛠️ Testing Technologies
-
-- **Cucumber** - BDD framework with Gherkin syntax
-- **REST Assured** - API testing library (Backend)
-- **Playwright** - Browser automation (Frontend)
-- **JUnit 5** - Test runner
-- **Spring Boot Test** - Integration testing
-- **H2 Database** - In-memory test database
-
-## 🎯 Perfect for Java Developers
-
-This suite is specifically designed for Java development workflows:
-
-✅ **Spring Boot Development**
-- XML configs (Spring application context)
-- JSON APIs (REST controllers)
-- Cron jobs (Quartz scheduler)
-- JWT tokens (Spring Security)
-
-✅ **Maven Projects**
-- XML formatting (pom.xml)
-- Dependency management
-- Build debugging
-
-✅ **Database Work**
-- UUID generation (JPA entity IDs)
-- SQL formatting
-- Data comparison
-
-✅ **API Development**
-- REST API testing
-- JSON formatting
-- HTTP status codes
-- Base64 encoding
 
 ## 📚 Documentation
 
-- **[FEATURE_LIST.md](FEATURE_LIST.md)** - Complete list of all 20 tools
-- **[IMPLEMENTATION_COMPLETE.md](IMPLEMENTATION_COMPLETE.md)** - Implementation summary
-- **[COMPLETE_IMPLEMENTATION.md](COMPLETE_IMPLEMENTATION.md)** - Technical details
-- **Backend README** - Backend-specific documentation
-- **Frontend README** - Frontend-specific documentation
+- **Setup Guide**: `SETUP_GUIDE.md`
+- **Deployment Guide**: `DEPLOYMENT_GUIDE.md`
+- **Quick Reference**: `QUICK_REFERENCE.md`
+- **Feature List**: `FEATURE_LIST.md`
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+1. Fork the repository
+2. Create feature branch: `git checkout -b feature/new-tool`
+3. Commit changes: `git commit -m 'Add new tool'`
+4. Push to branch: `git push origin feature/new-tool`
+5. Submit pull request
 
 ## 📄 License
 
-This project is open source and available under the MIT License.
+MIT License - See LICENSE file for details
 
-## 👨‍💻 Author
+## 👤 Author
 
-Built with ❤️ for Software Engineers
+**Huynh Nguyen**
+- GitHub: [@1102huynh](https://github.com/1102huynh)
+- Repository: https://github.com/1102huynh/devhelper
 
-## 🌟 Show Your Support
+## 🙏 Acknowledgments
 
-Give a ⭐️ if this project helped you!
+- Next.js Team
+- Spring Boot Team
+- Vercel for hosting
+- Render for backend hosting
 
 ---
 
-**Version:** 2.0.0  
-**Status:** ✅ Production Ready  
-**Last Updated:** December 2025
-
-## 🔧 Troubleshooting
-
-### Hydration Errors
-If you encounter React hydration errors, see [HYDRATION_FIX.md](./HYDRATION_FIX.md) for the solution and [HYDRATION_PREVENTION_GUIDE.md](./HYDRATION_PREVENTION_GUIDE.md) for prevention tips.
-
-### Common Issues
-- **Port already in use**: Change ports in `application.yml` (backend) or use `PORT=3001 npm run dev` (frontend)
-- **Build errors**: Run `npm install` or `mvn clean install` to refresh dependencies
-- **CORS issues**: Check `CorsConfig.java` for allowed origins
-
-## 📚 Documentation
-
-- [Setup Guide](./SETUP_GUIDE.md) - Detailed setup instructions
-- [Project Summary](./PROJECT_SUMMARY.md) - Architecture and technical details
-- [Quick Reference](./QUICK_REFERENCE.md) - Common commands and shortcuts
-- [Hydration Fix](./HYDRATION_FIX.md) - Solution for React hydration errors
-- [Hydration Prevention](./HYDRATION_PREVENTION_GUIDE.md) - Best practices guide
-
-## 📄 License
-
-MIT
+**Version**: 1.0.0
+**Last Updated**: December 15, 2025
+**Status**: ✅ Production Ready
 

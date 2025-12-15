@@ -7,11 +7,6 @@ spring:
     serialization:
       indent_output: true
 
-# Firebase Configuration (Disabled in production)
-firebase:
-  enabled: false
-  credentials-path: classpath:test-c3845-firebase-adminsdk-fbsvc-a0817d969a.json
-  database-url: https://test-c3845-default-rtdb.firebaseio.com
 
 # File Storage Configuration
 file:

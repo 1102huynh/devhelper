@@ -7,11 +7,6 @@ spring:
     serialization:
       indent_output: true
 
-# Firebase Configuration (Disabled - Using File Storage)
-firebase:
-  enabled: false
-  credentials-path: classpath:abc.json
-  database-url: https://test-c3845-default-rtdb.firebaseio.com
 
 server:
   port: 8080
