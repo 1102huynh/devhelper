@@ -304,6 +304,7 @@ mvn install
 - **Deployment Guide**: `DEPLOYMENT_GUIDE.md`
 - **Quick Reference**: `QUICK_REFERENCE.md`
 - **Feature List**: `FEATURE_LIST.md`
+- **Vercel Analytics Setup**: `VERCEL_ANALYTICS_SETUP.md`
 
 ## 🤝 Contributing
 
