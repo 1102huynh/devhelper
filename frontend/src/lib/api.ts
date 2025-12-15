@@ -6,7 +6,7 @@ const getApiBaseUrl = () => {
   if (typeof window !== 'undefined') {
     // In production (deployed), use production backend
     if (window.location.hostname !== 'localhost') {
-      return 'https://devhelper-8i34.onrender.com/api';
+      return 'https://devhelper-37jw.onrender.com/api';
     }
   }
 
