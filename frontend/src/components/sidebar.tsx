@@ -4,14 +4,19 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { Code2, FileJson, Terminal, Zap, StickyNote, Home, Moon, Sun, Binary, Link2, Hash, KeyRound, Clock, Fingerprint, FileCode, Calendar, GitCompare, Type, Palette, Code, FileText, QrCode, Info, Sparkles, Database, Target, FileCheck, Globe, Server, Menu, ChevronLeft } from 'lucide-react'
+import { Code2, FileJson, Terminal, Zap, StickyNote, Home, Moon, Sun, Binary, Link2, Hash, KeyRound, Clock, Fingerprint, FileCode, Calendar, GitCompare, Type, Palette, Code, FileText, QrCode, Info, Sparkles, Database, Target, FileCheck, Globe, Server, Menu, ChevronLeft, ChevronDown, ChevronRight, Wrench, FlaskConical, TestTube2 } from 'lucide-react'
 import { Button } from './ui/button'
 import { useTheme } from 'next-themes'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import GitHubStarButton from './github-star-button'
 
-const navigation = [
+// Top-level navigation items
+const topNavigation = [
   { name: 'Home', href: '/', icon: Home, color: 'text-blue-500' },
+]
+
+// Dev Tools category
+const devTools = [
   { name: 'Regex Tester', href: '/regex-tester', icon: Code2, color: 'text-blue-500' },
   { name: 'JSON Formatter', href: '/json-formatter', icon: FileJson, color: 'text-green-500' },
   { name: 'XML Formatter', href: '/xml-formatter', icon: FileCode, color: 'text-amber-500' },
@@ -32,12 +37,34 @@ const navigation = [
   { name: 'SSH Commands', href: '/ssh-commands', icon: Terminal, color: 'text-purple-500' },
   { name: 'API Tester', href: '/api-tester', icon: Zap, color: 'text-yellow-500' },
   { name: 'Notes', href: '/notes', icon: StickyNote, color: 'text-pink-500' },
-  // Automation Testing Tools
+]
+
+// Automation Testing Tools category
+const automationTools = [
   { name: 'Test Data Generator', href: '/test-data-generator', icon: Database, color: 'text-purple-600' },
   { name: 'Selector Tester', href: '/selector-tester', icon: Target, color: 'text-cyan-600' },
   { name: 'JSON Schema Validator', href: '/json-schema-validator', icon: FileCheck, color: 'text-emerald-600' },
   { name: 'HTTP Headers Analyzer', href: '/http-headers-analyzer', icon: Globe, color: 'text-orange-600' },
   { name: 'Mock API Generator', href: '/mock-api-generator', icon: Server, color: 'text-indigo-600' },
+  { name: 'Jacoco Runner', href: '/jacoco-runner', icon: TestTube2, color: 'text-green-600' },
+]
+
+// Category definitions
+const categories = [
+  {
+    id: 'dev-tools',
+    name: 'Dev Tools',
+    icon: Wrench,
+    color: 'text-blue-500',
+    items: devTools,
+  },
+  {
+    id: 'automation',
+    name: 'Automation',
+    icon: FlaskConical,
+    color: 'text-purple-500',
+    items: automationTools,
+  },
 ]
 
 export function Sidebar() {
@@ -45,6 +72,22 @@ export function Sidebar() {
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const [isOpen, setIsOpen] = useState(true)
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({
+    'dev-tools': true,
+    'automation': true,
+  })
+
+  const toggleCategory = (categoryId: string) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [categoryId]: !prev[categoryId]
+    }))
+  }
+
+  // Check if a category has an active item
+  const isCategoryActive = (items: typeof devTools) => {
+    return items.some(item => pathname === item.href)
+  }
 
   useEffect(() => {
     setMounted(true)
@@ -147,7 +190,7 @@ export function Sidebar() {
               exit={{ opacity: 0 }}
               className="text-xs text-muted-foreground"
             >
-              25 Professional Tools
+              27 Professional Tools
             </motion.p>
           )}
         </motion.div>
@@ -155,7 +198,8 @@ export function Sidebar() {
 
       {/* Navigation with custom scrollbar */}
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-        {navigation.map((item, index) => {
+        {/* Top-level navigation (Home) */}
+        {topNavigation.map((item, index) => {
           const isActive = pathname === item.href
           return (
             <motion.div
@@ -175,11 +219,9 @@ export function Sidebar() {
                     : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
                 )}
               >
-                {/* Gradient overlay on hover */}
                 {!isActive && (
                   <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 )}
-
                 <item.icon className={cn(
                   'w-5 h-5 transition-transform duration-200 group-hover:scale-110 relative z-10 flex-shrink-0',
                   isActive ? 'text-primary-foreground' : item.color
@@ -187,8 +229,6 @@ export function Sidebar() {
                 {isOpen && (
                   <span className="relative z-10 whitespace-nowrap">{item.name}</span>
                 )}
-
-                {/* Active indicator */}
                 {isActive && isOpen && (
                   <motion.div
                     layoutId="activeTab"
@@ -197,6 +237,136 @@ export function Sidebar() {
                   />
                 )}
               </Link>
+            </motion.div>
+          )
+        })}
+
+        {/* Category dropdowns */}
+        {categories.map((category, categoryIndex) => {
+          const isExpanded = expandedCategories[category.id]
+          const hasActiveItem = isCategoryActive(category.items)
+
+          return (
+            <motion.div
+              key={category.id}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3, delay: (categoryIndex + 1) * 0.05 }}
+              className="mt-2"
+            >
+              {/* Category Header */}
+              <button
+                onClick={() => toggleCategory(category.id)}
+                title={!isOpen ? category.name : undefined}
+                className={cn(
+                  'w-full flex items-center gap-3 rounded-xl text-sm font-semibold transition-all duration-200 group relative overflow-hidden',
+                  isOpen ? 'px-3 py-2.5' : 'p-2.5 justify-center',
+                  hasActiveItem
+                    ? 'bg-accent/70 text-foreground'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                )}
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                <category.icon className={cn(
+                  'w-5 h-5 transition-transform duration-200 group-hover:scale-110 relative z-10 flex-shrink-0',
+                  category.color
+                )} />
+
+                {isOpen && (
+                  <>
+                    <span className="relative z-10 whitespace-nowrap flex-1 text-left">{category.name}</span>
+                    <span className="text-xs text-muted-foreground mr-1">({category.items.length})</span>
+                    <motion.div
+                      animate={{ rotate: isExpanded ? 180 : 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="relative z-10"
+                    >
+                      <ChevronDown className="w-4 h-4" />
+                    </motion.div>
+                  </>
+                )}
+              </button>
+
+              {/* Category Items */}
+              <AnimatePresence initial={false}>
+                {isExpanded && isOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                    className="overflow-hidden"
+                  >
+                    <div className="ml-3 pl-3 border-l-2 border-border/50 mt-1 space-y-0.5">
+                      {category.items.map((item, itemIndex) => {
+                        const isActive = pathname === item.href
+                        return (
+                          <motion.div
+                            key={item.name}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.2, delay: itemIndex * 0.02 }}
+                          >
+                            <Link
+                              href={item.href}
+                              className={cn(
+                                'flex items-center gap-3 rounded-lg text-sm font-medium transition-all duration-200 group relative overflow-hidden px-3 py-2',
+                                isActive
+                                  ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
+                                  : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                              )}
+                            >
+                              {!isActive && (
+                                <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                              )}
+                              <item.icon className={cn(
+                                'w-4 h-4 transition-transform duration-200 group-hover:scale-110 relative z-10 flex-shrink-0',
+                                isActive ? 'text-primary-foreground' : item.color
+                              )} />
+                              <span className="relative z-10 whitespace-nowrap text-sm">{item.name}</span>
+                              {isActive && (
+                                <motion.div
+                                  layoutId="activeSubTab"
+                                  className="absolute right-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-primary-foreground"
+                                  transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                                />
+                              )}
+                            </Link>
+                          </motion.div>
+                        )
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Collapsed view - show icons only when sidebar is collapsed */}
+              {!isOpen && isExpanded && (
+                <div className="mt-1 space-y-1">
+                  {category.items.map((item) => {
+                    const isActive = pathname === item.href
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        title={item.name}
+                        className={cn(
+                          'flex items-center justify-center p-2 rounded-lg transition-all duration-200 group',
+                          isActive
+                            ? 'bg-primary text-primary-foreground shadow-md'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                        )}
+                      >
+                        <item.icon className={cn(
+                          'w-4 h-4 transition-transform duration-200 group-hover:scale-110',
+                          isActive ? 'text-primary-foreground' : item.color
+                        )} />
+                      </Link>
+                    )
+                  })}
+                </div>
+              )}
             </motion.div>
           )
         })}
