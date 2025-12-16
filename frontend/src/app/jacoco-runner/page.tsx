@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { TestTube2, FolderOpen, GitBranch, RefreshCw, Archive, Download, ArrowUpFromLine, ArrowDownToLine, AlertCircle, CheckCircle2, XCircle, Loader2, FolderGit2, Search, ChevronLeft, ChevronRight, Settings, Rocket, FolderKanban, Hammer, Package, X, Filter, FileText, Upload, Play, Square, Trash2, ExternalLink, RotateCw } from 'lucide-react'
+import { TestTube2, FolderOpen, GitBranch, RefreshCw, Archive, Download, ArrowUpFromLine, ArrowDownToLine, AlertCircle, CheckCircle2, XCircle, Loader2, FolderGit2, Search, ChevronLeft, ChevronRight, Settings, Rocket, FolderKanban, Hammer, Package, X, Filter, FileText, Upload, Play, Square, Trash2, ExternalLink, RotateCw, Copy, Terminal } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Badge } from '@/components/ui/badge'
 
@@ -92,6 +92,12 @@ export default function JacocoRunnerPage() {
     const [deployLoading, setDeployLoading] = useState<string | null>(null)
     const [tomcatRunning, setTomcatRunning] = useState(false)
     const [loadingTomcats, setLoadingTomcats] = useState(false)
+
+    // Test states
+    const [selectedTestProject, setSelectedTestProject] = useState<Project | null>(null)
+    const [testCommand, setTestCommand] = useState('mvn test')
+    const [testRunning, setTestRunning] = useState(false)
+    const [testLog, setTestLog] = useState('')
 
     // Load basePath and tomcatPath from localStorage on mount
     useEffect(() => {
@@ -608,6 +614,59 @@ export default function JacocoRunnerPage() {
         }
     }
 
+    // Run Test
+    const runTest = async () => {
+        if (!selectedTestProject) {
+            showNotification('error', 'Please select a project first')
+            return
+        }
+
+        setTestRunning(true)
+        setTestLog('Starting test...\n')
+
+        try {
+            // 1. Trigger API
+            const res = await fetch(`${API_BASE}/test/run`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    projectPath: selectedTestProject.path,
+                    command: testCommand
+                })
+            })
+
+            if (!res.ok) throw new Error('Failed to trigger test')
+
+            // 2. Start Polling
+            const poll = setInterval(async () => {
+                if (!selectedTestProject) return;
+
+                try {
+                    // Status
+                    const statusRes = await fetch(`${API_BASE}/test/status?projectPath=${encodeURIComponent(selectedTestProject.path)}`)
+                    const statusData = await statusRes.json()
+
+                    // Log
+                    const logRes = await fetch(`${API_BASE}/test/log?projectPath=${encodeURIComponent(selectedTestProject.path)}`)
+                    const logText = await logRes.text()
+                    setTestLog(logText)
+
+                    if (!statusData.running) {
+                        clearInterval(poll)
+                        setTestRunning(false)
+                        showNotification('success', 'Test execution finished')
+                    }
+                } catch (e) {
+                    console.error("Polling error", e)
+                }
+            }, 1000)
+
+        } catch (e) {
+            showNotification('error', 'Failed to start test')
+            setTestRunning(false)
+        }
+    }
+
     // Remove deployment
     const removeDeployment = async (deploymentId: string) => {
         try {
@@ -774,9 +833,9 @@ export default function JacocoRunnerPage() {
 
                 {/* Main Tabs */}
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                    <TabsList className="grid w-full grid-cols-3 h-12">
+                    <TabsList className="grid w-full grid-cols-5 h-12">
                         <TabsTrigger value="projects" className="flex items-center gap-2 text-sm">
-                            <FolderKanban className="w-4 h-4" />
+                            <FolderGit2 className="w-4 h-4" />
                             <span className="hidden sm:inline">Projects</span>
                             {projects.length > 0 && (
                                 <Badge variant="secondary" className="ml-1 text-xs">
@@ -791,6 +850,14 @@ export default function JacocoRunnerPage() {
                         <TabsTrigger value="deploy" className="flex items-center gap-2 text-sm">
                             <Rocket className="w-4 h-4" />
                             <span className="hidden sm:inline">Deploy</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="test" className="flex items-center gap-2 text-sm">
+                            <TestTube2 className="w-4 h-4" />
+                            <span className="hidden sm:inline">Run Test</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="jenkins" className="flex items-center gap-2 text-sm">
+                            <FolderKanban className="w-4 h-4" />
+                            <span className="hidden sm:inline">Jenkins</span>
                         </TabsTrigger>
                     </TabsList>
 
@@ -1515,6 +1582,203 @@ export default function JacocoRunnerPage() {
                                 <p>5. Click <strong>Start Tomcat</strong> to run the server</p>
                             </CardContent>
                         </Card>
+                    </TabsContent>
+
+                    {/* Tab 4: Run Test */}
+                    <TabsContent value="test" className="space-y-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[600px]">
+                            {/* Left Column: Configuration */}
+                            <Card className="lg:col-span-4 flex flex-col border-t-4 border-t-blue-500 shadow-lg">
+                                <CardHeader className="bg-gradient-to-br from-blue-50 to-white dark:from-blue-950/20 dark:to-background border-b">
+                                    <div className="flex items-center justify-between">
+                                        <div className="space-y-1">
+                                            <CardTitle className="flex items-center gap-2 text-xl text-blue-600 dark:text-blue-400">
+                                                <TestTube2 className="w-6 h-6" />
+                                                Test Runner
+                                            </CardTitle>
+                                            <CardDescription>
+                                                Execute Maven tests or Selenium suites
+                                            </CardDescription>
+                                        </div>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="space-y-6 p-6 flex-1">
+                                    <div className="space-y-3">
+                                        <Label className="text-base font-medium">Select Project</Label>
+                                        <div className="relative">
+                                            <FolderOpen className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
+                                            <select
+                                                className="w-full h-10 pl-9 pr-3 rounded-md border border-input bg-background/50 text-sm focus:ring-2 focus:ring-blue-500 transition-all hover:bg-accent/5"
+                                                value={selectedTestProject?.path || ''}
+                                                onChange={(e) => {
+                                                    const proj = projects.find(p => p.path === e.target.value)
+                                                    setSelectedTestProject(proj || null)
+                                                }}
+                                            >
+                                                <option value="">Choose a project...</option>
+                                                {projects.map(p => (
+                                                    <option key={p.path} value={p.path}>{p.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <Label className="text-base font-medium">Test Command</Label>
+                                        <div className="relative">
+                                            <Terminal className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
+                                            <Input
+                                                value={testCommand}
+                                                onChange={(e) => setTestCommand(e.target.value)}
+                                                placeholder="mvn test"
+                                                className="pl-9 font-mono text-sm border-input bg-background/50 focus:ring-2 focus:ring-blue-500"
+                                            />
+                                        </div>
+                                        <div className="flex gap-2 flex-wrap text-xs">
+                                            <Badge variant="outline" className="cursor-pointer hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors" onClick={() => setTestCommand('mvn test')}>mvn test</Badge>
+                                            <Badge variant="outline" className="cursor-pointer hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors" onClick={() => setTestCommand('mvn clean test')}>mvn clean test</Badge>
+                                            <Badge variant="outline" className="cursor-pointer hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors" onClick={() => setTestCommand('java -jar selenium-server.jar')}>selenium</Badge>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-4 mt-auto">
+                                        <Button
+                                            onClick={runTest}
+                                            disabled={!selectedTestProject || testRunning}
+                                            className={`w-full h-12 text-lg shadow-lg transition-all duration-300 ${testRunning
+                                                ? 'bg-zinc-800 text-zinc-400 cursor-not-allowed'
+                                                : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 hover:shadow-blue-500/25'
+                                                }`}
+                                        >
+                                            {testRunning ? (
+                                                <>
+                                                    <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                                                    Running Tests...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Play className="w-5 h-5 mr-2 fill-current" />
+                                                    Start Execution
+                                                </>
+                                            )}
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* Right Column: Terminal Output */}
+                            <Card className="lg:col-span-8 flex flex-col bg-[#1e1e1e] border-zinc-800 shadow-2xl overflow-hidden text-zinc-300">
+                                {/* Terminal Header */}
+                                <div className="flex items-center justify-between px-4 py-3 bg-[#2d2d2d] border-b border-zinc-700">
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex gap-1.5 mr-3">
+                                            <div className="w-3 h-3 rounded-full bg-[#ff5f56] hover:bg-[#ff5f56]/80 transition-colors shadow-inner" />
+                                            <div className="w-3 h-3 rounded-full bg-[#ffbd2e] hover:bg-[#ffbd2e]/80 transition-colors shadow-inner" />
+                                            <div className="w-3 h-3 rounded-full bg-[#27c93f] hover:bg-[#27c93f]/80 transition-colors shadow-inner" />
+                                        </div>
+                                        <div className="flex items-center gap-2 text-xs font-mono text-zinc-400 bg-zinc-800/50 px-3 py-1 rounded-md border border-zinc-700/50">
+                                            <Terminal className="w-3 h-3" />
+                                            {selectedTestProject ? `test-runner@${selectedTestProject.name}:~` : 'terminal'}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        {testRunning && (
+                                            <Badge variant="outline" className="bg-green-500/10 text-green-400 border-green-500/20 animate-pulse mr-2">
+                                                <RotateCw className="w-3 h-3 mr-1 animate-spin" />
+                                                Live
+                                            </Badge>
+                                        )}
+                                        <Button size="icon" variant="ghost" className="w-7 h-7 hover:bg-zinc-700 hover:text-white" onClick={() => {
+                                            navigator.clipboard.writeText(testLog)
+                                            showNotification('success', 'Log copied')
+                                        }} title="Copy Log">
+                                            <Copy className="w-3.5 h-3.5" />
+                                        </Button>
+                                        <Button size="icon" variant="ghost" className="w-7 h-7 hover:bg-zinc-700 hover:text-white hover:text-red-400" onClick={() => setTestLog('')} title="Clear Log">
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                {/* Terminal Content */}
+                                <CardContent className="flex-1 p-0 overflow-hidden relative font-mono text-sm leading-relaxed">
+                                    {testLog ? (
+                                        <pre className="absolute inset-0 p-4 overflow-auto scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent">
+                                            {testLog}
+                                        </pre>
+                                    ) : (
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center text-zinc-600 opacity-50">
+                                            <Terminal className="w-16 h-16 mb-4" strokeWidth={1} />
+                                            <p>Waiting for command...</p>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </TabsContent>
+
+                    {/* Tab 5: Jenkins */}
+                    <TabsContent value="jenkins" className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Jenkins Controller */}
+                            <Card className="border-t-4 border-t-orange-500 shadow-lg">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2 text-orange-600">
+                                        <FolderKanban className="w-6 h-6" />
+                                        Jenkins Controller
+                                    </CardTitle>
+                                    <CardDescription>Start and manage Jenkins Local Server</CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="p-4 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-100 dark:border-orange-900/50">
+                                        <Label className="mb-2 block font-semibold text-orange-700 dark:text-orange-400">Startup Command</Label>
+                                        <div className="flex gap-2">
+                                            <Input className="font-mono bg-white dark:bg-black" defaultValue="java -jar jenkins.war --httpPort=9090" />
+                                            <Button className="bg-orange-600 hover:bg-orange-700 text-white shadow-md hover:shadow-orange-500/20">
+                                                <Play className="w-4 h-4 mr-2" /> Start
+                                            </Button>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <Button variant="outline" className="h-20 flex flex-col items-center justify-center gap-2 hover:border-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition-all group" onClick={() => window.open('http://localhost:9090', '_blank')}>
+                                            <ExternalLink className="w-6 h-6 text-orange-500 group-hover:scale-110 transition-transform" />
+                                            <span>Open Dashboard</span>
+                                        </Button>
+                                        <Button variant="outline" className="h-20 flex flex-col items-center justify-center gap-2 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-all group">
+                                            <FileText className="w-6 h-6 text-blue-500 group-hover:scale-110 transition-transform" />
+                                            <span>View Reports</span>
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* Recent Jobs Mockup */}
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-base">Recent Jobs</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-3">
+                                        {[1, 2, 3].map((i) => (
+                                            <div key={i} className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-2 h-2 rounded-full ${i === 1 ? 'bg-green-500' : i === 2 ? 'bg-red-500' : 'bg-blue-500 animate-pulse'}`} />
+                                                    <div>
+                                                        <p className="font-medium text-sm">Pipeline_Build_v{i}.0</p>
+                                                        <p className="text-xs text-muted-foreground">Updated 10 mins ago</p>
+                                                    </div>
+                                                </div>
+                                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                                                    <ChevronRight className="w-4 h-4" />
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <Button variant="link" className="w-full mt-2 text-sm text-muted-foreground">View All Jobs</Button>
+                                </CardContent>
+                            </Card>
+                        </div>
                     </TabsContent>
                 </Tabs>
             </motion.div>
