@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { TestTube2, FolderOpen, GitBranch, RefreshCw, Archive, Download, ArrowUpFromLine, ArrowDownToLine, AlertCircle, CheckCircle2, XCircle, Loader2, FolderGit2, Search, ChevronLeft, ChevronRight, Settings, Rocket, FolderKanban, Hammer, Package, X, Filter, FileText } from 'lucide-react'
+import { TestTube2, FolderOpen, GitBranch, RefreshCw, Archive, Download, ArrowUpFromLine, ArrowDownToLine, AlertCircle, CheckCircle2, XCircle, Loader2, FolderGit2, Search, ChevronLeft, ChevronRight, Settings, Rocket, FolderKanban, Hammer, Package, X, Filter, FileText, Upload, Play, Square, Trash2, ExternalLink, RotateCw } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Badge } from '@/components/ui/badge'
 
@@ -30,9 +30,34 @@ interface GitResult {
     command: string
 }
 
+interface Deployment {
+    id: string
+    projectName: string
+    projectPath: string
+    warFileName: string
+    warFilePath: string
+    warFileSize: number
+    fileType: 'WAR' | 'JAR'
+    status: 'pending' | 'deployed' | 'running'
+    tomcatPath: string | null
+    tomcatName: string | null
+    contextPath?: string
+    createdAt: string
+    deployedAt: string | null
+}
+
+interface TomcatInfo {
+    name: string
+    path: string
+    version: string
+    hasWebapps: boolean
+}
+
 const API_BASE = 'http://localhost:8080/api'
 const ITEMS_PER_PAGE_OPTIONS = [6, 12, 24, 48]
 const STORAGE_KEY = 'jacoco-runner-base-path'
+const TOMCAT_STORAGE_KEY = 'jacoco-runner-tomcat-base-path'
+const SELECTED_TOMCAT_KEY = 'jacoco-runner-selected-tomcat-path'
 
 export default function JacocoRunnerPage() {
     const [activeTab, setActiveTab] = useState('projects')
@@ -59,13 +84,29 @@ export default function JacocoRunnerPage() {
     const [batchPulling, setBatchPulling] = useState(false)
     const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0 })
 
-    // Load basePath from localStorage on mount
+    // Deployment states
+    const [deployments, setDeployments] = useState<Deployment[]>([])
+    const [tomcatBasePath, setTomcatBasePath] = useState('')
+    const [tomcats, setTomcats] = useState<TomcatInfo[]>([])
+    const [selectedTomcat, setSelectedTomcat] = useState<TomcatInfo | null>(null)
+    const [deployLoading, setDeployLoading] = useState<string | null>(null)
+    const [tomcatRunning, setTomcatRunning] = useState(false)
+    const [loadingTomcats, setLoadingTomcats] = useState(false)
+
+    // Load basePath and tomcatPath from localStorage on mount
     useEffect(() => {
         const savedPath = localStorage.getItem(STORAGE_KEY)
         if (savedPath) {
             setBasePath(savedPath)
         } else {
             setBasePath('D:\\learn')
+        }
+
+        const savedTomcat = localStorage.getItem(TOMCAT_STORAGE_KEY)
+        if (savedTomcat) {
+            setTomcatBasePath(savedTomcat)
+        } else {
+            setTomcatBasePath('D:\\opt')
         }
     }, [])
 
@@ -75,6 +116,13 @@ export default function JacocoRunnerPage() {
             loadProjects()
         }
     }, [basePath])
+
+    // Auto-load Tomcats when tomcatBasePath changes
+    useEffect(() => {
+        if (tomcatBasePath) {
+            loadTomcats()
+        }
+    }, [tomcatBasePath])
 
     // Reset to page 1 when search query or filter changes
     useEffect(() => {
@@ -323,6 +371,325 @@ export default function JacocoRunnerPage() {
         setBatchPulling(false)
         showNotification('success', `Batch pull completed: ${successCount} success, ${failCount} failed`)
         await loadProjects()
+    }
+
+    // Prepare deployment - copy WAR and switch to deploy tab
+    const prepareDeployment = async (project: Project) => {
+        setLoadingProject(project.path)
+        setLoadingAction('Preparing deployment')
+
+        try {
+            const response = await fetch(`${API_BASE}/deploy/prepare`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ projectPath: project.path, projectName: project.name })
+            })
+
+            if (response.ok) {
+                const deployment = await response.json()
+
+                // If Tomcat is selected, deploy immediately
+                if (selectedTomcat) {
+                    showNotification('success', `Auto-deploying to ${selectedTomcat.name}...`)
+                    const deployRes = await fetch(`${API_BASE}/deploy/to-tomcat`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ deploymentId: deployment.id, tomcatPath: selectedTomcat.path })
+                    })
+
+                    if (deployRes.ok) {
+                        showNotification('success', `Deployed ${project.name} to ${selectedTomcat.name}`)
+                    } else {
+                        showNotification('error', `Failed to auto-deploy to ${selectedTomcat.name}`)
+                    }
+                } else {
+                    showNotification('success', `Deployment prepared for ${project.name}`)
+                }
+
+                await loadDeployments()
+                setActiveTab('deploy') // Switch to deploy tab
+            } else {
+                const error = await response.json()
+                showNotification('error', error.error || 'Failed to prepare deployment')
+            }
+        } catch (error) {
+            showNotification('error', 'Failed to prepare deployment')
+        } finally {
+            setLoadingProject(null)
+            setLoadingAction(null)
+        }
+    }
+
+    // Load deployments list
+    const loadDeployments = async () => {
+        try {
+            const response = await fetch(`${API_BASE}/deploy/list`)
+            if (response.ok) {
+                const data = await response.json()
+                setDeployments(data)
+            }
+        } catch (error) {
+            console.error('Failed to load deployments')
+        }
+    }
+
+    // Load Tomcats from base path
+    const loadTomcats = async () => {
+        if (!tomcatBasePath) return
+
+        setLoadingTomcats(true)
+        try {
+            const response = await fetch(`${API_BASE}/deploy/tomcats?basePath=${encodeURIComponent(tomcatBasePath)}`)
+            if (response.ok) {
+                const data = await response.json()
+                setTomcats(data)
+                localStorage.setItem(TOMCAT_STORAGE_KEY, tomcatBasePath)
+
+                // Try to restore selected tomcat from localStorage
+                const savedSelectedPath = localStorage.getItem(SELECTED_TOMCAT_KEY)
+                let restored = false
+
+                if (savedSelectedPath) {
+                    const found = data.find((t: TomcatInfo) => t.path === savedSelectedPath)
+                    if (found) {
+                        setSelectedTomcat(found)
+                        restored = true
+                    }
+                }
+
+                // Fallback to first one if not restored or not selected
+                if (!restored && data.length > 0 && !selectedTomcat) {
+                    setSelectedTomcat(data[0])
+                }
+            }
+        } catch (error) {
+            showNotification('error', 'Failed to load Tomcats')
+        } finally {
+            setLoadingTomcats(false)
+        }
+    }
+
+    // Deploy to Tomcat
+    const deployToTomcat = async (deploymentId: string) => {
+        if (!selectedTomcat) {
+            showNotification('error', 'Please select a Tomcat first')
+            return
+        }
+
+        setDeployLoading(deploymentId)
+
+        try {
+            const response = await fetch(`${API_BASE}/deploy/to-tomcat`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ deploymentId, tomcatPath: selectedTomcat.path })
+            })
+
+            if (response.ok) {
+                showNotification('success', `Deployed to ${selectedTomcat.name} successfully`)
+                await loadDeployments()
+            } else {
+                const error = await response.json()
+                showNotification('error', error.error || 'Failed to deploy')
+            }
+        } catch (error) {
+            showNotification('error', 'Failed to deploy to Tomcat')
+        } finally {
+            setDeployLoading(null)
+        }
+    }
+
+    // Deploy All to selected Tomcat
+    const deployAllToTomcat = async (targetTomcat: TomcatInfo | null = selectedTomcat) => {
+        if (!targetTomcat) {
+            showNotification('error', 'Please select a Tomcat first')
+            return
+        }
+
+        const targets = deployments // Deploy ALL
+        if (targets.length === 0) return
+
+        setDeployLoading('all')
+
+        try {
+            let successCount = 0
+            for (const deployment of targets) {
+                // Skip if already deployed to THIS tomcat 
+                // Note: We might want to force redeploy, but for now let's skip exact matches to save time
+                if (deployment.status === 'deployed' && deployment.tomcatPath === targetTomcat.path) {
+                    continue;
+                }
+
+                try {
+                    const response = await fetch(`${API_BASE}/deploy/to-tomcat`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ deploymentId: deployment.id, tomcatPath: targetTomcat.path })
+                    })
+
+                    if (response.ok) {
+                        successCount++
+                    }
+                } catch (e) {
+                    console.error(`Failed to deploy ${deployment.projectName}`, e)
+                }
+            }
+
+            if (successCount > 0) {
+                showNotification('success', `Deployed ${successCount} projects to ${targetTomcat.name}`)
+                await loadDeployments()
+            } else {
+                showNotification('success', 'All projects are already on this Tomcat')
+            }
+        } catch (error) {
+            showNotification('error', 'Batch deployment failed')
+        } finally {
+            setDeployLoading(null)
+        }
+    }
+
+    // Start Tomcat
+    const startTomcat = async () => {
+        if (!selectedTomcat) {
+            showNotification('error', 'Please select a Tomcat first')
+            return
+        }
+
+        setDeployLoading('tomcat-start')
+
+        try {
+            const response = await fetch(`${API_BASE}/deploy/tomcat/start`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tomcatPath: selectedTomcat.path })
+            })
+
+            if (response.ok) {
+                showNotification('success', `${selectedTomcat.name} started`)
+                setTomcatRunning(true)
+            } else {
+                const error = await response.json()
+                showNotification('error', error.error || 'Failed to start Tomcat')
+            }
+        } catch (error) {
+            showNotification('error', 'Failed to start Tomcat')
+        } finally {
+            setDeployLoading(null)
+        }
+    }
+
+    // Stop Tomcat
+    const stopTomcat = async () => {
+        if (!selectedTomcat) {
+            showNotification('error', 'Please select a Tomcat first')
+            return
+        }
+
+        setDeployLoading('tomcat-stop')
+
+        try {
+            const response = await fetch(`${API_BASE}/deploy/tomcat/stop`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tomcatPath: selectedTomcat.path })
+            })
+
+            if (response.ok) {
+                showNotification('success', `${selectedTomcat.name} stopped`)
+                setTomcatRunning(false)
+            } else {
+                const error = await response.json()
+                showNotification('error', error.error || 'Failed to stop Tomcat')
+            }
+        } catch (error) {
+            showNotification('error', 'Failed to stop Tomcat')
+        } finally {
+            setDeployLoading(null)
+        }
+    }
+
+    // Remove deployment
+    const removeDeployment = async (deploymentId: string) => {
+        try {
+            await fetch(`${API_BASE}/deploy/${deploymentId}`, { method: 'DELETE' })
+            await loadDeployments()
+            showNotification('success', 'Deployment removed')
+        } catch (error) {
+            showNotification('error', 'Failed to remove deployment')
+        }
+    }
+
+    // Open deployed app in browser
+    const openInBrowser = (deployment: Deployment) => {
+        if (!deployment.contextPath) return
+        const url = `http://localhost:8080${deployment.contextPath}`
+        window.open(url, '_blank')
+    }
+
+    // Re-deploy: Build -> Prepare -> Deploy
+    const handleRedeploy = async (deployment: Deployment) => {
+        if (!selectedTomcat) {
+            showNotification('error', 'Please select a Tomcat first')
+            return
+        }
+
+        setDeployLoading(deployment.id)
+
+        try {
+            // 1. Trigger Build
+            showNotification('success', `Building ${deployment.projectName}...`)
+            const buildRes = await fetch(`${API_BASE}/projects/maven/build`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ projectPath: deployment.projectPath })
+            })
+
+            const buildResult = await buildRes.json()
+            if (!buildResult.success) {
+                throw new Error(buildResult.error || 'Build failed')
+            }
+
+            // 2. Prepare Deployment
+            showNotification('success', `Preparing artifact...`)
+            const prepRes = await fetch(`${API_BASE}/deploy/prepare`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    projectPath: deployment.projectPath,
+                    projectName: deployment.projectName
+                })
+            })
+
+            if (!prepRes.ok) throw new Error('Failed to prepare deployment')
+            const newDeployment = await prepRes.json()
+
+            // 3. Deploy to Tomcat
+            showNotification('success', `Deploying to ${selectedTomcat.name}...`)
+            const deployRes = await fetch(`${API_BASE}/deploy/to-tomcat`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    deploymentId: newDeployment.id,
+                    tomcatPath: selectedTomcat.path
+                })
+            })
+
+            if (!deployRes.ok) throw new Error('Failed to deploy to Tomcat')
+
+            showNotification('success', 'Re-deploy completed successfully')
+
+            // Clean up old deployment if it's different ID (optional, but good for cleanup)
+            if (newDeployment.id !== deployment.id) {
+                await fetch(`${API_BASE}/deploy/${deployment.id}`, { method: 'DELETE' })
+            }
+
+            await loadDeployments()
+
+        } catch (error: any) {
+            showNotification('error', error.message || 'Re-deploy failed')
+        } finally {
+            setDeployLoading(null)
+        }
     }
 
     const isProjectLoading = (projectPath: string) => loadingProject === projectPath
@@ -733,6 +1100,20 @@ export default function JacocoRunnerPage() {
                                                             </Button>
                                                         )}
 
+                                                        {/* Deploy - Only show for Maven projects with successful build */}
+                                                        {project.isMavenProject && (
+                                                            <Button
+                                                                variant="default"
+                                                                size="sm"
+                                                                onClick={() => prepareDeployment(project)}
+                                                                disabled={isProjectLoading(project.path)}
+                                                                className="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700"
+                                                            >
+                                                                <Upload className="w-4 h-4 mr-1" />
+                                                                Deploy
+                                                            </Button>
+                                                        )}
+
                                                         {/* Recent Branches */}
                                                         <div className="pt-2 border-t mt-auto min-h-[60px]">
                                                             {project.recentBranches && project.recentBranches.length > 1 ? (
@@ -744,8 +1125,8 @@ export default function JacocoRunnerPage() {
                                                                                 key={branch}
                                                                                 variant={branch === project.currentBranch ? "secondary" : "outline"}
                                                                                 className={`text-xs cursor-pointer truncate max-w-[100px] ${branch === project.currentBranch
-                                                                                        ? 'bg-primary/20 border-primary/50'
-                                                                                        : 'hover:bg-accent hover:border-primary/50'
+                                                                                    ? 'bg-primary/20 border-primary/50'
+                                                                                    : 'hover:bg-accent hover:border-primary/50'
                                                                                     }`}
                                                                                 title={branch === project.currentBranch ? `${branch} (current)` : `Switch to ${branch}`}
                                                                                 onClick={() => gitCheckout(project, branch)}
@@ -886,23 +1267,252 @@ export default function JacocoRunnerPage() {
 
                     {/* Tab 3: Deploy */}
                     <TabsContent value="deploy" className="space-y-4">
+                        {/* Tomcat Configuration */}
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
                                     <Rocket className="w-5 h-5" />
-                                    Deployment Status
+                                    Load Tomcat Servers
                                 </CardTitle>
                                 <CardDescription>
-                                    View and manage Maven Tomcat deployments
+                                    Enter the folder containing your Tomcat installations
                                 </CardDescription>
                             </CardHeader>
-                            <CardContent className="py-12 text-center">
-                                <Rocket className="w-16 h-16 mx-auto mb-4 text-muted-foreground/30" />
-                                <h3 className="text-lg font-semibold mb-2 text-muted-foreground">Coming Soon</h3>
-                                <p className="text-muted-foreground">
-                                    This feature will display deployed projects status <br />
-                                    and allow you to manage Tomcat deployments.
-                                </p>
+                            <CardContent className="space-y-4">
+                                <div className="flex gap-3">
+                                    <Input
+                                        value={tomcatBasePath}
+                                        onChange={(e) => setTomcatBasePath(e.target.value)}
+                                        placeholder="e.g., C:\Servers or D:\apache"
+                                        className="flex-1 font-mono"
+                                    />
+                                    <Button
+                                        onClick={loadTomcats}
+                                        disabled={loadingTomcats || !tomcatBasePath}
+                                        className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700"
+                                    >
+                                        {loadingTomcats ? (
+                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        ) : (
+                                            <Search className="w-4 h-4 mr-2" />
+                                        )}
+                                        Load Tomcats
+                                    </Button>
+                                </div>
+
+                                {/* Tomcat List */}
+                                {tomcats.length > 0 && (
+                                    <div className="space-y-2">
+                                        <Label className="text-sm text-muted-foreground">Select a Tomcat server:</Label>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            {tomcats.map((tomcat) => (
+                                                <div
+                                                    key={tomcat.path}
+                                                    onClick={() => {
+                                                        setSelectedTomcat(tomcat)
+                                                        localStorage.setItem(SELECTED_TOMCAT_KEY, tomcat.path)
+                                                    }}
+                                                    className={`p-4 border rounded-lg cursor-pointer transition-all ${selectedTomcat?.path === tomcat.path
+                                                        ? 'border-purple-500 bg-purple-500/10 ring-2 ring-purple-500/30'
+                                                        : 'hover:border-purple-500/50 hover:bg-accent/5'
+                                                        }`}
+                                                >
+                                                    <div className="flex items-center gap-2">
+                                                        <Rocket className={`w-5 h-5 ${selectedTomcat?.path === tomcat.path ? 'text-purple-500' : 'text-muted-foreground'}`} />
+                                                        <span className="font-semibold">{tomcat.name}</span>
+                                                        {tomcat.version && (
+                                                            <Badge variant="outline" className="text-xs">{tomcat.version}</Badge>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-xs text-muted-foreground mt-1 truncate">{tomcat.path}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {tomcats.length === 0 && tomcatBasePath && (
+                                    <p className="text-sm text-muted-foreground text-center py-4">
+                                        No Tomcat installations found. Click "Load Tomcats" to scan.
+                                    </p>
+                                )}
+
+                                {/* Tomcat Controls */}
+                                {selectedTomcat && (
+                                    <div className="flex gap-2 pt-2 border-t">
+                                        <Button
+                                            onClick={startTomcat}
+                                            disabled={deployLoading === 'tomcat-start'}
+                                            className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+                                        >
+                                            {deployLoading === 'tomcat-start' ? (
+                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                            ) : (
+                                                <Play className="w-4 h-4 mr-2" />
+                                            )}
+                                            Start {selectedTomcat.name}
+                                        </Button>
+                                        <Button
+                                            variant="destructive"
+                                            onClick={stopTomcat}
+                                            disabled={deployLoading === 'tomcat-stop'}
+                                        >
+                                            {deployLoading === 'tomcat-stop' ? (
+                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                            ) : (
+                                                <Square className="w-4 h-4 mr-2" />
+                                            )}
+                                            Stop {selectedTomcat.name}
+                                        </Button>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* Pending Deployments */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <Upload className="w-5 h-5" />
+                                        Pending Deployments
+                                        {deployments.length > 0 && (
+                                            <Badge variant="secondary">{deployments.length}</Badge>
+                                        )}
+                                    </div>
+                                    {selectedTomcat && deployments.length > 0 && (
+                                        <Button
+                                            size="sm"
+                                            onClick={() => deployAllToTomcat(selectedTomcat)}
+                                            disabled={!!deployLoading}
+                                            className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700"
+                                        >
+                                            {deployLoading === 'all' ? (
+                                                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                            ) : (
+                                                <Rocket className="w-4 h-4 mr-2" />
+                                            )}
+                                            Copy All to {selectedTomcat.name}
+                                        </Button>
+                                    )}
+                                </CardTitle>
+                                <CardDescription>
+                                    WAR files ready to deploy to Tomcat
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {deployments.length === 0 ? (
+                                    <div className="py-8 text-center text-muted-foreground">
+                                        <Package className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                                        <p>No pending deployments</p>
+                                        <p className="text-sm mt-1">Click "Deploy" on a Maven project to add one</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {deployments.map((deployment) => (
+                                            <div
+                                                key={deployment.id}
+                                                className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/5"
+                                            >
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-semibold">{deployment.projectName}</span>
+                                                        <Badge variant={deployment.fileType === 'WAR' ? 'default' : 'outline'} className="text-xs">
+                                                            {deployment.fileType || 'WAR'}
+                                                        </Badge>
+                                                        <Badge variant={deployment.status === 'deployed' ? 'default' : 'secondary'}>
+                                                            {deployment.status}
+                                                        </Badge>
+                                                    </div>
+                                                    <p className="text-sm text-muted-foreground mt-1">
+                                                        {deployment.warFileName} ({(deployment.warFileSize / 1024 / 1024).toFixed(2)} MB)
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Added: {deployment.createdAt}
+                                                        {deployment.deployedAt && ` • Deployed: ${deployment.deployedAt}`}
+                                                    </p>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    {/* Open in Browser */}
+                                                    {deployment.status === 'deployed' && deployment.contextPath && (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() => openInBrowser(deployment)}
+                                                            className="text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                                                        >
+                                                            <ExternalLink className="w-4 h-4 mr-1" />
+                                                            Open App
+                                                        </Button>
+                                                    )}
+
+                                                    {/* Re-deploy (Build + Deploy) */}
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => handleRedeploy(deployment)}
+                                                        disabled={
+                                                            !selectedTomcat ||
+                                                            deployLoading === deployment.id ||
+                                                            (deployment.status === 'deployed' && !tomcatRunning)
+                                                        }
+                                                        className="text-orange-500 hover:text-orange-600 hover:bg-orange-50"
+                                                    >
+                                                        {deployLoading === deployment.id ? (
+                                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                                        ) : (
+                                                            <RotateCw className="w-4 h-4 mr-1" />
+                                                        )}
+                                                        Re-deploy
+                                                    </Button>
+
+                                                    {/* Initial Deploy */}
+                                                    {deployment.status === 'pending' && (
+                                                        <Button
+                                                            size="sm"
+                                                            onClick={() => deployToTomcat(deployment.id)}
+                                                            disabled={!selectedTomcat || deployLoading === deployment.id}
+                                                            className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700"
+                                                        >
+                                                            {deployLoading === deployment.id ? (
+                                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                                            ) : (
+                                                                <>
+                                                                    <Rocket className="w-4 h-4 mr-1" />
+                                                                    Deploy
+                                                                </>
+                                                            )}
+                                                        </Button>
+                                                    )}
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        onClick={() => removeDeployment(deployment.id)}
+                                                    >
+                                                        <Trash2 className="w-4 h-4 text-red-500" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* Deploy Guide */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2 text-base">
+                                    <AlertCircle className="w-5 h-5 text-blue-500" />
+                                    Deployment Guide
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="text-sm text-muted-foreground space-y-2">
+                                <p>1. <strong>Build</strong> your Maven project first (Build Maven button)</p>
+                                <p>2. Click <strong>Deploy</strong> on the project card to add WAR to pending list</p>
+                                <p>3. Enter your <strong>Tomcat path</strong> above (e.g., C:\apache-tomcat-9.0.80)</p>
+                                <p>4. Click <strong>Deploy to Tomcat</strong> to copy WAR to webapps folder</p>
+                                <p>5. Click <strong>Start Tomcat</strong> to run the server</p>
                             </CardContent>
                         </Card>
                     </TabsContent>
