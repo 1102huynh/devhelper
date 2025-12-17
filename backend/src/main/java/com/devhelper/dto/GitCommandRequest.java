@@ -5,6 +5,7 @@ public class GitCommandRequest {
     private String command;
     private String branch;
     private String message;
+    private boolean openTerminal;
 
     public GitCommandRequest() {}
 
@@ -38,5 +39,13 @@ public class GitCommandRequest {
 
     public void setMessage(String message) {
         this.message = message;
+    }
+
+    public boolean isOpenTerminal() {
+        return openTerminal;
+    }
+
+    public void setOpenTerminal(boolean openTerminal) {
+        this.openTerminal = openTerminal;
     }
 }

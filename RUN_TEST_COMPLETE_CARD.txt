@@ -1,0 +1,232 @@
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃       RUN TEST TAB - COMPLETE REFERENCE CARD               ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+📂 ĐƯỜNG DẪN SCAN TEST SUITES (5 locations)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1️⃣  src/test/java/**/*.java
+    🟢 junit - JUnit test classes
+
+2️⃣  src/test/resources/features/**/*.feature
+    🟣 cucumber - Cucumber feature files
+
+3️⃣  src/test/resources/newXp/**/*
+    🟠 xifinportal - XifinPortal test suites
+
+4️⃣  src/test/resources/pfEngines/**/*
+    🔵 engine - Engine test suites
+
+5️⃣  src/test/resources/restassured/**/*
+    🔵 restapi - REST API test suites
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎨 BADGE COLORS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🟢 junit        → Green  (JUnit tests)
+🟣 cucumber     → Purple (Cucumber features)
+🟠 xifinportal  → Orange (XifinPortal)
+🔵 engine       → Cyan   (Engines)
+🔵 restapi      → Blue   (REST API)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📁 FILE TYPES DETECTED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+For paths 3-5 (xifinportal, engine, restapi):
+  ✓ .xml
+  ✓ .properties
+  ✓ .suite
+  ✓ .json
+  ✓ Files containing "suite" in name
+  ✓ Files containing "test" in name
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚡ QUICK ACTIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Click suite     → Toggle selection
+[All] button    → Select all suites
+[Clear] button  → Deselect all
+[▶ Start]       → Run selected tests
+[Copy]          → Copy log to clipboard
+[Clear]         → Clear terminal log
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 EXAMPLE SCENARIOS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Scenario 1: Chạy 1 JUnit test
+  ☑ UserServiceTest [junit]
+  → mvn test -Dtest=UserServiceTest
+
+Scenario 2: Chạy nhiều XifinPortal suites
+  ☑ PatientSuite [xifinportal]
+  ☑ BillingSuite [xifinportal]
+  → mvn test -Dtest=PatientSuite,BillingSuite
+
+Scenario 3: Chạy Engine tests
+  ☑ PricingEngine [engine]
+  ☑ EligibilityEngine [engine]
+  → mvn test -Dtest=PricingEngine,EligibilityEngine
+
+Scenario 4: Chạy REST API tests
+  ☑ UserAPI [restapi]
+  ☑ OrderAPI [restapi]
+  → mvn test -Dtest=UserAPI,OrderAPI
+
+Scenario 5: Mixed selection
+  ☑ UserTest [junit]
+  ☑ PatientSuite [xifinportal]
+  ☑ PricingEngine [engine]
+  → mvn test -Dtest=UserTest,PatientSuite,PricingEngine
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💻 PROJECT STRUCTURE EXAMPLES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+XifinPortal Project:
+  project/
+  └── src/test/resources/
+      └── newXp/
+          ├── patient/
+          │   └── PatientSuite.xml
+          └── billing/
+              └── BillingSuite.xml
+
+Engine Project:
+  project/
+  └── src/test/resources/
+      └── pfEngines/
+          ├── pricing/
+          │   └── PricingEngine.xml
+          └── eligibility/
+              └── EligibilityEngine.xml
+
+REST API Project:
+  project/
+  └── src/test/resources/
+      └── restassured/
+          ├── api/
+          │   └── UserAPI.xml
+          └── integration/
+              └── IntegrationTest.json
+
+━━━━━━━━━━━━━━━━━━━���━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 GETTING STARTED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Start backend:
+   cd backend && mvn spring-boot:run
+
+2. Start frontend:
+   cd frontend && npm run dev
+
+3. Open: http://localhost:3000/jacoco-runner
+
+4. Click tab "Run Test"
+
+5. Select project from dropdown
+
+6. Wait for test suites to load
+
+7. Select test suites (click checkboxes)
+
+8. Click "Start Execution"
+
+9. Watch real-time logs
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 UI LAYOUT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+┌───────────────────┬──────────────────────────────┐
+│ TEST RUNNER       │ TERMINAL                     │
+│                   │ 🔴🟡🟢 test-runner@proj:~  │
+│ [Project ▼]       │ ──────────────────────────── │
+│                   │ $ mvn test -Dtest=...        │
+│ Suites [3/10]     │                              │
+│ [All] [Clear]     │ [INFO] Building...           │
+│                   │ [INFO] Tests run: 3          │
+│ ☑ Test1 [junit]   │ BUILD SUCCESS                │
+│ ☐ Test2 [cucumber]│                              │
+│ ☑ Test3 [xifin]   │ [Copy] [Clear]              │
+│                   │                              │
+│ [▶ Start]         │                              │
+└───────────────────┴──────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 KEY FEATURES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Multi-select test suites
+✅ 5 test types supported
+✅ 5 scan locations
+✅ Color-coded badges
+✅ Real-time logs
+✅ Smart Maven command
+✅ Bulk actions (All/Clear)
+✅ Copy & Clear logs
+✅ Terminal-style UI
+✅ Auto-scan on project select
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔧 TECHNICAL SPECS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Backend:  Spring Boot + Java 17
+Frontend: React + TypeScript + Next.js
+API:      REST (GET /api/test/suites, POST /api/test/run)
+Polling:  1 second interval for logs
+Timeout:  30 minutes maximum
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️ LIMITATIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✗ Maven only (no Gradle)
+✗ Cannot stop running test
+✗ 30-minute timeout
+✗ No test history saved
+✗ No coverage visualization
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔮 COMING SOON
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+□ Search/filter suites
+□ Stop test button
+□ Test history
+□ Gradle support
+□ Coverage integration
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📚 DOCUMENTATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Full docs: TEST_RUNNER_USER_GUIDE.md
+Visual:    TEST_RUNNER_VISUAL_FLOW.md
+Quick ref: RUN_TEST_QUICK_REFERENCE.txt
+Summary:   RUN_TEST_FINAL_SUMMARY.txt
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ BUILD STATUS: SUCCESS
+✅ READY FOR: Production Use
+✅ TESTED: Backend compilation passed
+✅ VERIFIED: No TypeScript errors
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

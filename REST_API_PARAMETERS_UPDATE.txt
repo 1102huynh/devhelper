@@ -1,0 +1,529 @@
+╔══════════════════════════════════════════════════════════════════════════╗
+║          REST API TEST PARAMETERS - IMPLEMENTATION UPDATE                ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+📅 Date: December 17, 2025
+🎯 Feature: REST API test suite parameters support
+✅ Status: IMPLEMENTED
+
+═══════════════════════════════════════════════════════════════════════════
+
+📋 UPDATE SUMMARY
+═══════════════════════════════════════════════════════════════════════════
+
+Đã cập nhật để support 3 loại test suites với parameters khác nhau:
+
+1. Portal/Engine Tests:
+   mvn clean test -DforkCount=0 -Dmaven.surefire.debug
+   -DreuseForks=false -DorgAlias=${orgAlias} -DtestSuite=newXp\${suite}
+
+2. REST API Tests:
+   mvn clean test -DOrgAlias=${orgAlias} -DUserId=${userId}
+   -DUsername=${username} -DPassword=${password}
+   -Denforcer.skip -DtestSuite=${suite}
+
+3. JUnit/Cucumber Tests:
+   mvn test -Dtest=${testName}
+
+═══════════════════════════════════════════════════════════════════════════
+
+🔧 TECHNICAL CHANGES
+═══════════════════════════════════════════════════════════════════════════
+
+1. New State Variables
+   ────────────────────────────────────────────────────────────────────
+   const [orgAlias, setOrgAlias] = useState('qa07')     // Dropdown
+   const [userId, setUserId] = useState('chava')         // Dropdown
+   const [username] = useState('webservicetest')         // Fixed
+   const [password] = useState('webservicetest')         // Fixed
+
+2. Parameter Options
+   ────────────────────────────────────────────────────────────────────
+   OrgAlias:
+     - qa07 (default)
+     - qa08
+     - Applies to: Portal, Engine, REST API
+
+   UserId (REST API only):
+     - chava (default)
+     - qatester
+
+   Username (REST API only):
+     - webservicetest (fixed)
+
+   Password (REST API only):
+     - webservicetest (fixed)
+
+3. Updated runTest() Logic
+   ────────────────────────────────────────────────────────────────────
+   Command Building per Type:
+
+   IF type === 'restapi':
+     → mvn clean test
+       -DOrgAlias=${orgAlias}
+       -DUserId=${userId}
+       -DUsername=${username}
+       -DPassword=${password}
+       -Denforcer.skip
+       -DtestSuite=${suiteName}
+
+   ELSE IF type === 'xifinportal' | 'engine':
+     → mvn clean test
+       -DforkCount=0
+       -Dmaven.surefire.debug
+       -DreuseForks=false
+       -DorgAlias=${orgAlias}
+       -DtestSuite=newXp\${suiteName}
+
+   ELSE (JUnit/Cucumber):
+     → mvn test -Dtest=${suiteName}
+
+4. UI Changes
+   ────────────────────────────────────────────────────────────────────
+   New Section: "Test Parameters"
+
+   Always shown (when suites selected):
+     ✓ OrgAlias dropdown (qa07, qa08)
+
+   Conditionally shown (when REST API suite selected):
+     ✓ UserId dropdown (chava, qatester)
+     ✓ Username field (disabled, fixed value)
+     ✓ Password field (disabled, fixed value)
+     ✓ Parameter preview text
+
+   Helper Text:
+     - REST API: Shows all 4 parameters
+     - Portal/Engine: Shows orgAlias and testSuite format
+
+═══════════════════════════════════════════════════════════════════════════
+
+📊 COMMAND EXAMPLES
+═══════════════════════════════════════════════════════════════════════════
+
+Example 1: REST API Suite
+──────────────────────────────────────────────────────────────────────────
+Input:
+  - Project: api-automation
+  - Suite: UserAPI.xml (restapi type)
+  - OrgAlias: qa07
+  - UserId: chava
+  - Username: webservicetest (auto)
+  - Password: webservicetest (auto)
+
+Generated Command:
+  mvn clean test -DOrgAlias=qa07 -DUserId=chava
+  -DUsername=webservicetest -DPassword=webservicetest
+  -Denforcer.skip -DtestSuite=UserAPI.xml
+
+
+Example 2: Portal Suite
+──────────────────────────────────────────────────────────────────────────
+Input:
+  - Project: xifinportal-automation
+  - Suite: PatientSuite.xml (xifinportal type)
+  - OrgAlias: qa08
+
+Generated Command:
+  mvn clean test -DforkCount=0 -Dmaven.surefire.debug
+  -DreuseForks=false -DorgAlias=qa08
+  -DtestSuite=newXp\PatientSuite.xml
+
+
+Example 3: Engine Suite
+──────────────────────────────────────────────────────────────────────────
+Input:
+  - Project: engine-automation
+  - Suite: PricingEngine.xml (engine type)
+  - OrgAlias: qa07
+
+Generated Command:
+  mvn clean test -DforkCount=0 -Dmaven.surefire.debug
+  -DreuseForks=false -DorgAlias=qa07
+  -DtestSuite=newXp\PricingEngine.xml
+
+
+Example 4: Mixed (Portal + REST API)
+──────────────────────────────────────────────────────────────────────────
+Input:
+  - Project: full-automation
+  - Suites: PatientSuite (portal), UserAPI (restapi)
+  - OrgAlias: qa07
+  - UserId: qatester
+
+Execution:
+
+1. mvn clean test -DforkCount=0 ... -DorgAlias=qa07
+   -DtestSuite=newXp\PatientSuite.xml
+
+2. mvn clean test -DOrgAlias=qa07 -DUserId=qatester
+   -DUsername=webservicetest -DPassword=webservicetest
+   -Denforcer.skip -DtestSuite=UserAPI
+
+═══════════════════════════════════════════════════════════════════════════
+
+🎨 UI LAYOUT
+═══════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ Test Suites [2/15]                              [All] [Clear]           │
+│ ┌────────────────────────────────────────────────────────────────────┐ │
+│ │ [All] [🟢 JUnit] [🟠 Portal] [🔵 API] ...                        │ │
+│ │ ☑ PatientSuite (Portal)                                           │ │
+│ │ ☑ UserAPI (REST API)                                              │ │
+│ └────────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+│ ┌─────────────────────────────────────────────────────────────────────┐│
+│ │ 🔵 Test Parameters                                                  ││
+│ │                                                                     ││
+│ │ OrgAlias *                                                          ││
+│ │ [qa07 ▼]  (qa07, qa08)                                             ││
+│ │                                                                     ││
+│ │ UserId *                                                            ││
+│ │ [chava ▼]  (chava, qatester)                                       ││
+│ │                                                                     ││
+│ │ Username              Password                                      ││
+│ │ [webservicetest]      [••••••••••••]                               ││
+│ │                                                                     ││
+│ │ ℹ REST API Parameters: -DOrgAlias=qa07 -DUserId=chava ...         ││
+│ └─────────────────────────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────────────────────────┘
+
+═══════════════════════════════════════════════════════════════════════════
+
+🎯 UI BEHAVIOR
+═══════════════════════════════════════════════════════════════════════════
+
+Scenario 1: Only Portal suites selected
+──────────────────────────────────────────────────────────────────────────
+Test Parameters Section:
+  ✓ OrgAlias dropdown shown
+  ✗ UserId hidden
+  ✗ Username hidden
+  ✗ Password hidden
+  ℹ Shows: "Portal/Engine Parameters: -DorgAlias=..."
+
+
+Scenario 2: Only REST API suites selected
+──────────────────────────────────────────────────────────────────────────
+Test Parameters Section:
+  ✓ OrgAlias dropdown shown
+  ✓ UserId dropdown shown
+  ✓ Username field shown (disabled)
+  ✓ Password field shown (disabled)
+  ℹ Shows: "REST API Parameters: -DOrgAlias=... -DUserId=..."
+
+
+Scenario 3: Portal + REST API suites selected
+──────────────────────────────────────────────────────────────────────────
+Test Parameters Section:
+  ✓ OrgAlias dropdown shown
+  ✓ UserId dropdown shown
+  ✓ Username field shown
+  ✓ Password field shown
+  ℹ Shows: "REST API Parameters: ..." (REST API info takes priority)
+
+
+Scenario 4: Only JUnit suites selected
+──────────────────────────────────────────────────────────────────────────
+Test Parameters Section:
+  ✗ Entire section hidden (JUnit doesn't need parameters)
+
+═══════════════════════════════════════════════════════════════════════════
+
+💡 USE CASES
+═══════════════════════════════════════════════════════════════════════════
+
+Use Case 1: Run REST API Test
+──────────────────────────────────────────────────────────────────────────
+1. Select project: "api-automation"
+2. Click tab "🔵 API"
+3. Select: UserAPI, OrderAPI
+4. OrgAlias: qa07 (default)
+5. UserId: chava (default)
+6. Username/Password: auto-filled
+7. Click "Start Execution"
+
+Result:
+  - UserAPI runs with all parameters
+  - OrderAPI runs with all parameters
+  - Sequential execution
+
+
+Use Case 2: Run Portal + API Tests
+──────────────────────────────────────────────────────────────────────────
+1. Select project: "full-automation"
+2. Tab "🟠 Portal" → Select: PatientSuite
+3. Tab "🔵 API" → Select: UserAPI
+4. OrgAlias: qa08
+5. UserId: qatester
+6. Click "Start Execution"
+
+Result:
+  - PatientSuite runs: Portal command with qa08
+  - UserAPI runs: REST API command with qa08 + qatester
+
+
+Use Case 3: Switch OrgAlias
+──────────────────────────────────────────────────────────────────────────
+1. Select suites
+2. OrgAlias: qa07 (default)
+3. Change to: qa08
+4. Run
+
+Result: All tests use qa08
+
+
+Use Case 4: Switch UserId for REST API
+──────────────────────────────────────────────────────────────────────────
+1. Select REST API suites
+2. UserId: chava (default)
+3. Change to: qatester
+4. Run
+
+Result: All REST API tests use qatester
+
+═══════════════════════════════════════════════════════════════════════════
+
+✅ PARAMETER MATRIX
+═══════════════════════════════════════════════════════════════════════════
+
+┌─────────────┬──────────┬────────┬──────────┬──────────┬────────────────┐
+│ Test Type   │ OrgAlias │ UserId │ Username │ Password │ Other Params   │
+├─────────────┼──────────┼────────┼──────────┼──────────┼────────────────┤
+│ Portal      │    ✓     │   -    │    -     │    -     │ forkCount,etc  │
+│ Engine      │    ✓     │   -    │    -     │    -     │ forkCount,etc  │
+│ REST API    │    ✓     │   ✓    │    ✓     │    ✓     │ enforcer.skip  │
+│ JUnit       │    -     │   -    │    -     │    -     │ -              │
+│ Cucumber    │    -     │   -    │    -     │    -     │ -              │
+└─────────────┴──────────┴────────┴──────────┴──────────┴────────────────┘
+
+═══════════════════════════════════════════════════════════════════════════
+
+🔄 EXECUTION FLOW
+═══════════════════════════════════════════════════════════════════════════
+
+Sequential Execution with Different Commands:
+
+For each selected suite:
+
+  1. Identify suite type
+
+  2. Build appropriate command:
+
+     REST API:
+       mvn clean test -DOrgAlias=${orgAlias} -DUserId=${userId}
+       -DUsername=${username} -DPassword=${password}
+       -Denforcer.skip -DtestSuite=${suite}
+
+     Portal/Engine:
+       mvn clean test -DforkCount=0 -Dmaven.surefire.debug
+       -DreuseForks=false -DorgAlias=${orgAlias}
+       -DtestSuite=newXp\${suite}
+
+     JUnit/Cucumber:
+       mvn test -Dtest=${suite}
+
+  3. Execute command
+
+  4. Wait for completion
+
+  5. Move to next suite
+
+═══════════════════════════════════════════════════════════════════════════
+
+✨ KEY IMPROVEMENTS
+═══════════════════════════════════════════════════════════════════════════
+
+✅ Dropdown Selection
+   - OrgAlias: Quick selection between qa07/qa08
+   - UserId: Quick selection between chava/qatester
+   - No typing errors
+
+✅ Smart UI
+   - Only shows relevant fields per test type
+   - REST API fields hidden when not needed
+   - Clear parameter preview
+
+✅ Fixed Values
+   - Username & Password fixed to webservicetest
+   - No accidental changes
+   - Consistent execution
+
+✅ Unified OrgAlias
+   - Same OrgAlias dropdown for all types
+   - Consistent parameter naming
+   - Easy to switch environments
+
+✅ Type-Specific Commands
+   - Correct command per test type
+   - All required parameters included
+   - No manual command building needed
+
+═══════════════════════════════════════════════════════════════════════════
+
+🎨 VISUAL STATES
+═══════════════════════════════════════════════════════════════════════════
+
+State 1: Portal Suites Selected
+┌────────────────────────────────────────┐
+│ Test Parameters                        │
+│                                        │
+│ OrgAlias *                             │
+│ [qa07 ▼]                               │
+│                                        │
+│ ℹ Portal Parameters: -DorgAlias=qa07  │
+└────────────────────────────────────────┘
+
+
+State 2: REST API Suites Selected
+┌────────────────────────────────────────────┐
+│ Test Parameters                            │
+│                                            │
+│ OrgAlias *                                 │
+│ [qa07 ▼]                                   │
+│                                            │
+│ UserId *                                   │
+│ [chava ▼]                                  │
+│                                            │
+│ Username           Password                │
+│ [webservicetest]   [••••••••••]           │
+│                                            │
+│ ℹ REST API Parameters: -DOrgAlias=qa07... │
+└────────────────────────────────────────────┘
+
+
+State 3: No Suites Selected
+┌────────────────────────────────────────┐
+│ (Test Parameters section hidden)      │
+└────────────────────────────────────────┘
+
+═══════════════════════════════════════════════════════════════════════════
+
+🧪 TESTING SCENARIOS
+═══════════════════════════════════════════════════════════════════════════
+
+Test 1: REST API with qa07 + chava
+  ✓ Select REST API suite
+  ✓ OrgAlias: qa07 (default)
+  ✓ UserId: chava (default)
+  ✓ Run
+  ✓ Verify command includes all 4 parameters
+
+Test 2: REST API with qa08 + qatester
+  ✓ Select REST API suite
+  ✓ Change OrgAlias to qa08
+  ✓ Change UserId to qatester
+  ✓ Run
+  ✓ Verify command uses qa08 and qatester
+
+Test 3: Portal with qa08
+  ✓ Select Portal suite
+  ✓ Change OrgAlias to qa08
+  ✓ Run
+  ✓ Verify Portal command with qa08
+  ✓ Verify UserId not in command
+
+Test 4: Mixed Portal + REST API
+  ✓ Select 1 Portal + 1 REST API
+  ✓ OrgAlias: qa07
+  ✓ UserId: chava
+  ✓ Run
+  ✓ Verify Portal uses orgAlias only
+  ✓ Verify REST API uses all 4 params
+
+Test 5: JUnit only
+  ✓ Select JUnit suite
+  ✓ Parameters section should hide
+  ✓ Run
+  ✓ Verify simple mvn test command
+
+═══════════════════════════════════════════════════════════════════════════
+
+📈 BENEFITS
+═══════════════════════════════════════════════════════════════════════════
+
+✅ No Manual Input Errors
+   Dropdowns prevent typos in qa07/qa08/chava/qatester
+
+✅ Clear Separation
+   Different commands for different test types
+
+✅ Simplified UX
+   Username/Password fixed, no need to remember
+
+✅ Quick Environment Switch
+   Change OrgAlias from qa07 to qa08 in one click
+
+✅ Visual Feedback
+   Parameter preview shows exactly what will be used
+
+✅ Consistent Behavior
+   Same OrgAlias applies to all applicable test types
+
+═══════════════════════════════════════════════════════════════════════════
+
+✅ COMPLETION STATUS
+═══════════════════════════════════════════════════════════════════════════
+
+Implementation:
+  ✅ State variables for all parameters
+  ✅ OrgAlias dropdown (qa07, qa08)
+  ✅ UserId dropdown (chava, qatester)
+  ✅ Fixed username/password fields
+  ✅ Conditional UI rendering
+  ✅ Command building per type
+  ✅ REST API command format
+  ✅ Portal/Engine command format
+
+UI:
+  ✅ Test Parameters section
+  ✅ Dropdowns for selections
+  ✅ Disabled fields for fixed values
+  ✅ Helper text with parameter preview
+  ✅ Conditional display logic
+  ✅ Blue theme styling
+
+Testing:
+  ⏳ Manual testing pending
+  ⏳ Verify REST API command
+  ⏳ Verify Portal command
+  ⏳ Verify parameter switching
+
+Documentation:
+  ✅ Complete feature documentation
+  ✅ Command examples
+  ✅ Use cases
+  ✅ UI states
+
+═══════════════════════════════════════════════════════════════════════════
+
+🎉 SUMMARY
+═══════════════════════════════════════════════════════════════════════════
+
+Successfully implemented REST API test parameters:
+
+✅ 3 Test Types Supported:
+   1. Portal/Engine: -DorgAlias + -DtestSuite=newXp\...
+   2. REST API: -DOrgAlias + -DUserId + -DUsername + -DPassword
+   3. JUnit/Cucumber: -Dtest=...
+
+✅ User-Friendly Inputs:
+   - OrgAlias: Dropdown (qa07, qa08)
+   - UserId: Dropdown (chava, qatester)
+   - Username: Fixed (webservicetest)
+   - Password: Fixed (webservicetest)
+
+✅ Smart UI:
+   - Only shows relevant parameters
+   - REST API fields conditional
+   - Parameter preview included
+
+RESULT:
+  → Complete support for 3 test types
+  → No manual parameter entry errors
+  → Clear, organized UI
+  → Correct commands per type
+
+STATUS: ✅ READY FOR TESTING
+
+═══════════════════════════════════════════════════════════════════════════

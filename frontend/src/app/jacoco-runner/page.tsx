@@ -53,6 +53,13 @@ interface TomcatInfo {
     hasWebapps: boolean
 }
 
+interface TestSuite {
+    name: string
+    className: string
+    path: string
+    type: 'junit' | 'cucumber' | 'xifinportal' | 'engine' | 'restapi'
+}
+
 const API_BASE = 'http://localhost:8080/api'
 const ITEMS_PER_PAGE_OPTIONS = [6, 12, 24, 48]
 const STORAGE_KEY = 'jacoco-runner-base-path'
@@ -98,6 +105,14 @@ export default function JacocoRunnerPage() {
     const [testCommand, setTestCommand] = useState('mvn test')
     const [testRunning, setTestRunning] = useState(false)
     const [testLog, setTestLog] = useState('')
+    const [testSuites, setTestSuites] = useState<TestSuite[]>([])
+    const [selectedSuites, setSelectedSuites] = useState<Set<string>>(new Set())
+    const [loadingSuites, setLoadingSuites] = useState(false)
+    const [activeTestTab, setActiveTestTab] = useState<string>('all')
+    const [orgAlias, setOrgAlias] = useState('qa07')
+    const [userId, setUserId] = useState('chava')
+    const [username] = useState('webservicetest')
+    const [password] = useState('webservicetest')
 
     // Load basePath and tomcatPath from localStorage on mount
     useEffect(() => {
@@ -134,6 +149,16 @@ export default function JacocoRunnerPage() {
     useEffect(() => {
         setCurrentPage(1)
     }, [searchQuery, filterType])
+
+    // Load test suites when project changes
+    useEffect(() => {
+        if (selectedTestProject) {
+            loadTestSuites()
+        } else {
+            setTestSuites([])
+            setSelectedSuites(new Set())
+        }
+    }, [selectedTestProject])
 
     // Filter and paginate projects
     const filteredProjects = useMemo(() => {
@@ -614,6 +639,69 @@ export default function JacocoRunnerPage() {
         }
     }
 
+    // Load test suites for selected project
+    const loadTestSuites = async () => {
+        if (!selectedTestProject) return
+
+        setLoadingSuites(true)
+        try {
+            const response = await fetch(`${API_BASE}/test/suites?projectPath=${encodeURIComponent(selectedTestProject.path)}`)
+            if (response.ok) {
+                const data = await response.json()
+                setTestSuites(data)
+            } else {
+                showNotification('error', 'Failed to load test suites')
+            }
+        } catch (error) {
+            showNotification('error', 'Cannot load test suites')
+        } finally {
+            setLoadingSuites(false)
+        }
+    }
+
+    // Toggle test suite selection
+    const toggleSuiteSelection = (className: string) => {
+        const newSelected = new Set(selectedSuites)
+        if (newSelected.has(className)) {
+            newSelected.delete(className)
+        } else {
+            newSelected.add(className)
+        }
+        setSelectedSuites(newSelected)
+    }
+
+    // Select all test suites (context-aware based on active tab)
+    const selectAllSuites = () => {
+        let suitesToSelect: TestSuite[]
+
+        if (activeTestTab === 'all') {
+            suitesToSelect = testSuites
+        } else {
+            suitesToSelect = testSuites.filter(s => s.type === activeTestTab)
+        }
+
+        setSelectedSuites(new Set(suitesToSelect.map(s => s.className)))
+    }
+
+    // Clear all selections (context-aware based on active tab)
+    const clearAllSelections = () => {
+        if (activeTestTab === 'all') {
+            // Clear all selections
+            setSelectedSuites(new Set())
+        } else {
+            // Clear only selections of current tab type
+            const suitesToClear = testSuites.filter(s => s.type === activeTestTab).map(s => s.className)
+            const newSelected = new Set(selectedSuites)
+            suitesToClear.forEach(className => newSelected.delete(className))
+            setSelectedSuites(newSelected)
+        }
+    }
+
+    // Helper function to remove file extension from test suite name
+    const removeFileExtension = (fileName: string): string => {
+        return fileName.replace(/\.(xml|properties|suite|json|feature)$/i, '')
+    }
+
     // Run Test
     const runTest = async () => {
         if (!selectedTestProject) {
@@ -622,44 +710,94 @@ export default function JacocoRunnerPage() {
         }
 
         setTestRunning(true)
-        setTestLog('Starting test...\n')
+
+        // Clear log on backend before starting
+        try {
+            await fetch(`${API_BASE}/test/clear-log?projectPath=${encodeURIComponent(selectedTestProject.path)}`, {
+                method: 'POST'
+            })
+        } catch (e) {
+            console.error('Failed to clear log', e)
+        }
+
+        setTestLog('Starting test execution...\n')
 
         try {
-            // 1. Trigger API
-            const res = await fetch(`${API_BASE}/test/run`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    projectPath: selectedTestProject.path,
-                    command: testCommand
+            const selectedSuitesArray = Array.from(selectedSuites)
+
+            if (selectedSuitesArray.length === 0) {
+                // No suites selected, use custom command
+                const res = await fetch(`${API_BASE}/test/run`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        projectPath: selectedTestProject.path,
+                        command: testCommand,
+                        openTerminal: true  // Open real CMD window
+                    })
                 })
-            })
 
-            if (!res.ok) throw new Error('Failed to trigger test')
+                if (!res.ok) throw new Error('Failed to trigger test')
 
-            // 2. Start Polling
-            const poll = setInterval(async () => {
-                if (!selectedTestProject) return;
+                // Don't need to poll, CMD window will show everything
+                setTestRunning(false)
+                showNotification('success', 'Test started in CMD window')
+            } else {
+                // Run suites sequentially in ONE CMD window
+                const commands: string[] = []
 
-                try {
-                    // Status
-                    const statusRes = await fetch(`${API_BASE}/test/status?projectPath=${encodeURIComponent(selectedTestProject.path)}`)
-                    const statusData = await statusRes.json()
+                for (let i = 0; i < selectedSuitesArray.length; i++) {
+                    const suiteName = selectedSuitesArray[i]
+                    const suiteInfo = testSuites.find(s => s.className === suiteName)
 
-                    // Log
-                    const logRes = await fetch(`${API_BASE}/test/log?projectPath=${encodeURIComponent(selectedTestProject.path)}`)
-                    const logText = await logRes.text()
-                    setTestLog(logText)
+                    // Remove file extension from suite name
+                    const suiteNameWithoutExt = removeFileExtension(suiteName)
 
-                    if (!statusData.running) {
-                        clearInterval(poll)
-                        setTestRunning(false)
-                        showNotification('success', 'Test execution finished')
+                    // Build command based on test type
+                    let command: string
+
+                    if (suiteInfo?.type === 'restapi') {
+                        // REST API tests - uses restassured\test\ path
+                        command = `mvn clean test -DOrgAlias=${orgAlias} -DUserId=${userId} -DUsername=${username} -DPassword=${password} -Denforcer.skip -DtestSuite=restassured\\${suiteNameWithoutExt}`
+                    } else if (suiteInfo?.type === 'xifinportal') {
+                        command = `mvn clean test -DforkCount=0 -Dmaven.surefire.debug -DreuseForks=false -DorgAlias=${orgAlias} -DtestSuite=newXp\\${suiteNameWithoutExt}`
+                    } else if (suiteInfo?.type === 'engine') {
+                        command = `mvn clean test -DforkCount=0 -Dmaven.surefire.debug -DreuseForks=false -DorgAlias=${orgAlias} -DtestSuite=pfEngines\\${suiteNameWithoutExt}`
+                    } else {
+                        command = `mvn test -Dtest=${suiteNameWithoutExt}`
                     }
-                } catch (e) {
-                    console.error("Polling error", e)
+
+                    commands.push(command)
+                    setTestLog(prev => prev + `Suite ${i + 1}: ${suiteName}\n`)
+                    setTestLog(prev => prev + `Command: ${command}\n\n`)
                 }
-            }, 1000)
+
+                // Chain all commands with && (run sequentially in one CMD)
+                const chainedCommand = commands.join(' && ')
+
+                setTestLog(prev => prev + `Opening 1 CMD window to run ${selectedSuitesArray.length} test suites sequentially...\n\n`)
+
+                const res = await fetch(`${API_BASE}/test/run`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        projectPath: selectedTestProject.path,
+                        command: chainedCommand,
+                        openTerminal: true  // Open ONE CMD window
+                    })
+                })
+
+                if (!res.ok) {
+                    showNotification('error', 'Failed to start test execution')
+                } else {
+                    setTestLog(prev => prev + `✅ CMD window opened\n`)
+                    setTestLog(prev => prev + `Running ${selectedSuitesArray.length} test suites sequentially\n`)
+                    setTestLog(prev => prev + `Check CMD window for real-time progress\n`)
+                    showNotification('success', `Running ${selectedSuitesArray.length} suites in 1 CMD window`)
+                }
+
+                setTestRunning(false)
+            }
 
         } catch (e) {
             showNotification('error', 'Failed to start test')
@@ -1586,9 +1724,9 @@ export default function JacocoRunnerPage() {
 
                     {/* Tab 4: Run Test */}
                     <TabsContent value="test" className="space-y-6">
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[600px]">
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[700px]">
                             {/* Left Column: Configuration */}
-                            <Card className="lg:col-span-4 flex flex-col border-t-4 border-t-blue-500 shadow-lg">
+                            <Card className="lg:col-span-4 flex flex-col border-t-4 border-t-blue-500 shadow-lg overflow-hidden">
                                 <CardHeader className="bg-gradient-to-br from-blue-50 to-white dark:from-blue-950/20 dark:to-background border-b">
                                     <div className="flex items-center justify-between">
                                         <div className="space-y-1">
@@ -1602,7 +1740,7 @@ export default function JacocoRunnerPage() {
                                         </div>
                                     </div>
                                 </CardHeader>
-                                <CardContent className="space-y-6 p-6 flex-1">
+                                <CardContent className="space-y-4 p-6 flex-1 overflow-y-auto">
                                     <div className="space-y-3">
                                         <Label className="text-base font-medium">Select Project</Label>
                                         <div className="relative">
@@ -1623,8 +1761,402 @@ export default function JacocoRunnerPage() {
                                         </div>
                                     </div>
 
+                                    {/* Test Suites Selection */}
+                                    {selectedTestProject && (
+                                        <div className="space-y-3">
+                                            <div className="flex items-center justify-between">
+                                                <Label className="text-base font-medium">
+                                                    Test Suites
+                                                    {testSuites.length > 0 && (
+                                                        <Badge variant="secondary" className="ml-2">
+                                                            {selectedSuites.size}/{testSuites.length}
+                                                        </Badge>
+                                                    )}
+                                                </Label>
+                                                {testSuites.length > 0 && (
+                                                    <div className="flex gap-1">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={selectAllSuites}
+                                                            className="h-7 text-xs"
+                                                            title={activeTestTab === 'all' ? 'Select all test suites' : `Select all ${activeTestTab} tests`}
+                                                        >
+                                                            All {activeTestTab !== 'all' && `(${activeTestTab})`}
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={clearAllSelections}
+                                                            className="h-7 text-xs"
+                                                            title={activeTestTab === 'all' ? 'Clear all selections' : `Clear ${activeTestTab} selections`}
+                                                        >
+                                                            Clear {activeTestTab !== 'all' && `(${activeTestTab})`}
+                                                        </Button>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {loadingSuites ? (
+                                                <div className="flex items-center justify-center py-8">
+                                                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                                                </div>
+                                            ) : testSuites.length === 0 ? (
+                                                <div className="text-sm text-muted-foreground py-4 text-center border rounded-lg bg-muted/30">
+                                                    No test suites found in this project
+                                                </div>
+                                            ) : (
+                                                <Tabs defaultValue="all" value={activeTestTab} onValueChange={setActiveTestTab} className="w-full">
+                                                    <TabsList className="w-full h-auto grid grid-cols-3 gap-2 p-1 bg-muted/50">
+                                                        <TabsTrigger value="all" className="text-xs py-2 data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+                                                            All ({testSuites.length})
+                                                        </TabsTrigger>
+                                                        {testSuites.some(s => s.type === 'junit') && (
+                                                            <TabsTrigger value="junit" className="text-xs py-2 data-[state=active]:bg-green-500 data-[state=active]:text-white">
+                                                                <span className="mr-1">🟢</span>
+                                                                JUnit ({testSuites.filter(s => s.type === 'junit').length})
+                                                            </TabsTrigger>
+                                                        )}
+                                                        {testSuites.some(s => s.type === 'cucumber') && (
+                                                            <TabsTrigger value="cucumber" className="text-xs py-2 data-[state=active]:bg-purple-500 data-[state=active]:text-white">
+                                                                <span className="mr-1">🟣</span>
+                                                                Cucumber ({testSuites.filter(s => s.type === 'cucumber').length})
+                                                            </TabsTrigger>
+                                                        )}
+                                                        {testSuites.some(s => s.type === 'xifinportal') && (
+                                                            <TabsTrigger value="xifinportal" className="text-xs py-2 data-[state=active]:bg-orange-500 data-[state=active]:text-white">
+                                                                <span className="mr-1">🟠</span>
+                                                                Portal ({testSuites.filter(s => s.type === 'xifinportal').length})
+                                                            </TabsTrigger>
+                                                        )}
+                                                        {testSuites.some(s => s.type === 'engine') && (
+                                                            <TabsTrigger value="engine" className="text-xs py-2 data-[state=active]:bg-cyan-500 data-[state=active]:text-white">
+                                                                <span className="mr-1">🔵</span>
+                                                                Engine ({testSuites.filter(s => s.type === 'engine').length})
+                                                            </TabsTrigger>
+                                                        )}
+                                                        {testSuites.some(s => s.type === 'restapi') && (
+                                                            <TabsTrigger value="restapi" className="text-xs py-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+                                                                <span className="mr-1">🔵</span>
+                                                                API ({testSuites.filter(s => s.type === 'restapi').length})
+                                                            </TabsTrigger>
+                                                        )}
+                                                    </TabsList>
+
+                                                    {/* All Tab */}
+                                                    <TabsContent value="all" className="mt-2">
+                                                        <div className="space-y-2 max-h-[280px] overflow-y-auto border rounded-lg p-2 bg-muted/30">
+                                                            {testSuites.map((suite) => (
+                                                                <div
+                                                                    key={suite.className}
+                                                                    onClick={() => toggleSuiteSelection(suite.className)}
+                                                                    className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-all hover:bg-accent ${
+                                                                        selectedSuites.has(suite.className)
+                                                                            ? 'bg-blue-500/10 border border-blue-500/30'
+                                                                            : 'border border-transparent'
+                                                                    }`}
+                                                                >
+                                                                    <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
+                                                                        selectedSuites.has(suite.className)
+                                                                            ? 'bg-blue-500 border-blue-500'
+                                                                            : 'border-muted-foreground/30'
+                                                                    }`}>
+                                                                        {selectedSuites.has(suite.className) && (
+                                                                            <CheckCircle2 className="w-3 h-3 text-white" />
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className="text-sm font-medium truncate">{suite.name}</span>
+                                                                            <Badge
+                                                                                variant="outline"
+                                                                                className={`text-xs ${
+                                                                                    suite.type === 'junit' 
+                                                                                        ? 'text-green-600 border-green-600/30' 
+                                                                                        : suite.type === 'cucumber'
+                                                                                        ? 'text-purple-600 border-purple-600/30'
+                                                                                        : suite.type === 'xifinportal'
+                                                                                        ? 'text-orange-600 border-orange-600/30'
+                                                                                        : suite.type === 'engine'
+                                                                                        ? 'text-cyan-600 border-cyan-600/30'
+                                                                                        : 'text-blue-600 border-blue-600/30'
+                                                                                }`}
+                                                                            >
+                                                                                {suite.type}
+                                                                            </Badge>
+                                                                        </div>
+                                                                        <p className="text-xs text-muted-foreground truncate">{suite.className}</p>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </TabsContent>
+
+                                                    {/* JUnit Tab */}
+                                                    {testSuites.some(s => s.type === 'junit') && (
+                                                        <TabsContent value="junit" className="mt-2">
+                                                            <div className="space-y-2 max-h-[280px] overflow-y-auto border rounded-lg p-2 bg-muted/30">
+                                                                {testSuites.filter(s => s.type === 'junit').map((suite) => (
+                                                                    <div
+                                                                        key={suite.className}
+                                                                        onClick={() => toggleSuiteSelection(suite.className)}
+                                                                        className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-all hover:bg-accent ${
+                                                                            selectedSuites.has(suite.className)
+                                                                                ? 'bg-blue-500/10 border border-blue-500/30'
+                                                                                : 'border border-transparent'
+                                                                        }`}
+                                                                    >
+                                                                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
+                                                                            selectedSuites.has(suite.className)
+                                                                                ? 'bg-blue-500 border-blue-500'
+                                                                                : 'border-muted-foreground/30'
+                                                                        }`}>
+                                                                            {selectedSuites.has(suite.className) && (
+                                                                                <CheckCircle2 className="w-3 h-3 text-white" />
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <span className="text-sm font-medium truncate">{suite.name}</span>
+                                                                            <p className="text-xs text-muted-foreground truncate">{suite.className}</p>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </TabsContent>
+                                                    )}
+
+                                                    {/* Cucumber Tab */}
+                                                    {testSuites.some(s => s.type === 'cucumber') && (
+                                                        <TabsContent value="cucumber" className="mt-2">
+                                                            <div className="space-y-2 max-h-[280px] overflow-y-auto border rounded-lg p-2 bg-muted/30">
+                                                                {testSuites.filter(s => s.type === 'cucumber').map((suite) => (
+                                                                    <div
+                                                                        key={suite.className}
+                                                                        onClick={() => toggleSuiteSelection(suite.className)}
+                                                                        className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-all hover:bg-accent ${
+                                                                            selectedSuites.has(suite.className)
+                                                                                ? 'bg-blue-500/10 border border-blue-500/30'
+                                                                                : 'border border-transparent'
+                                                                        }`}
+                                                                    >
+                                                                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
+                                                                            selectedSuites.has(suite.className)
+                                                                                ? 'bg-blue-500 border-blue-500'
+                                                                                : 'border-muted-foreground/30'
+                                                                        }`}>
+                                                                            {selectedSuites.has(suite.className) && (
+                                                                                <CheckCircle2 className="w-3 h-3 text-white" />
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <span className="text-sm font-medium truncate">{suite.name}</span>
+                                                                            <p className="text-xs text-muted-foreground truncate">{suite.className}</p>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </TabsContent>
+                                                    )}
+
+                                                    {/* XifinPortal Tab */}
+                                                    {testSuites.some(s => s.type === 'xifinportal') && (
+                                                        <TabsContent value="xifinportal" className="mt-2">
+                                                            <div className="space-y-2 max-h-[280px] overflow-y-auto border rounded-lg p-2 bg-muted/30">
+                                                                {testSuites.filter(s => s.type === 'xifinportal').map((suite) => (
+                                                                    <div
+                                                                        key={suite.className}
+                                                                        onClick={() => toggleSuiteSelection(suite.className)}
+                                                                        className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-all hover:bg-accent ${
+                                                                            selectedSuites.has(suite.className)
+                                                                                ? 'bg-blue-500/10 border border-blue-500/30'
+                                                                                : 'border border-transparent'
+                                                                        }`}
+                                                                    >
+                                                                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
+                                                                            selectedSuites.has(suite.className)
+                                                                                ? 'bg-blue-500 border-blue-500'
+                                                                                : 'border-muted-foreground/30'
+                                                                        }`}>
+                                                                            {selectedSuites.has(suite.className) && (
+                                                                                <CheckCircle2 className="w-3 h-3 text-white" />
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <span className="text-sm font-medium truncate">{suite.name}</span>
+                                                                            <p className="text-xs text-muted-foreground truncate">{suite.className}</p>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </TabsContent>
+                                                    )}
+
+                                                    {/* Engine Tab */}
+                                                    {testSuites.some(s => s.type === 'engine') && (
+                                                        <TabsContent value="engine" className="mt-2">
+                                                            <div className="space-y-2 max-h-[280px] overflow-y-auto border rounded-lg p-2 bg-muted/30">
+                                                                {testSuites.filter(s => s.type === 'engine').map((suite) => (
+                                                                    <div
+                                                                        key={suite.className}
+                                                                        onClick={() => toggleSuiteSelection(suite.className)}
+                                                                        className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-all hover:bg-accent ${
+                                                                            selectedSuites.has(suite.className)
+                                                                                ? 'bg-blue-500/10 border border-blue-500/30'
+                                                                                : 'border border-transparent'
+                                                                        }`}
+                                                                    >
+                                                                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
+                                                                            selectedSuites.has(suite.className)
+                                                                                ? 'bg-blue-500 border-blue-500'
+                                                                                : 'border-muted-foreground/30'
+                                                                        }`}>
+                                                                            {selectedSuites.has(suite.className) && (
+                                                                                <CheckCircle2 className="w-3 h-3 text-white" />
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <span className="text-sm font-medium truncate">{suite.name}</span>
+                                                                            <p className="text-xs text-muted-foreground truncate">{suite.className}</p>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </TabsContent>
+                                                    )}
+
+                                                    {/* REST API Tab */}
+                                                    {testSuites.some(s => s.type === 'restapi') && (
+                                                        <TabsContent value="restapi" className="mt-2">
+                                                            <div className="space-y-2 max-h-[280px] overflow-y-auto border rounded-lg p-2 bg-muted/30">
+                                                                {testSuites.filter(s => s.type === 'restapi').map((suite) => (
+                                                                    <div
+                                                                        key={suite.className}
+                                                                        onClick={() => toggleSuiteSelection(suite.className)}
+                                                                        className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-all hover:bg-accent ${
+                                                                            selectedSuites.has(suite.className)
+                                                                                ? 'bg-blue-500/10 border border-blue-500/30'
+                                                                                : 'border border-transparent'
+                                                                        }`}
+                                                                    >
+                                                                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
+                                                                            selectedSuites.has(suite.className)
+                                                                                ? 'bg-blue-500 border-blue-500'
+                                                                                : 'border-muted-foreground/30'
+                                                                        }`}>
+                                                                            {selectedSuites.has(suite.className) && (
+                                                                                <CheckCircle2 className="w-3 h-3 text-white" />
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <span className="text-sm font-medium truncate">{suite.name}</span>
+                                                                            <p className="text-xs text-muted-foreground truncate">{suite.className}</p>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </TabsContent>
+                                                    )}
+                                                </Tabs>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Test Parameters */}
+                                    {selectedTestProject && selectedSuites.size > 0 && (
+                                        <div className="space-y-3 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-900/50">
+                                            <Label className="text-base font-medium text-blue-700 dark:text-blue-400">
+                                                Test Parameters
+                                            </Label>
+
+                                            {/* OrgAlias - Always shown for Portal/Engine/API */}
+                                            <div className="space-y-2">
+                                                <Label className="text-sm font-medium">
+                                                    OrgAlias <span className="text-red-500">*</span>
+                                                </Label>
+                                                <select
+                                                    value={orgAlias}
+                                                    onChange={(e) => setOrgAlias(e.target.value)}
+                                                    className="w-full h-10 px-3 rounded-md border border-blue-200 dark:border-blue-900 bg-white dark:bg-black text-sm focus:ring-2 focus:ring-blue-500"
+                                                >
+                                                    <option value="qa07">qa07</option>
+                                                    <option value="qa08">qa08</option>
+                                                </select>
+                                            </div>
+
+                                            {/* REST API specific parameters */}
+                                            {Array.from(selectedSuites).some(className => {
+                                                const suite = testSuites.find(s => s.className === className)
+                                                return suite?.type === 'restapi'
+                                            }) && (
+                                                <>
+                                                    <div className="space-y-2">
+                                                        <Label className="text-sm font-medium">
+                                                            UserId <span className="text-red-500">*</span>
+                                                        </Label>
+                                                        <select
+                                                            value={userId}
+                                                            onChange={(e) => setUserId(e.target.value)}
+                                                            className="w-full h-10 px-3 rounded-md border border-blue-200 dark:border-blue-900 bg-white dark:bg-black text-sm focus:ring-2 focus:ring-blue-500"
+                                                        >
+                                                            <option value="chava">chava</option>
+                                                            <option value="qatester">qatester</option>
+                                                        </select>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <div className="space-y-2">
+                                                            <Label className="text-sm font-medium">Username</Label>
+                                                            <Input
+                                                                value={username}
+                                                                disabled
+                                                                className="bg-gray-100 dark:bg-gray-800 text-sm"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <Label className="text-sm font-medium">Password</Label>
+                                                            <Input
+                                                                value={password}
+                                                                type="password"
+                                                                disabled
+                                                                className="bg-gray-100 dark:bg-gray-800 text-sm"
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    <p className="text-xs text-blue-600 dark:text-blue-400">
+                                                        REST API Parameters: -DOrgAlias={orgAlias} -DUserId={userId} -DUsername={username} -DPassword={password}
+                                                    </p>
+                                                </>
+                                            )}
+
+                                            {/* Portal/Engine info */}
+                                            {Array.from(selectedSuites).some(className => {
+                                                const suite = testSuites.find(s => s.className === className)
+                                                return suite?.type === 'xifinportal' || suite?.type === 'engine'
+                                            }) && !Array.from(selectedSuites).some(className => {
+                                                const suite = testSuites.find(s => s.className === className)
+                                                return suite?.type === 'restapi'
+                                            }) && (
+                                                <div className="text-xs text-blue-600 dark:text-blue-400 space-y-1">
+                                                    {Array.from(selectedSuites).some(className => {
+                                                        const suite = testSuites.find(s => s.className === className)
+                                                        return suite?.type === 'xifinportal'
+                                                    }) && (
+                                                        <p>Portal: -DorgAlias={orgAlias} -DtestSuite=newXp\[suite]</p>
+                                                    )}
+                                                    {Array.from(selectedSuites).some(className => {
+                                                        const suite = testSuites.find(s => s.className === className)
+                                                        return suite?.type === 'engine'
+                                                    }) && (
+                                                        <p>Engine: -DorgAlias={orgAlias} -DtestSuite=pfEngines\[suite]</p>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
                                     <div className="space-y-3">
-                                        <Label className="text-base font-medium">Test Command</Label>
+                                        <Label className="text-base font-medium">Custom Command (Optional)</Label>
                                         <div className="relative">
                                             <Terminal className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
                                             <Input
@@ -1637,11 +2169,16 @@ export default function JacocoRunnerPage() {
                                         <div className="flex gap-2 flex-wrap text-xs">
                                             <Badge variant="outline" className="cursor-pointer hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors" onClick={() => setTestCommand('mvn test')}>mvn test</Badge>
                                             <Badge variant="outline" className="cursor-pointer hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors" onClick={() => setTestCommand('mvn clean test')}>mvn clean test</Badge>
-                                            <Badge variant="outline" className="cursor-pointer hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors" onClick={() => setTestCommand('java -jar selenium-server.jar')}>selenium</Badge>
+                                            <Badge variant="outline" className="cursor-pointer hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors" onClick={() => setTestCommand('npm test')}>npm test</Badge>
                                         </div>
+                                        <p className="text-xs text-muted-foreground">
+                                            {selectedSuites.size > 0
+                                                ? `Will run ${selectedSuites.size} selected test suite${selectedSuites.size > 1 ? 's' : ''}`
+                                                : 'Leave empty to use custom command above'}
+                                        </p>
                                     </div>
 
-                                    <div className="pt-4 mt-auto">
+                                    <div className="pt-4">
                                         <Button
                                             onClick={runTest}
                                             disabled={!selectedTestProject || testRunning}
@@ -1694,7 +2231,7 @@ export default function JacocoRunnerPage() {
                                         }} title="Copy Log">
                                             <Copy className="w-3.5 h-3.5" />
                                         </Button>
-                                        <Button size="icon" variant="ghost" className="w-7 h-7 hover:bg-zinc-700 hover:text-white hover:text-red-400" onClick={() => setTestLog('')} title="Clear Log">
+                                        <Button size="icon" variant="ghost" className="w-7 h-7 hover:bg-zinc-700 hover:text-red-400" onClick={() => setTestLog('')} title="Clear Log">
                                             <Trash2 className="w-3.5 h-3.5" />
                                         </Button>
                                     </div>

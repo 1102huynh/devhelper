@@ -1,0 +1,362 @@
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃      CONTEXT-AWARE BUTTONS - VISUAL GUIDE                  ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+📋 OVERVIEW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Nút "All" và "Clear" giờ hoạt động theo tab hiện tại:
+  ✅ Smart selection per category
+  ✅ No accidental over-selection
+  ✅ Faster workflow
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎨 UI EXAMPLES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Example 1: All Tab (Global)
+┌────────────────────────────────────────────────────────────┐
+│ Test Suites [0/20]                   [All] [Clear]         │
+├────────────────────────────────────────────────────────────┤
+│ [All (20)] [🟢 JUnit (8)] [🟠 Portal (7)] ...            │
+│                                                            │
+│ ☐ UserTest (JUnit)                                         │
+│ ☐ OrderTest (JUnit)                                        │
+│ ☐ PatientSuite (Portal)                                    │
+│ ...                                                        │
+└────────────────────────────────────────────────────────────┘
+
+Click [All] → Selects all 20 test suites
+
+
+Example 2: JUnit Tab (Specific)
+┌────────────────────────────────────────────────────────────┐
+│ Test Suites [0/20]           [All (junit)] [Clear (junit)] │
+├────────────────────────────────────────────────────────────┤
+│ [All (20)] [🟢 JUnit (8)] [🟠 Portal (7)] ...            │
+│                                                            │
+│ ☐ UserTest                                                 │
+│ ☐ OrderTest                                                │
+│ ☐ PaymentTest                                              │
+│ ☐ CustomerTest                                             │
+│ ...                                                        │
+└────────────────────────────────────────────────────────────┘
+
+Click [All (junit)] → Selects only 8 JUnit tests
+
+
+Example 3: Portal Tab (Specific)
+┌────────────────────────────────────────────────────────────┐
+│ Test Suites [8/20]    [All (xifinportal)] [Clear (...)]   │
+├────────────────────────────────────────────────────────────┤
+│ [All (20)] [🟢 JUnit (8)] [🟠 Portal (7)] ...            │
+│                                                            │
+│ ☐ PatientSuite                                             │
+│ ☐ BillingSuite                                             │
+│ ☐ ClaimSuite                                               │
+│ ...                                                        │
+└────────────────────────────────────────────────────────────┘
+
+Already have 8 JUnit selected
+Click [All (xifinportal)] → Now 8 JUnit + 7 Portal = 15 total
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚡ QUICK ACTIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Action 1: Select All JUnit Only
+┌──────────────────────────────┐
+│ 1. Click [🟢 JUnit (8)]     │
+│ 2. Click [All (junit)]       │
+│ Result: 8 JUnit selected     │
+└──────────────────────────────┘
+
+
+Action 2: Add Portal to Existing Selection
+┌────────────────────────────────────┐
+│ Current: 8 JUnit selected          │
+│ 1. Click [🟠 Portal (7)]          │
+│ 2. Click [All (xifinportal)]       │
+│ Result: 8 + 7 = 15 total          │
+└────────────────────────────────────┘
+
+
+Action 3: Remove Only Portal Selection
+┌────────────────────────────────────┐
+│ Current: 8 JUnit + 7 Portal        │
+│ 1. Click [🟠 Portal (7)]          │
+│ 2. Click [Clear (xifinportal)]     │
+│ Result: 8 JUnit remain selected   │
+└────────────────────────────────────┘
+
+
+Action 4: Clear Everything
+┌────────────────────────────────────┐
+│ Current: 15 selected (mixed)       │
+│ 1. Click [All (20)]                │
+│ 2. Click [Clear]                   │
+│ Result: 0 selected                 │
+└────────────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 BEHAVIOR TABLE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+┌──────────────┬──────────────────┬─────────────────────┐
+│ Tab          │ All Button       │ Clear Button        │
+├──────────────┼──────────────────┼─────────────────────┤
+│ All (20)     │ Select 20        │ Clear 20            │
+│ JUnit (8)    │ Select 8 JUnit   │ Clear JUnit only    │
+│ Cucumber (2) │ Select 2 Cuc.    │ Clear Cuc. only     │
+│ Portal (7)   │ Select 7 Portal  │ Clear Portal only   │
+│ Engine (2)   │ Select 2 Engine  │ Clear Engine only   │
+│ API (1)      │ Select 1 API     │ Clear API only      │
+└──────────────┴──────────────────┴─────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 USE CASE: UNIT TEST RUN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Goal: Run only JUnit unit tests
+
+BEFORE (Old Way):
+  ┌─────────────────────────────────────┐
+  │ 1. Stay on All tab                  │
+  │ 2. Manually check 8 JUnit tests     │
+  │    (click each checkbox)            │
+  │ Total: 8 clicks                     │
+  └─────────────────────────────────────┘
+
+AFTER (New Way):
+  ┌─────────────────────────────────────┐
+  │ 1. Click JUnit tab                  │
+  │ 2. Click "All (junit)"              │
+  │ Total: 2 clicks                     │
+  └─────────────────────────────────────┘
+
+EFFICIENCY: 75% faster!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 USE CASE: MIXED REGRESSION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Goal: Run JUnit + Portal tests only (skip Engine & API)
+
+BEFORE:
+  ┌─────────────────────────────────────┐
+  │ 1. Click All → All 20 selected      │
+  │ 2. Portal tab → Uncheck all Portal │
+  │ 3. Engine tab → Uncheck 2 Engine   │
+  │ 4. API tab → Uncheck 1 API          │
+  │ 5. Cucumber → Uncheck 2 Cucumber    │
+  │ Total: 1 + 12 unchecks = 13 clicks  │
+  └─────────────────────────────────────┘
+
+AFTER:
+  ┌─────────────────────────────────────┐
+  │ 1. JUnit tab → "All (junit)"        │
+  │ 2. Portal tab → "All (xifinportal)" │
+  │ Total: 2 clicks                     │
+  └─────────────────────────────────────┘
+
+EFFICIENCY: 85% faster!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔄 WORKFLOW EXAMPLE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Step-by-Step: Building Mixed Selection
+
+Step 1: Start Clean
+┌────────────────────────────────────┐
+│ Test Suites [0/20]                 │
+│ All (20) selected tab              │
+└────────────────────────────────────┘
+
+Step 2: Add JUnit
+┌────────────────────────────────────┐
+│ Click [🟢 JUnit] tab              │
+│ Click [All (junit)]                │
+│ Result: [8/20] selected            │
+└────────────────────────────────────┘
+
+Step 3: Add Portal
+┌────────────────────────────────────┐
+│ Click [🟠 Portal] tab             │
+│ Click [All (xifinportal)]          │
+│ Result: [15/20] selected           │
+└────────────────────────────────────┘
+
+Step 4: Add Some Engine (manual)
+┌────────────────────────────────────┐
+│ Click [🔵 Engine] tab             │
+│ Check: PricingEngine               │
+│ Result: [16/20] selected           │
+└────────────────────────────────────┘
+
+Step 5: Review in All Tab
+┌────────────────────────────────────┐
+│ Click [All] tab                    │
+│ See: ☑ 8 JUnit                     │
+│      ☑ 7 Portal                    │
+│      ☑ 1 Engine                    │
+│      ☐ Others                      │
+│ Result: [16/20] confirmed          │
+└────────────────────────────────────┘
+
+Step 6: Run
+┌────────────────────────────────────┐
+│ Click [▶ Start Execution]         │
+│ Command: mvn test -Dtest=...16... │
+└────────────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 PRO TIPS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Tip 1: Watch Button Labels
+  → Labels change per tab
+  → "All" vs "All (junit)" vs "All (xifinportal)"
+  → Always know what you're selecting
+
+Tip 2: Use All Tab for Overview
+  → After mixed selection
+  → Switch to All tab
+  → See everything selected at once
+
+Tip 3: Partial Clear is Safe
+  → Clearing one type won't affect others
+  → Example: Clear Portal, JUnit stays selected
+
+Tip 4: Quick Reset Per Category
+  → Instead of manually unchecking
+  → Go to that tab → Click Clear
+
+Tip 5: Build Up Selection
+  → Start with one type (All button)
+  → Switch tabs, add more (All button)
+  → No need to hold Ctrl/Shift
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎨 VISUAL STATES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+State 1: Empty Selection
+┌────────────────────────────────────┐
+│ Test Suites [0/20]  [All] [Clear]  │
+│                                    │
+│ No tests selected                  │
+└────────────────────────────────────┘
+
+
+State 2: Partial Selection (JUnit Tab)
+┌────────────────────────────────────────────┐
+│ Test Suites [3/20]  [All (junit)] [Clear] │
+│                                            │
+│ ☑ UserTest                                 │
+│ ☑ OrderTest                                │
+│ ☐ PaymentTest                              │
+│ ☑ CustomerTest                             │
+└────────────────────────────────────────────┘
+
+
+State 3: Full Type Selection (JUnit Tab)
+┌────────────────────────────────────────────┐
+│ Test Suites [8/20]  [All (junit)] [Clear] │
+│                                            │
+│ All 8 JUnit tests selected ✓              │
+└────────────────────────────────────────────┘
+
+
+State 4: Mixed Selection (All Tab)
+┌────────────────────────────────────┐
+│ Test Suites [15/20]  [All] [Clear] │
+│                                    │
+│ ☑ 8 JUnit                          │
+│ ☑ 7 Portal                         │
+│ ☐ 2 Engine                         │
+│ ☐ 1 API                            │
+│ ☐ 2 Cucumber                       │
+└────────────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ KEY FEATURES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✓ Context-Aware
+  Buttons know which tab you're on
+
+✓ Smart Labels
+  Show context in parentheses
+
+✓ Safe Operations
+  Clear won't wipe everything unexpectedly
+
+✓ Additive Selection
+  Selecting in one tab doesn't clear others
+
+✓ Visual Feedback
+  Counter always shows total selected
+
+✓ Intuitive
+  Works as users expect
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📈 EFFICIENCY METRICS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Scenario: Select 8 JUnit tests
+  Before: 8 clicks (manual selection)
+  After:  2 clicks (tab + All button)
+  Saved: 75%
+
+Scenario: Select JUnit + Portal (15 tests)
+  Before: 15 clicks
+  After:  4 clicks (2 tabs + 2 All buttons)
+  Saved: 73%
+
+Scenario: Clear only Portal (keep JUnit)
+  Before: 7 clicks (manual uncheck)
+  After:  2 clicks (tab + Clear button)
+  Saved: 71%
+
+Average Efficiency Gain: 73%
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 BEST PRACTICES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Use Specific Tabs for Type Selection
+   → Faster than manual selection
+
+2. Use All Tab for Final Review
+   → See complete picture before running
+
+3. Build Selection Gradually
+   → Type by type, no rush
+
+4. Use Clear Strategically
+   → Remove one category at a time
+
+5. Check Counter Badge
+   → Always know how many selected
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ STATUS: IMPLEMENTED & READY
+🎯 BENEFIT: 73% faster selection workflow
+📚 DOCS: Complete with examples
+🚀 READY: Production use
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

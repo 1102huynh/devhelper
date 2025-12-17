@@ -1,0 +1,433 @@
+╔══════════════════════════════════════════════════════════════════════════╗
+║          REAL-TIME LOG DISPLAY - IMPROVEMENT                             ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+📅 Date: December 17, 2025
+🎯 Feature: Real-time log streaming during test execution
+✅ Status: IMPLEMENTED
+
+═══════════════════════════════════════════════════════════════════════════
+
+📋 IMPROVEMENT SUMMARY
+═══════════════════════════════════════════════════════════════════════════
+
+Đã cải thiện cách hiển thị log để user có thể thấy **real-time logs**
+ngay khi test đang chạy, thay vì đợi đến khi test hoàn thành.
+
+BEFORE:
+  ❌ Log chỉ xuất hiện sau khi test hoàn thành
+  ❌ Không thấy progress trong khi test đang chạy
+  ❌ Log bị duplicate khi append
+
+AFTER:
+  ✅ Log hiển thị real-time (mỗi giây update)
+  ✅ Chỉ append **new log lines**, không duplicate
+  ✅ Giữ lại suite header và progress info
+  ✅ Clear visual separation giữa các suites
+
+═══════════════════════════════════════════════════════════════════════════
+
+🔧 TECHNICAL CHANGES
+═══════════════════════════════════════════════════════════════════════════
+
+1. Updated waitForTestCompletion() Function
+   ────────────────────────────────────────────────────────────────────
+
+   NEW LOGIC:
+   ```typescript
+   const waitForTestCompletion = (
+       currentIndex: number,
+       totalSuites: number,
+       suiteName: string
+   ): Promise<void> => {
+       return new Promise((resolve) => {
+           let lastLogLength = 0  // Track what we've already shown
+
+           const poll = setInterval(async () => {
+               // Get full log from backend
+               const backendLog = await fetch(...).text()
+
+               // Only append NEW lines
+               if (backendLog.length > lastLogLength) {
+                   const newLog = backendLog.substring(lastLogLength)
+                   setTestLog(prev => prev + newLog)
+                   lastLogLength = backendLog.length
+               }
+
+               if (!statusData.running) {
+                   lastLogLength = 0  // Reset for next suite
+                   resolve()
+               }
+           }, 1000)
+       })
+   }
+   ```
+
+   KEY IMPROVEMENTS:
+   - Track `lastLogLength` để chỉ append log mới
+   - Không ghi đè toàn bộ log
+   - Không duplicate log
+   - Reset counter cho suite tiếp theo
+
+2. Enhanced Sequential Execution Display
+   ────────────────────────────────────────────────────────────────────
+
+   ```typescript
+   // Show summary header
+   setTestLog('=== Sequential Test Execution ===\n')
+   setTestLog(prev => prev + `Total suites to run: ${totalCount}\n\n`)
+
+   for each suite:
+       // Show suite header
+       setTestLog(prev => prev + `\n${'='.repeat(70)}\n`)
+       setTestLog(prev => prev + `Suite ${i+1}/${total}: ${name}\n`)
+       setTestLog(prev => prev + `Command: ${command}\n`)
+       setTestLog(prev => prev + `${'='.repeat(70)}\n\n`)
+
+       // Execute and stream logs
+       await waitForTestCompletion(...)
+
+       // Show completion
+       setTestLog(prev => prev + `\n✓ Suite ${name} completed\n`)
+   ```
+
+   BENEFITS:
+   - Clear visual structure
+   - Shows command being executed
+   - Progress indicator (Suite 1/3, 2/3, etc.)
+   - Completion checkmark ✓
+
+═══════════════════════════════════════════════════════════════════════════
+
+📺 LOG DISPLAY EXAMPLE
+═══════════════════════════════════════════════════════════════════════════
+
+=== Sequential Test Execution ===
+Total suites to run: 3
+
+======================================================================
+Suite 1/3: PatientSuite.xml
+Command: mvn clean test -DorgAlias=qa07 -DtestSuite=newXp\PatientSuite.xml
+======================================================================
+
+[INFO] Scanning for projects...
+[INFO] Building Project 1.0.0
+[INFO]
+[INFO] --- maven-clean-plugin:3.3.2:clean ---
+[INFO] Deleting target directory
+[INFO]
+[INFO] --- maven-surefire-plugin:3.0.0:test ---
+[INFO] Running test suite: newXp\PatientSuite.xml
+[INFO] Tests run: 15, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+[INFO] Total time: 2.5 minutes
+
+✓ Suite PatientSuite.xml completed
+
+======================================================================
+Suite 2/3: BillingSuite.xml
+Command: mvn clean test -DorgAlias=qa07 -DtestSuite=newXp\BillingSuite.xml
+======================================================================
+
+[INFO] Scanning for projects...
+[INFO] Building Project 1.0.0
+[INFO]
+[INFO] --- maven-surefire-plugin:3.0.0:test ---
+[INFO] Running test suite: newXp\BillingSuite.xml
+[INFO] Tests run: 23, Failures: 1, Errors: 0, Skipped: 0
+[ERROR] Test failure in billing validation
+[INFO] BUILD FAILURE
+[INFO] Total time: 3.1 minutes
+
+✓ Suite BillingSuite.xml completed
+
+======================================================================
+Suite 3/3: ClaimSuite.xml
+Command: mvn clean test -DorgAlias=qa07 -DtestSuite=newXp\ClaimSuite.xml
+======================================================================
+
+[INFO] Scanning for projects...
+[INFO] Building Project 1.0.0
+... (logs appear HERE in real-time as test runs!)
+
+═══════════════════════════════════════════════════════════════════════════
+
+🎯 USER EXPERIENCE IMPROVEMENTS
+═══════════════════════════════════════════════════════════════════════════
+
+✅ Real-Time Visibility
+   User sees logs **immediately** as test produces output
+   No more waiting in the dark wondering what's happening
+
+✅ Progress Awareness
+   Clear indication: "Suite 2/5" - know where you are
+   Can estimate remaining time
+
+✅ Command Transparency
+   Shows exact Maven command being executed
+   Easy to reproduce manually if needed
+
+✅ No Duplicates
+   Log lines appear once and only once
+   Clean, readable output
+
+✅ Clear Separation
+   Visual separators (======) between suites
+   Easy to find where each suite starts/ends
+
+✅ Completion Markers
+   ✓ checkmark shows suite finished
+   Instant visual feedback
+
+═══════════════════════════════════════════════════════════════════════════
+
+⚡ PERFORMANCE
+═══════════════════════════════════════════════════════════════════════════
+
+Polling Frequency:
+  - Check every 1 second
+  - Lightweight status check
+  - Only fetch new log portion
+
+Memory Efficient:
+  - Track last position (lastLogLength)
+  - Only process new bytes
+  - No duplicate strings in memory
+
+Network Efficient:
+  - Full log fetch (unavoidable with current backend)
+  - But only process delta client-side
+  - Could optimize backend to support log offset
+
+═══════════════════════════════════════════════════════════════════════════
+
+🔄 FLOW COMPARISON
+═══════════════════════════════════════════════════════════════════════════
+
+OLD FLOW (No Real-Time):
+──────────────────────────────────────────────────────────────────────────
+1. User clicks "Start Execution"
+2. Terminal shows: "Running suite 1/3..."
+3. [Waiting... no logs visible...]
+4. [Waiting... still no logs...]
+5. [2 minutes later...]
+6. All logs dump at once
+7. Next suite starts
+8. Repeat...
+
+User Experience: ⚠️ Frustrating, no feedback
+
+
+NEW FLOW (Real-Time):
+──────────────────────────────────────────────────────────────────────────
+1. User clicks "Start Execution"
+2. Terminal shows: "Suite 1/3: PatientSuite"
+3. Terminal shows: "Command: mvn clean test..."
+4. Terminal shows: "[INFO] Scanning..."    (1 sec later)
+5. Terminal shows: "[INFO] Building..."    (2 sec later)
+6. Terminal shows: "[INFO] Running test..."  (3 sec later)
+7. Terminal shows: "[INFO] Tests run: 5..."  (live updates)
+8. Terminal shows: "✓ Suite completed"
+9. Next suite starts immediately
+
+User Experience: ✅ Engaging, always informed
+
+═══════════════════════════════════════════════════════════════════════════
+
+💡 USE CASES
+═══════════════════════════════════════════════════════════════════════════
+
+Use Case 1: Long-Running Test Suite
+──────────────────────────────────────────────────────────────────────────
+Problem: Portal suite takes 5 minutes
+Old Behavior: Stare at "Running suite..." for 5 minutes
+New Behavior: Watch logs stream in real-time
+              See which test is currently running
+              Know it's not frozen
+
+Use Case 2: Test Failure Detection
+──────────────────────────────────────────────────────────────────────────
+Problem: Test fails at minute 3 of 5-minute suite
+Old Behavior: Wait 5 minutes, then see failure in dump
+New Behavior: See [ERROR] appear at minute 3
+              Know immediately something failed
+              Can start investigating sooner
+
+Use Case 3: Multiple Suites
+──────────────────────────────────────────────────────────────────────────
+Problem: Running 5 suites sequentially
+Old Behavior: No idea which suite is currently running
+New Behavior: Clear headers show "Suite 3/5: BillingSuite"
+              Know exactly where you are
+              Can estimate completion time
+
+Use Case 4: Debugging
+──────────────────────────────────────────────────────────────────────────
+Problem: Need to see Maven debug output
+Old Behavior: Wait for all suites, then scroll through dump
+New Behavior: Watch debug logs appear in real-time
+              Can stop execution if see issue early
+              More interactive debugging
+
+═══════════════════════════════════════════════════════════════════════════
+
+🎨 VISUAL ELEMENTS
+═══════════════════════════════════════════════════════════════════════════
+
+Header Format:
+  ======================================================================
+  Suite 2/5: BillingSuite.xml
+  Command: mvn clean test -DorgAlias=qa07 -DtestSuite=newXp\BillingSuite.xml
+  ======================================================================
+
+Completion Marker:
+  ✓ Suite BillingSuite.xml completed
+
+Summary Header:
+  === Sequential Test Execution ===
+  Total suites to run: 5
+
+Live Badge:
+  [Live] (appears in terminal header when test running)
+  [with spinning icon animation]
+
+═══════════════════════════════════════════════════════════════════════════
+
+🧪 TESTING SCENARIOS
+═══════════════════════════════════════════════════════════════════════════
+
+Test 1: Single Suite
+  ✓ Start suite
+  ✓ Verify header appears immediately
+  ✓ Verify logs appear within 1-2 seconds
+  ✓ Verify no duplicate lines
+  ✓ Verify completion marker appears
+
+Test 2: Multiple Suites
+  ✓ Run 3 suites
+  ✓ Verify each suite has clear header
+  ✓ Verify logs don't mix between suites
+  ✓ Verify progress indicators (1/3, 2/3, 3/3)
+  ✓ Verify all completion markers appear
+
+Test 3: Fast Test
+  ✓ Run test that finishes in < 1 second
+  ✓ Verify logs still appear (edge case)
+
+Test 4: Slow Test
+  ✓ Run test that takes 5+ minutes
+  ✓ Verify continuous log updates
+  ✓ Verify no memory leak
+  ✓ Verify smooth scrolling
+
+Test 5: Network Delay
+  ✓ Simulate slow backend response
+  ✓ Verify polling continues
+  ✓ Verify no errors in console
+
+═══════════════════════════════════════════════════════════════════════════
+
+✅ KEY BENEFITS
+═══════════════════════════════════════════════════════════════════════════
+
+✅ Transparency
+   User sees exactly what's happening, when
+
+✅ Trust
+   Real-time logs build confidence that system is working
+
+✅ Efficiency
+   Can spot issues early, don't wait for all suites
+
+✅ Professional
+   Matches expectations from modern dev tools
+
+✅ Debugging
+   Live logs invaluable for troubleshooting
+
+✅ User Engagement
+   Interactive feel vs. passive waiting
+
+═══════════════════════════════════════════════════════════════════════════
+
+🔮 FUTURE ENHANCEMENTS
+═══════════════════════════════════════════════════════════════════════════
+
+Phase 1 (Current):
+  ✅ Real-time log streaming
+  ✅ Incremental append (no duplicates)
+  ✅ Suite headers and progress
+  ✅ Completion markers
+
+Phase 2 (Planned):
+  □ Color-coded logs ([INFO] blue, [ERROR] red)
+  □ Expandable/collapsible suite sections
+  □ Log level filtering (show only errors)
+  □ Search/highlight in logs
+
+Phase 3 (Future):
+  □ Backend optimization (send only deltas)
+  □ WebSocket for true push updates
+  □ Log tailing (last N lines)
+  □ Download logs as file
+
+═══════════════════════════════════════════════════════════════════════════
+
+✅ COMPLETION STATUS
+═══════════════════════════════════════════════════════════════════════════
+
+Implementation:
+  ✅ lastLogLength tracking
+  ✅ Incremental append logic
+  ✅ waitForTestCompletion parameters
+  ✅ Suite header formatting
+  ✅ Progress indicators
+  ✅ Completion markers
+  ✅ Command display
+
+Code Quality:
+  ✅ TypeScript: No new errors
+  ✅ Logic: Clean and efficient
+  ✅ Comments: Added for clarity
+
+Testing:
+  ⏳ Manual testing: Pending
+  ⏳ Long-running test: Pending
+  ⏳ Multiple suites: Pending
+
+Documentation:
+  ✅ Feature documentation
+  ✅ Examples
+  ✅ Use cases
+
+═══════════════════════════════════════════════════════════════════════════
+
+🎉 SUMMARY
+═══════════════════════════════════════════════════════════════════════════
+
+Successfully implemented real-time log display:
+
+✅ Incremental Logging:
+   - Track lastLogLength
+   - Only append new content
+   - No duplicates
+
+✅ Clear Structure:
+   - Suite headers with progress (1/3, 2/3)
+   - Command display
+   - Completion markers (✓)
+
+✅ Real-Time Updates:
+   - Polls every 1 second
+   - Shows logs as they're produced
+   - Smooth streaming experience
+
+RESULT:
+  → User sees test progress in real-time
+  → No more waiting in darkness
+  → Professional, transparent experience
+  → Easy to debug issues
+
+STATUS: ✅ READY FOR TESTING
+
+═══════════════════════════════════════════════════════════════════════════

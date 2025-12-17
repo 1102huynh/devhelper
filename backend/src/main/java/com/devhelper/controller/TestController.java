@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -24,7 +25,8 @@ public class TestController {
         if (cmd == null || cmd.isEmpty()) {
             cmd = "mvn test"; // Default
         }
-        return testService.runTest(request.getProjectPath(), cmd)
+        boolean openTerminal = request.isOpenTerminal();
+        return testService.runTest(request.getProjectPath(), cmd, openTerminal)
                 .thenApply(ResponseEntity::ok);
     }
 
@@ -36,5 +38,16 @@ public class TestController {
     @GetMapping("/status")
     public ResponseEntity<Map<String, Boolean>> getStatus(@RequestParam String projectPath) {
         return ResponseEntity.ok(Map.of("running", testService.isTestRunning(projectPath)));
+    }
+
+    @GetMapping("/suites")
+    public ResponseEntity<List<Map<String, String>>> getTestSuites(@RequestParam String projectPath) {
+        return ResponseEntity.ok(testService.getTestSuites(projectPath));
+    }
+
+    @PostMapping("/clear-log")
+    public ResponseEntity<Void> clearLog(@RequestParam String projectPath) {
+        testService.clearTestLog(projectPath);
+        return ResponseEntity.ok().build();
     }
 }
