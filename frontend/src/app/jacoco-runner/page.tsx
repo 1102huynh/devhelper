@@ -21,6 +21,7 @@ interface Project {
     isNodeProject: boolean
     lastBuildStatus: string | null
     lastBuildTime: string | null
+    isFolder: boolean
 }
 
 interface GitResult {
@@ -227,6 +228,28 @@ export default function JacocoRunnerPage() {
             setIsLoading(false)
         }
     }
+
+    // Navigate into a folder
+    const navigateToFolder = (folderPath: string) => {
+        setBasePath(folderPath)
+        setProjects([])
+    }
+
+    // Navigate up to parent directory
+    const navigateUp = () => {
+        const parentPath = basePath.replace(/[/\\][^/\\]+$/, '')
+        if (parentPath && parentPath !== basePath) {
+            setBasePath(parentPath)
+            setProjects([])
+        }
+    }
+
+    // Auto-load when basePath changes from navigation
+    useEffect(() => {
+        if (basePath && projects.length === 0 && !isLoading) {
+            loadProjects()
+        }
+    }, [basePath])
 
     const executeGitCommand = async (projectPath: string, projectName: string, action: string, endpoint: string) => {
         setLoadingProject(projectPath)
@@ -1155,6 +1178,14 @@ export default function JacocoRunnerPage() {
                                         className="flex-1 font-mono"
                                     />
                                     <Button
+                                        onClick={navigateUp}
+                                        disabled={isLoading || !basePath || basePath.split(/[/\\]/).length <= 2}
+                                        variant="outline"
+                                        title="Go to parent folder"
+                                    >
+                                        <ChevronLeft className="w-4 h-4" />
+                                    </Button>
+                                    <Button
                                         onClick={loadProjects}
                                         disabled={isLoading || !basePath}
                                         className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
@@ -1290,10 +1321,15 @@ export default function JacocoRunnerPage() {
                                         transition={{ duration: 0.2, delay: index * 0.03 }}
                                         layout
                                     >
-                                        <Card className={`relative overflow-hidden transition-all duration-300 hover:shadow-lg h-full flex flex-col ${project.isGitRepo
-                                            ? 'border-l-4 border-l-green-500'
-                                            : 'border-l-4 border-l-gray-400'
-                                            }`}>
+                                        <Card
+                                            className={`relative overflow-hidden transition-all duration-300 hover:shadow-lg h-full flex flex-col ${project.isFolder
+                                                ? 'border-l-4 border-l-blue-500 cursor-pointer hover:bg-accent/50'
+                                                : project.isGitRepo
+                                                    ? 'border-l-4 border-l-green-500'
+                                                    : 'border-l-4 border-l-gray-400'
+                                                }`}
+                                            onClick={() => project.isFolder && navigateToFolder(project.path)}
+                                        >
                                             {/* Loading Overlay */}
                                             {isProjectLoading(project.path) && (
                                                 <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-center">
@@ -1307,10 +1343,19 @@ export default function JacocoRunnerPage() {
                                             <CardHeader className="pb-3">
                                                 <div className="flex items-start justify-between gap-2">
                                                     <div className="flex items-center gap-2 min-w-0 flex-1">
-                                                        <FolderGit2 className={`w-5 h-5 flex-shrink-0 ${project.isGitRepo ? 'text-green-500' : 'text-gray-400'}`} />
+                                                        {project.isFolder ? (
+                                                            <FolderOpen className="w-5 h-5 flex-shrink-0 text-blue-500" />
+                                                        ) : (
+                                                            <FolderGit2 className={`w-5 h-5 flex-shrink-0 ${project.isGitRepo ? 'text-green-500' : 'text-gray-400'}`} />
+                                                        )}
                                                         <CardTitle className="text-lg truncate" title={project.name}>{project.name}</CardTitle>
                                                     </div>
-                                                    {project.isGitRepo && project.hasUncommittedChanges && (
+                                                    {project.isFolder ? (
+                                                        <Badge variant="outline" className="text-blue-500 border-blue-500/50 flex-shrink-0">
+                                                            <FolderOpen className="w-3 h-3 mr-1" />
+                                                            Folder
+                                                        </Badge>
+                                                    ) : project.isGitRepo && project.hasUncommittedChanges && (
                                                         <Badge variant="outline" className="text-amber-500 border-amber-500/50 flex-shrink-0">
                                                             <AlertCircle className="w-3 h-3 mr-1" />
                                                             Changes
@@ -1351,7 +1396,12 @@ export default function JacocoRunnerPage() {
                                             </CardHeader>
 
                                             <CardContent className="flex-1 flex flex-col">
-                                                {project.isGitRepo ? (
+                                                {project.isFolder ? (
+                                                    <div className="flex-1 flex flex-col items-center justify-center text-center py-4">
+                                                        <FolderOpen className="w-12 h-12 text-blue-400/50 mb-2" />
+                                                        <p className="text-sm text-muted-foreground">Click to enter folder</p>
+                                                    </div>
+                                                ) : project.isGitRepo ? (
                                                     <div className="space-y-3 flex-1 flex flex-col">
                                                         {/* Git Actions - Row 1: Stash & Pop */}
                                                         <div className="grid grid-cols-2 gap-2">
@@ -1646,13 +1696,13 @@ export default function JacocoRunnerPage() {
                                                             key={project.path}
                                                             onClick={() => toggleConfigProjectSelection(project.path)}
                                                             className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-all hover:bg-accent ${selectedConfigProjects.has(project.path)
-                                                                    ? 'bg-purple-500/10 border border-purple-500/30'
-                                                                    : 'border border-transparent'
+                                                                ? 'bg-purple-500/10 border border-purple-500/30'
+                                                                : 'border border-transparent'
                                                                 }`}
                                                         >
                                                             <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${selectedConfigProjects.has(project.path)
-                                                                    ? 'bg-purple-500 border-purple-500'
-                                                                    : 'border-muted-foreground/30'
+                                                                ? 'bg-purple-500 border-purple-500'
+                                                                : 'border-muted-foreground/30'
                                                                 }`}>
                                                                 {selectedConfigProjects.has(project.path) && (
                                                                     <CheckCircle2 className="w-3 h-3 text-white" />

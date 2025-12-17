@@ -95,6 +95,10 @@ public class ProjectService {
                     Path packageJson = dir.resolve("package.json");
                     project.setNodeProject(Files.exists(packageJson));
                     
+                    // Mark as folder if it's not a project (not git, maven, or node)
+                    boolean isProject = project.isGitRepo() || project.isMavenProject() || project.isNodeProject();
+                    project.setFolder(!isProject);
+                    
                     // Get build status from cache
                     BuildStatus buildStatus = buildStatusCache.get(project.getPath());
                     if (buildStatus != null) {

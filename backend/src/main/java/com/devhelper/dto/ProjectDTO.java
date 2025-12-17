@@ -26,6 +26,10 @@ public class ProjectDTO {
     // Build status: "success", "failed", or null
     private String lastBuildStatus;
     private String lastBuildTime;
+    
+    // True if this is just a folder (not a project)
+    @JsonProperty("isFolder")
+    private boolean folder;
 
     public ProjectDTO() {}
 
@@ -115,4 +119,13 @@ public class ProjectDTO {
     public void setNodeProject(boolean nodeProject) {
         this.nodeProject = nodeProject;
     }
+
+    public boolean isFolder() {
+        return folder;
+    }
+
+    public void setFolder(boolean folder) {
+        this.folder = folder;
+    }
 }
+
