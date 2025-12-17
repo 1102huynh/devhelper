@@ -199,9 +199,13 @@ public class DeployService {
             throw new IOException("Tomcat startup script not found: " + scriptFile.getAbsolutePath());
         }
 
+        // Use unique window title based on tomcat folder name
+        String windowTitle = "Tomcat-" + tomcatDir.getName();
+
         ProcessBuilder pb;
         if (os.contains("win")) {
-            pb = new ProcessBuilder("cmd.exe", "/c", startupScript);
+            // Use "start" command with unique window title
+            pb = new ProcessBuilder("cmd.exe", "/c", "start", "\"" + windowTitle + "\"", startupScript);
         } else {
             pb = new ProcessBuilder("./" + startupScript);
         }
@@ -209,18 +213,10 @@ public class DeployService {
         pb.directory(binDir);
         pb.redirectErrorStream(true);
         
-        Process process = pb.start();
-        
-        // Read output
-        StringBuilder output = new StringBuilder();
-        try (var reader = new java.io.BufferedReader(new java.io.InputStreamReader(process.getInputStream()))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                output.append(line).append("\n");
-            }
-        }
+        // Start the process but don't wait for it
+        pb.start();
 
-        return "Tomcat started successfully\n" + output.toString();
+        return "Tomcat starting...";
     }
 
     /**
@@ -231,6 +227,23 @@ public class DeployService {
         File binDir = new File(tomcatDir, "bin");
         
         String os = System.getProperty("os.name").toLowerCase();
+        
+        // Unique window title based on tomcat folder name
+        String windowTitle = "Tomcat-" + tomcatDir.getName();
+
+        if (os.contains("win")) {
+            // First, close the CMD window with the specific title using taskkill
+            try {
+                ProcessBuilder killPb = new ProcessBuilder("cmd.exe", "/c", 
+                    "taskkill", "/FI", "WINDOWTITLE eq " + windowTitle + "*", "/F");
+                killPb.redirectErrorStream(true);
+                Process killProcess = killPb.start();
+                killProcess.waitFor(5, java.util.concurrent.TimeUnit.SECONDS);
+            } catch (Exception e) {
+                // Ignore errors if no window found
+            }
+        }
+
         String shutdownScript = os.contains("win") ? "shutdown.bat" : "shutdown.sh";
         
         File scriptFile = new File(binDir, shutdownScript);
@@ -248,18 +261,10 @@ public class DeployService {
         pb.directory(binDir);
         pb.redirectErrorStream(true);
         
-        Process process = pb.start();
-        
-        // Read output
-        StringBuilder output = new StringBuilder();
-        try (var reader = new java.io.BufferedReader(new java.io.InputStreamReader(process.getInputStream()))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                output.append(line).append("\n");
-            }
-        }
+        // Start the process but don't wait for it
+        pb.start();
 
-        return "Tomcat stopped successfully\n" + output.toString();
+        return "Tomcat stopping...";
     }
 
     /**

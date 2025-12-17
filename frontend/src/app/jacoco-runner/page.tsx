@@ -97,7 +97,7 @@ export default function JacocoRunnerPage() {
     const [tomcats, setTomcats] = useState<TomcatInfo[]>([])
     const [selectedTomcat, setSelectedTomcat] = useState<TomcatInfo | null>(null)
     const [deployLoading, setDeployLoading] = useState<string | null>(null)
-    const [tomcatRunning, setTomcatRunning] = useState(false)
+    const [runningTomcats, setRunningTomcats] = useState<Set<string>>(new Set())
     const [loadingTomcats, setLoadingTomcats] = useState(false)
 
     // Test states
@@ -579,64 +579,54 @@ export default function JacocoRunnerPage() {
         }
     }
 
-    // Start Tomcat
-    const startTomcat = async () => {
-        if (!selectedTomcat) {
-            showNotification('error', 'Please select a Tomcat first')
-            return
-        }
+    // Start Tomcat - accepts tomcat directly
+    const startTomcatServer = (tomcat: TomcatInfo) => {
+        const tomcatPath = tomcat.path
+        const tomcatName = tomcat.name
 
-        setDeployLoading('tomcat-start')
+        // Update status immediately (optimistic update)
+        setRunningTomcats(prev => new Set([...prev, tomcatPath]))
+        showNotification('success', `Starting ${tomcatName}...`)
 
-        try {
-            const response = await fetch(`${API_BASE}/deploy/tomcat/start`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tomcatPath: selectedTomcat.path })
+        // Fire API call without blocking UI
+        fetch(`${API_BASE}/deploy/tomcat/start`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tomcatPath })
+        }).catch(error => {
+            // Revert status if API call fails
+            setRunningTomcats(prev => {
+                const newSet = new Set(prev)
+                newSet.delete(tomcatPath)
+                return newSet
             })
-
-            if (response.ok) {
-                showNotification('success', `${selectedTomcat.name} started`)
-                setTomcatRunning(true)
-            } else {
-                const error = await response.json()
-                showNotification('error', error.error || 'Failed to start Tomcat')
-            }
-        } catch (error) {
             showNotification('error', 'Failed to start Tomcat')
-        } finally {
-            setDeployLoading(null)
-        }
+        })
     }
 
-    // Stop Tomcat
-    const stopTomcat = async () => {
-        if (!selectedTomcat) {
-            showNotification('error', 'Please select a Tomcat first')
-            return
-        }
+    // Stop Tomcat - accepts tomcat directly
+    const stopTomcatServer = (tomcat: TomcatInfo) => {
+        const tomcatPath = tomcat.path
+        const tomcatName = tomcat.name
 
-        setDeployLoading('tomcat-stop')
+        // Update status immediately (optimistic update)
+        setRunningTomcats(prev => {
+            const newSet = new Set(prev)
+            newSet.delete(tomcatPath)
+            return newSet
+        })
+        showNotification('success', `Stopping ${tomcatName}...`)
 
-        try {
-            const response = await fetch(`${API_BASE}/deploy/tomcat/stop`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tomcatPath: selectedTomcat.path })
-            })
-
-            if (response.ok) {
-                showNotification('success', `${selectedTomcat.name} stopped`)
-                setTomcatRunning(false)
-            } else {
-                const error = await response.json()
-                showNotification('error', error.error || 'Failed to stop Tomcat')
-            }
-        } catch (error) {
+        // Fire API call without blocking UI
+        fetch(`${API_BASE}/deploy/tomcat/stop`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tomcatPath })
+        }).catch(error => {
+            // Revert status if API call fails
+            setRunningTomcats(prev => new Set([...prev, tomcatPath]))
             showNotification('error', 'Failed to stop Tomcat')
-        } finally {
-            setDeployLoading(null)
-        }
+        })
     }
 
     // Load test suites for selected project
@@ -1508,8 +1498,8 @@ export default function JacocoRunnerPage() {
                                 {/* Tomcat List */}
                                 {tomcats.length > 0 && (
                                     <div className="space-y-2">
-                                        <Label className="text-sm text-muted-foreground">Select a Tomcat server:</Label>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <Label className="text-sm text-muted-foreground">Tomcat Servers:</Label>
+                                        <div className="grid grid-cols-1 gap-3">
                                             {tomcats.map((tomcat) => (
                                                 <div
                                                     key={tomcat.path}
@@ -1522,12 +1512,45 @@ export default function JacocoRunnerPage() {
                                                         : 'hover:border-purple-500/50 hover:bg-accent/5'
                                                         }`}
                                                 >
-                                                    <div className="flex items-center gap-2">
-                                                        <Rocket className={`w-5 h-5 ${selectedTomcat?.path === tomcat.path ? 'text-purple-500' : 'text-muted-foreground'}`} />
-                                                        <span className="font-semibold">{tomcat.name}</span>
-                                                        {tomcat.version && (
-                                                            <Badge variant="outline" className="text-xs">{tomcat.version}</Badge>
-                                                        )}
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                                                            <Rocket className={`w-5 h-5 flex-shrink-0 ${selectedTomcat?.path === tomcat.path ? 'text-purple-500' : 'text-muted-foreground'}`} />
+                                                            <span className="font-semibold truncate">{tomcat.name}</span>
+                                                            {tomcat.version && (
+                                                                <Badge variant="outline" className="text-xs flex-shrink-0">{tomcat.version}</Badge>
+                                                            )}
+                                                            {runningTomcats.has(tomcat.path) ? (
+                                                                <Badge className="text-xs bg-green-500 hover:bg-green-600 animate-pulse flex-shrink-0">
+                                                                    <span className="mr-1">●</span> Running
+                                                                </Badge>
+                                                            ) : (
+                                                                <Badge variant="secondary" className="text-xs flex-shrink-0">
+                                                                    Stopped
+                                                                </Badge>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex gap-2 ml-3 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                                                            {runningTomcats.has(tomcat.path) ? (
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="destructive"
+                                                                    onClick={() => stopTomcatServer(tomcat)}
+                                                                    className="h-8"
+                                                                >
+                                                                    <Square className="w-3.5 h-3.5 mr-1" />
+                                                                    Stop
+                                                                </Button>
+                                                            ) : (
+                                                                <Button
+                                                                    size="sm"
+                                                                    onClick={() => startTomcatServer(tomcat)}
+                                                                    className="h-8 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+                                                                >
+                                                                    <Play className="w-3.5 h-3.5 mr-1" />
+                                                                    Start
+                                                                </Button>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                     <p className="text-xs text-muted-foreground mt-1 truncate">{tomcat.path}</p>
                                                 </div>
@@ -1540,36 +1563,6 @@ export default function JacocoRunnerPage() {
                                     <p className="text-sm text-muted-foreground text-center py-4">
                                         No Tomcat installations found. Click "Load Tomcats" to scan.
                                     </p>
-                                )}
-
-                                {/* Tomcat Controls */}
-                                {selectedTomcat && (
-                                    <div className="flex gap-2 pt-2 border-t">
-                                        <Button
-                                            onClick={startTomcat}
-                                            disabled={deployLoading === 'tomcat-start'}
-                                            className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
-                                        >
-                                            {deployLoading === 'tomcat-start' ? (
-                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                            ) : (
-                                                <Play className="w-4 h-4 mr-2" />
-                                            )}
-                                            Start {selectedTomcat.name}
-                                        </Button>
-                                        <Button
-                                            variant="destructive"
-                                            onClick={stopTomcat}
-                                            disabled={deployLoading === 'tomcat-stop'}
-                                        >
-                                            {deployLoading === 'tomcat-stop' ? (
-                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                            ) : (
-                                                <Square className="w-4 h-4 mr-2" />
-                                            )}
-                                            Stop {selectedTomcat.name}
-                                        </Button>
-                                    </div>
                                 )}
                             </CardContent>
                         </Card>
@@ -1659,7 +1652,7 @@ export default function JacocoRunnerPage() {
                                                         disabled={
                                                             !selectedTomcat ||
                                                             deployLoading === deployment.id ||
-                                                            (deployment.status === 'deployed' && !tomcatRunning)
+                                                            (deployment.status === 'deployed' && selectedTomcat && !runningTomcats.has(selectedTomcat.path))
                                                         }
                                                         className="text-orange-500 hover:text-orange-600 hover:bg-orange-50"
                                                     >
@@ -1746,16 +1739,16 @@ export default function JacocoRunnerPage() {
                                         <div className="relative">
                                             <FolderOpen className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
                                             <select
-                                                className="w-full h-10 pl-9 pr-3 rounded-md border border-input bg-background/50 text-sm focus:ring-2 focus:ring-blue-500 transition-all hover:bg-accent/5"
+                                                className="w-full h-10 pl-9 pr-3 rounded-md border border-input bg-background text-sm focus:ring-2 focus:ring-blue-500 transition-all hover:bg-accent/5 dark:bg-zinc-950 dark:text-zinc-100"
                                                 value={selectedTestProject?.path || ''}
                                                 onChange={(e) => {
                                                     const proj = projects.find(p => p.path === e.target.value)
                                                     setSelectedTestProject(proj || null)
                                                 }}
                                             >
-                                                <option value="">Choose a project...</option>
+                                                <option value="" className="dark:bg-zinc-950">Choose a project...</option>
                                                 {projects.map(p => (
-                                                    <option key={p.path} value={p.path}>{p.name}</option>
+                                                    <option key={p.path} value={p.path} className="dark:bg-zinc-950">{p.name}</option>
                                                 ))}
                                             </select>
                                         </div>
@@ -1850,17 +1843,15 @@ export default function JacocoRunnerPage() {
                                                                 <div
                                                                     key={suite.className}
                                                                     onClick={() => toggleSuiteSelection(suite.className)}
-                                                                    className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-all hover:bg-accent ${
-                                                                        selectedSuites.has(suite.className)
-                                                                            ? 'bg-blue-500/10 border border-blue-500/30'
-                                                                            : 'border border-transparent'
-                                                                    }`}
+                                                                    className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-all hover:bg-accent ${selectedSuites.has(suite.className)
+                                                                        ? 'bg-blue-500/10 border border-blue-500/30'
+                                                                        : 'border border-transparent'
+                                                                        }`}
                                                                 >
-                                                                    <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
-                                                                        selectedSuites.has(suite.className)
-                                                                            ? 'bg-blue-500 border-blue-500'
-                                                                            : 'border-muted-foreground/30'
-                                                                    }`}>
+                                                                    <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${selectedSuites.has(suite.className)
+                                                                        ? 'bg-blue-500 border-blue-500'
+                                                                        : 'border-muted-foreground/30'
+                                                                        }`}>
                                                                         {selectedSuites.has(suite.className) && (
                                                                             <CheckCircle2 className="w-3 h-3 text-white" />
                                                                         )}
@@ -1870,17 +1861,16 @@ export default function JacocoRunnerPage() {
                                                                             <span className="text-sm font-medium truncate">{suite.name}</span>
                                                                             <Badge
                                                                                 variant="outline"
-                                                                                className={`text-xs ${
-                                                                                    suite.type === 'junit' 
-                                                                                        ? 'text-green-600 border-green-600/30' 
-                                                                                        : suite.type === 'cucumber'
+                                                                                className={`text-xs ${suite.type === 'junit'
+                                                                                    ? 'text-green-600 border-green-600/30'
+                                                                                    : suite.type === 'cucumber'
                                                                                         ? 'text-purple-600 border-purple-600/30'
                                                                                         : suite.type === 'xifinportal'
-                                                                                        ? 'text-orange-600 border-orange-600/30'
-                                                                                        : suite.type === 'engine'
-                                                                                        ? 'text-cyan-600 border-cyan-600/30'
-                                                                                        : 'text-blue-600 border-blue-600/30'
-                                                                                }`}
+                                                                                            ? 'text-orange-600 border-orange-600/30'
+                                                                                            : suite.type === 'engine'
+                                                                                                ? 'text-cyan-600 border-cyan-600/30'
+                                                                                                : 'text-blue-600 border-blue-600/30'
+                                                                                    }`}
                                                                             >
                                                                                 {suite.type}
                                                                             </Badge>
@@ -1900,17 +1890,15 @@ export default function JacocoRunnerPage() {
                                                                     <div
                                                                         key={suite.className}
                                                                         onClick={() => toggleSuiteSelection(suite.className)}
-                                                                        className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-all hover:bg-accent ${
-                                                                            selectedSuites.has(suite.className)
-                                                                                ? 'bg-blue-500/10 border border-blue-500/30'
-                                                                                : 'border border-transparent'
-                                                                        }`}
+                                                                        className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-all hover:bg-accent ${selectedSuites.has(suite.className)
+                                                                            ? 'bg-blue-500/10 border border-blue-500/30'
+                                                                            : 'border border-transparent'
+                                                                            }`}
                                                                     >
-                                                                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
-                                                                            selectedSuites.has(suite.className)
-                                                                                ? 'bg-blue-500 border-blue-500'
-                                                                                : 'border-muted-foreground/30'
-                                                                        }`}>
+                                                                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${selectedSuites.has(suite.className)
+                                                                            ? 'bg-blue-500 border-blue-500'
+                                                                            : 'border-muted-foreground/30'
+                                                                            }`}>
                                                                             {selectedSuites.has(suite.className) && (
                                                                                 <CheckCircle2 className="w-3 h-3 text-white" />
                                                                             )}
@@ -1933,17 +1921,15 @@ export default function JacocoRunnerPage() {
                                                                     <div
                                                                         key={suite.className}
                                                                         onClick={() => toggleSuiteSelection(suite.className)}
-                                                                        className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-all hover:bg-accent ${
-                                                                            selectedSuites.has(suite.className)
-                                                                                ? 'bg-blue-500/10 border border-blue-500/30'
-                                                                                : 'border border-transparent'
-                                                                        }`}
+                                                                        className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-all hover:bg-accent ${selectedSuites.has(suite.className)
+                                                                            ? 'bg-blue-500/10 border border-blue-500/30'
+                                                                            : 'border border-transparent'
+                                                                            }`}
                                                                     >
-                                                                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
-                                                                            selectedSuites.has(suite.className)
-                                                                                ? 'bg-blue-500 border-blue-500'
-                                                                                : 'border-muted-foreground/30'
-                                                                        }`}>
+                                                                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${selectedSuites.has(suite.className)
+                                                                            ? 'bg-blue-500 border-blue-500'
+                                                                            : 'border-muted-foreground/30'
+                                                                            }`}>
                                                                             {selectedSuites.has(suite.className) && (
                                                                                 <CheckCircle2 className="w-3 h-3 text-white" />
                                                                             )}
@@ -1966,17 +1952,15 @@ export default function JacocoRunnerPage() {
                                                                     <div
                                                                         key={suite.className}
                                                                         onClick={() => toggleSuiteSelection(suite.className)}
-                                                                        className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-all hover:bg-accent ${
-                                                                            selectedSuites.has(suite.className)
-                                                                                ? 'bg-blue-500/10 border border-blue-500/30'
-                                                                                : 'border border-transparent'
-                                                                        }`}
+                                                                        className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-all hover:bg-accent ${selectedSuites.has(suite.className)
+                                                                            ? 'bg-blue-500/10 border border-blue-500/30'
+                                                                            : 'border border-transparent'
+                                                                            }`}
                                                                     >
-                                                                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
-                                                                            selectedSuites.has(suite.className)
-                                                                                ? 'bg-blue-500 border-blue-500'
-                                                                                : 'border-muted-foreground/30'
-                                                                        }`}>
+                                                                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${selectedSuites.has(suite.className)
+                                                                            ? 'bg-blue-500 border-blue-500'
+                                                                            : 'border-muted-foreground/30'
+                                                                            }`}>
                                                                             {selectedSuites.has(suite.className) && (
                                                                                 <CheckCircle2 className="w-3 h-3 text-white" />
                                                                             )}
@@ -1999,17 +1983,15 @@ export default function JacocoRunnerPage() {
                                                                     <div
                                                                         key={suite.className}
                                                                         onClick={() => toggleSuiteSelection(suite.className)}
-                                                                        className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-all hover:bg-accent ${
-                                                                            selectedSuites.has(suite.className)
-                                                                                ? 'bg-blue-500/10 border border-blue-500/30'
-                                                                                : 'border border-transparent'
-                                                                        }`}
+                                                                        className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-all hover:bg-accent ${selectedSuites.has(suite.className)
+                                                                            ? 'bg-blue-500/10 border border-blue-500/30'
+                                                                            : 'border border-transparent'
+                                                                            }`}
                                                                     >
-                                                                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
-                                                                            selectedSuites.has(suite.className)
-                                                                                ? 'bg-blue-500 border-blue-500'
-                                                                                : 'border-muted-foreground/30'
-                                                                        }`}>
+                                                                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${selectedSuites.has(suite.className)
+                                                                            ? 'bg-blue-500 border-blue-500'
+                                                                            : 'border-muted-foreground/30'
+                                                                            }`}>
                                                                             {selectedSuites.has(suite.className) && (
                                                                                 <CheckCircle2 className="w-3 h-3 text-white" />
                                                                             )}
@@ -2032,17 +2014,15 @@ export default function JacocoRunnerPage() {
                                                                     <div
                                                                         key={suite.className}
                                                                         onClick={() => toggleSuiteSelection(suite.className)}
-                                                                        className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-all hover:bg-accent ${
-                                                                            selectedSuites.has(suite.className)
-                                                                                ? 'bg-blue-500/10 border border-blue-500/30'
-                                                                                : 'border border-transparent'
-                                                                        }`}
+                                                                        className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-all hover:bg-accent ${selectedSuites.has(suite.className)
+                                                                            ? 'bg-blue-500/10 border border-blue-500/30'
+                                                                            : 'border border-transparent'
+                                                                            }`}
                                                                     >
-                                                                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
-                                                                            selectedSuites.has(suite.className)
-                                                                                ? 'bg-blue-500 border-blue-500'
-                                                                                : 'border-muted-foreground/30'
-                                                                        }`}>
+                                                                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${selectedSuites.has(suite.className)
+                                                                            ? 'bg-blue-500 border-blue-500'
+                                                                            : 'border-muted-foreground/30'
+                                                                            }`}>
                                                                             {selectedSuites.has(suite.className) && (
                                                                                 <CheckCircle2 className="w-3 h-3 text-white" />
                                                                             )}
@@ -2088,46 +2068,46 @@ export default function JacocoRunnerPage() {
                                                 const suite = testSuites.find(s => s.className === className)
                                                 return suite?.type === 'restapi'
                                             }) && (
-                                                <>
-                                                    <div className="space-y-2">
-                                                        <Label className="text-sm font-medium">
-                                                            UserId <span className="text-red-500">*</span>
-                                                        </Label>
-                                                        <select
-                                                            value={userId}
-                                                            onChange={(e) => setUserId(e.target.value)}
-                                                            className="w-full h-10 px-3 rounded-md border border-blue-200 dark:border-blue-900 bg-white dark:bg-black text-sm focus:ring-2 focus:ring-blue-500"
-                                                        >
-                                                            <option value="chava">chava</option>
-                                                            <option value="qatester">qatester</option>
-                                                        </select>
-                                                    </div>
-
-                                                    <div className="grid grid-cols-2 gap-3">
+                                                    <>
                                                         <div className="space-y-2">
-                                                            <Label className="text-sm font-medium">Username</Label>
-                                                            <Input
-                                                                value={username}
-                                                                disabled
-                                                                className="bg-gray-100 dark:bg-gray-800 text-sm"
-                                                            />
+                                                            <Label className="text-sm font-medium">
+                                                                UserId <span className="text-red-500">*</span>
+                                                            </Label>
+                                                            <select
+                                                                value={userId}
+                                                                onChange={(e) => setUserId(e.target.value)}
+                                                                className="w-full h-10 px-3 rounded-md border border-blue-200 dark:border-blue-900 bg-white dark:bg-black text-sm focus:ring-2 focus:ring-blue-500"
+                                                            >
+                                                                <option value="chava">chava</option>
+                                                                <option value="qatester">qatester</option>
+                                                            </select>
                                                         </div>
-                                                        <div className="space-y-2">
-                                                            <Label className="text-sm font-medium">Password</Label>
-                                                            <Input
-                                                                value={password}
-                                                                type="password"
-                                                                disabled
-                                                                className="bg-gray-100 dark:bg-gray-800 text-sm"
-                                                            />
-                                                        </div>
-                                                    </div>
 
-                                                    <p className="text-xs text-blue-600 dark:text-blue-400">
-                                                        REST API Parameters: -DOrgAlias={orgAlias} -DUserId={userId} -DUsername={username} -DPassword={password}
-                                                    </p>
-                                                </>
-                                            )}
+                                                        <div className="grid grid-cols-2 gap-3">
+                                                            <div className="space-y-2">
+                                                                <Label className="text-sm font-medium">Username</Label>
+                                                                <Input
+                                                                    value={username}
+                                                                    disabled
+                                                                    className="bg-gray-100 dark:bg-gray-800 text-sm"
+                                                                />
+                                                            </div>
+                                                            <div className="space-y-2">
+                                                                <Label className="text-sm font-medium">Password</Label>
+                                                                <Input
+                                                                    value={password}
+                                                                    type="password"
+                                                                    disabled
+                                                                    className="bg-gray-100 dark:bg-gray-800 text-sm"
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        <p className="text-xs text-blue-600 dark:text-blue-400">
+                                                            REST API Parameters: -DOrgAlias={orgAlias} -DUserId={userId} -DUsername={username} -DPassword={password}
+                                                        </p>
+                                                    </>
+                                                )}
 
                                             {/* Portal/Engine info */}
                                             {Array.from(selectedSuites).some(className => {
@@ -2137,21 +2117,21 @@ export default function JacocoRunnerPage() {
                                                 const suite = testSuites.find(s => s.className === className)
                                                 return suite?.type === 'restapi'
                                             }) && (
-                                                <div className="text-xs text-blue-600 dark:text-blue-400 space-y-1">
-                                                    {Array.from(selectedSuites).some(className => {
-                                                        const suite = testSuites.find(s => s.className === className)
-                                                        return suite?.type === 'xifinportal'
-                                                    }) && (
-                                                        <p>Portal: -DorgAlias={orgAlias} -DtestSuite=newXp\[suite]</p>
-                                                    )}
-                                                    {Array.from(selectedSuites).some(className => {
-                                                        const suite = testSuites.find(s => s.className === className)
-                                                        return suite?.type === 'engine'
-                                                    }) && (
-                                                        <p>Engine: -DorgAlias={orgAlias} -DtestSuite=pfEngines\[suite]</p>
-                                                    )}
-                                                </div>
-                                            )}
+                                                    <div className="text-xs text-blue-600 dark:text-blue-400 space-y-1">
+                                                        {Array.from(selectedSuites).some(className => {
+                                                            const suite = testSuites.find(s => s.className === className)
+                                                            return suite?.type === 'xifinportal'
+                                                        }) && (
+                                                                <p>Portal: -DorgAlias={orgAlias} -DtestSuite=newXp\[suite]</p>
+                                                            )}
+                                                        {Array.from(selectedSuites).some(className => {
+                                                            const suite = testSuites.find(s => s.className === className)
+                                                            return suite?.type === 'engine'
+                                                        }) && (
+                                                                <p>Engine: -DorgAlias={orgAlias} -DtestSuite=pfEngines\[suite]</p>
+                                                            )}
+                                                    </div>
+                                                )}
                                         </div>
                                     )}
 
