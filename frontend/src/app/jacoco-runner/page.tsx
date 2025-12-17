@@ -114,6 +114,16 @@ export default function JacocoRunnerPage() {
     const [username] = useState('webservicetest')
     const [password] = useState('webservicetest')
 
+    // Database Configuration states
+    const [databaseIps] = useState<string[]>(['192.168.84.55', '192.168.84.56'])
+    const [selectedDatabase, setSelectedDatabase] = useState<string>('192.168.84.55')
+    const [selectedConfigProjects, setSelectedConfigProjects] = useState<Set<string>>(new Set())
+    const [configLoading, setConfigLoading] = useState(false)
+    const [configResults, setConfigResults] = useState<{ projectName: string; filesUpdated: number; success: boolean }[]>([])
+    const [hubUrl, setHubUrl] = useState('http://localhost:')
+    const [configOrgAlias, setConfigOrgAlias] = useState('qa07')
+    const [configUserId, setConfigUserId] = useState('chava')
+
     // Load basePath and tomcatPath from localStorage on mount
     useEffect(() => {
         const savedPath = localStorage.getItem(STORAGE_KEY)
@@ -627,6 +637,142 @@ export default function JacocoRunnerPage() {
             setRunningTomcats(prev => new Set([...prev, tomcatPath]))
             showNotification('error', 'Failed to stop Tomcat')
         })
+    }
+
+    // Apply database configuration to selected projects (properties files only)
+    const applyDatabaseConfig = async () => {
+        if (selectedConfigProjects.size === 0) {
+            showNotification('error', 'Please select at least one project')
+            return
+        }
+
+        setConfigLoading(true)
+        setConfigResults([])
+
+        const results: { projectName: string; filesUpdated: number; success: boolean }[] = []
+
+        for (const projectPath of selectedConfigProjects) {
+            const project = projects.find(p => p.path === projectPath)
+            if (!project) continue
+
+            try {
+                const response = await fetch(`${API_BASE}/config/replace-database`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        projectPath: project.path,
+                        newDatabaseIp: selectedDatabase
+                    })
+                })
+
+                if (response.ok) {
+                    const data = await response.json()
+                    results.push({
+                        projectName: project.name,
+                        filesUpdated: data.filesUpdated || 0,
+                        success: true
+                    })
+                } else {
+                    results.push({
+                        projectName: project.name,
+                        filesUpdated: 0,
+                        success: false
+                    })
+                }
+            } catch (error) {
+                results.push({
+                    projectName: project.name,
+                    filesUpdated: 0,
+                    success: false
+                })
+            }
+        }
+
+        setConfigResults(results)
+        setConfigLoading(false)
+
+        const successCount = results.filter(r => r.success).length
+        const totalFiles = results.reduce((sum, r) => sum + r.filesUpdated, 0)
+        showNotification('success', `Updated ${totalFiles} files in ${successCount}/${results.length} projects`)
+    }
+
+    // Apply test suite configuration to qa-rpmoverall project (XML files only)
+    const applyTestSuiteConfig = async () => {
+        // Find qa-rpmoverall project
+        const qaProject = projects.find(p => p.name.toLowerCase().includes('qa-rpmoverall'))
+        if (!qaProject) {
+            showNotification('error', 'qa-rpmoverall project not found. Please load projects first.')
+            return
+        }
+
+        setConfigLoading(true)
+        setConfigResults([])
+
+        // Compute SSO credentials from username and userId
+        const ssoUsername = `${username}_${configUserId}`
+        const ssoPassword = `${password}_${configUserId}`
+
+        try {
+            const response = await fetch(`${API_BASE}/config/replace-testsuite`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    projectPath: qaProject.path,
+                    hub: hubUrl,
+                    ssoUsername: ssoUsername,
+                    ssoPassword: ssoPassword,
+                    orgAlias: configOrgAlias
+                })
+            })
+
+            if (response.ok) {
+                const data = await response.json()
+                setConfigResults([{
+                    projectName: qaProject.name,
+                    filesUpdated: data.filesUpdated || 0,
+                    success: true
+                }])
+                showNotification('success', `Updated ${data.filesUpdated} test suite files in ${qaProject.name}`)
+            } else {
+                setConfigResults([{
+                    projectName: qaProject.name,
+                    filesUpdated: 0,
+                    success: false
+                }])
+                showNotification('error', 'Failed to update test suite configuration')
+            }
+        } catch (error) {
+            setConfigResults([{
+                projectName: qaProject.name,
+                filesUpdated: 0,
+                success: false
+            }])
+            showNotification('error', 'Failed to update test suite configuration')
+        } finally {
+            setConfigLoading(false)
+        }
+    }
+
+    // Toggle config project selection
+    const toggleConfigProjectSelection = (projectPath: string) => {
+        const newSelected = new Set(selectedConfigProjects)
+        if (newSelected.has(projectPath)) {
+            newSelected.delete(projectPath)
+        } else {
+            newSelected.add(projectPath)
+        }
+        setSelectedConfigProjects(newSelected)
+    }
+
+    // Select all Maven projects for config
+    const selectAllMavenProjectsForConfig = () => {
+        const mavenPaths = projects.filter(p => p.isMavenProject).map(p => p.path)
+        setSelectedConfigProjects(new Set(mavenPaths))
+    }
+
+    // Clear all config project selections
+    const clearConfigProjectSelections = () => {
+        setSelectedConfigProjects(new Set())
     }
 
     // Load test suites for selected project
@@ -1439,23 +1585,237 @@ export default function JacocoRunnerPage() {
 
                     {/* Tab 2: Configuration */}
                     <TabsContent value="config" className="space-y-4">
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                            {/* Left Column: Two Config Cards */}
+                            <div className="lg:col-span-5 space-y-4">
+                                {/* Card 1: Database Configuration */}
+                                <Card className="border-t-4 border-t-purple-500 shadow-lg">
+                                    <CardHeader className="bg-gradient-to-br from-purple-50 to-white dark:from-purple-950/20 dark:to-background border-b pb-3">
+                                        <CardTitle className="flex items-center gap-2 text-lg text-purple-600 dark:text-purple-400">
+                                            <Settings className="w-5 h-5" />
+                                            Database Configuration
+                                        </CardTitle>
+                                        <CardDescription className="text-xs">
+                                            Replace database IP in .properties files
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4 p-4">
+                                        {/* Database Selection */}
+                                        <div className="space-y-2">
+                                            <Label className="text-sm font-medium">Database Server</Label>
+                                            <select
+                                                className="w-full h-10 px-3 rounded-lg border-2 border-purple-200 dark:border-purple-900 bg-white dark:bg-zinc-950 text-sm font-mono focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                                                value={selectedDatabase}
+                                                onChange={(e) => setSelectedDatabase(e.target.value)}
+                                            >
+                                                {databaseIps.map(ip => (
+                                                    <option key={ip} value={ip} className="dark:bg-zinc-950">{ip}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        {/* Project Selection */}
+                                        <div className="space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <Label className="text-sm font-medium">
+                                                    Projects
+                                                    {selectedConfigProjects.size > 0 && (
+                                                        <Badge variant="secondary" className="ml-2 text-xs">
+                                                            {selectedConfigProjects.size}
+                                                        </Badge>
+                                                    )}
+                                                </Label>
+                                                <div className="flex gap-1">
+                                                    <Button size="sm" variant="outline" onClick={selectAllMavenProjectsForConfig} className="h-6 text-xs px-2">
+                                                        All
+                                                    </Button>
+                                                    <Button size="sm" variant="outline" onClick={clearConfigProjectSelections} className="h-6 text-xs px-2">
+                                                        Clear
+                                                    </Button>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-1 max-h-[180px] overflow-y-auto border rounded-lg p-2 bg-muted/30">
+                                                {projects.filter(p => p.isMavenProject).length === 0 ? (
+                                                    <p className="text-xs text-muted-foreground text-center py-2">
+                                                        No Maven projects found.
+                                                    </p>
+                                                ) : (
+                                                    projects.filter(p => p.isMavenProject).map((project) => (
+                                                        <div
+                                                            key={project.path}
+                                                            onClick={() => toggleConfigProjectSelection(project.path)}
+                                                            className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-all hover:bg-accent ${selectedConfigProjects.has(project.path)
+                                                                    ? 'bg-purple-500/10 border border-purple-500/30'
+                                                                    : 'border border-transparent'
+                                                                }`}
+                                                        >
+                                                            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${selectedConfigProjects.has(project.path)
+                                                                    ? 'bg-purple-500 border-purple-500'
+                                                                    : 'border-muted-foreground/30'
+                                                                }`}>
+                                                                {selectedConfigProjects.has(project.path) && (
+                                                                    <CheckCircle2 className="w-3 h-3 text-white" />
+                                                                )}
+                                                            </div>
+                                                            <span className="text-sm font-medium truncate">{project.name}</span>
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Apply Button */}
+                                        <Button
+                                            onClick={applyDatabaseConfig}
+                                            disabled={selectedConfigProjects.size === 0 || configLoading}
+                                            className="w-full h-10 shadow-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500"
+                                        >
+                                            {configLoading ? (
+                                                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Applying...</>
+                                            ) : (
+                                                <><Settings className="w-4 h-4 mr-2" />Apply Database Config</>
+                                            )}
+                                        </Button>
+                                    </CardContent>
+                                </Card>
+
+                                {/* Card 2: Test Suite Configuration */}
+                                <Card className="border-t-4 border-t-cyan-500 shadow-lg">
+                                    <CardHeader className="bg-gradient-to-br from-cyan-50 to-white dark:from-cyan-950/20 dark:to-background border-b pb-3">
+                                        <CardTitle className="flex items-center gap-2 text-lg text-cyan-600 dark:text-cyan-400">
+                                            <TestTube2 className="w-5 h-5" />
+                                            Test Suite Config
+                                        </CardTitle>
+                                        <CardDescription className="text-xs">
+                                            Update XML test suites in qa-rpmoverall
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4 p-4">
+                                        {/* Hub URL */}
+                                        <div className="space-y-2">
+                                            <Label className="text-sm font-medium">Hub URL</Label>
+                                            <Input
+                                                value={hubUrl}
+                                                onChange={(e) => setHubUrl(e.target.value)}
+                                                placeholder="http://localhost:"
+                                                className="font-mono text-sm h-9"
+                                            />
+                                        </div>
+
+                                        {/* OrgAlias & UserId */}
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="space-y-2">
+                                                <Label className="text-sm font-medium">OrgAlias</Label>
+                                                <Input
+                                                    value={configOrgAlias}
+                                                    onChange={(e) => setConfigOrgAlias(e.target.value)}
+                                                    placeholder="qa07"
+                                                    className="h-9"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-sm font-medium">UserId</Label>
+                                                <Input
+                                                    value={configUserId}
+                                                    onChange={(e) => setConfigUserId(e.target.value)}
+                                                    placeholder="chava"
+                                                    className="h-9"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Preview SSO credentials */}
+                                        <div className="p-2 bg-muted/50 rounded-lg border text-xs">
+                                            <p className="text-muted-foreground mb-1">SSO Credentials:</p>
+                                            <p className="font-mono">User: <span className="text-cyan-600">{username}_{configUserId}</span></p>
+                                            <p className="font-mono">Pass: <span className="text-cyan-600">{password}_{configUserId}</span></p>
+                                        </div>
+
+                                        {/* Apply Test Suite Button */}
+                                        <Button
+                                            onClick={applyTestSuiteConfig}
+                                            disabled={configLoading}
+                                            className="w-full h-10 shadow-lg bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500"
+                                        >
+                                            {configLoading ? (
+                                                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Applying...</>
+                                            ) : (
+                                                <><TestTube2 className="w-4 h-4 mr-2" />Apply to qa-rpmoverall</>
+                                            )}
+                                        </Button>
+                                    </CardContent>
+                                </Card>
+                            </div>
+
+                            {/* Right Column: Results */}
+                            <Card className="lg:col-span-7 flex flex-col shadow-lg">
+                                <CardHeader className="border-b">
+                                    <CardTitle className="flex items-center gap-2">
+                                        <FileText className="w-5 h-5" />
+                                        Configuration Results
+                                    </CardTitle>
+                                    <CardDescription>
+                                        View the results of database configuration changes
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="flex-1 p-6">
+                                    {configResults.length === 0 ? (
+                                        <div className="h-full flex flex-col items-center justify-center text-muted-foreground py-12">
+                                            <Settings className="w-16 h-16 mb-4 opacity-30" />
+                                            <p className="text-lg">No configuration applied yet</p>
+                                            <p className="text-sm mt-2">Select projects and click "Apply" to see results</p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <p className="text-sm text-muted-foreground">
+                                                    Database IP: <span className="font-mono font-semibold text-purple-600">{selectedDatabase}</span>
+                                                </p>
+                                                <Badge variant="outline" className="text-sm">
+                                                    {configResults.filter(r => r.success).length}/{configResults.length} successful
+                                                </Badge>
+                                            </div>
+                                            {configResults.map((result, index) => (
+                                                <div
+                                                    key={index}
+                                                    className={`flex items-center justify-between p-4 rounded-lg border ${result.success
+                                                        ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-900'
+                                                        : 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900'
+                                                        }`}
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        {result.success ? (
+                                                            <CheckCircle2 className="w-5 h-5 text-green-500" />
+                                                        ) : (
+                                                            <XCircle className="w-5 h-5 text-red-500" />
+                                                        )}
+                                                        <span className="font-medium">{result.projectName}</span>
+                                                    </div>
+                                                    <Badge variant={result.success ? 'default' : 'destructive'}>
+                                                        {result.success ? `${result.filesUpdated} files updated` : 'Failed'}
+                                                    </Badge>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        {/* Info Card */}
                         <Card>
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Settings className="w-5 h-5" />
-                                    Build Configuration
+                                <CardTitle className="flex items-center gap-2 text-base">
+                                    <AlertCircle className="w-5 h-5 text-blue-500" />
+                                    How It Works
                                 </CardTitle>
-                                <CardDescription>
-                                    Configure and modify project files before building
-                                </CardDescription>
                             </CardHeader>
-                            <CardContent className="py-12 text-center">
-                                <Settings className="w-16 h-16 mx-auto mb-4 text-muted-foreground/30" />
-                                <h3 className="text-lg font-semibold mb-2 text-muted-foreground">Coming Soon</h3>
-                                <p className="text-muted-foreground">
-                                    This feature will allow you to modify configuration files, <br />
-                                    environment variables, and build settings before deployment.
-                                </p>
+                            <CardContent className="text-sm text-muted-foreground space-y-2">
+                                <p>• This tool scans all <strong>.properties</strong> and <strong>.xml</strong> files in the selected projects</p>
+                                <p>• It replaces any existing database IP addresses with the selected database IP</p>
+                                <p>• Common patterns like <strong>jdbc:oracle:thin:@IP:port</strong> and <strong>db.host=IP</strong> are detected</p>
+                                <p>• Always review changes before building and deploying your application</p>
                             </CardContent>
                         </Card>
                     </TabsContent>
