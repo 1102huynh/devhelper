@@ -116,24 +116,54 @@ public class JenkinsController {
             String serverUrl = request.get("serverUrl");
             String jobName = request.get("jobName");
             
-            String url = normalizeUrl(serverUrl) + "/job/" + encodeJobName(jobName) + "/build";
-            HttpURLConnection conn = createPostConnection(url, serverUrl);
+            // Try different build endpoints
+            String[] buildEndpoints = {"/build", "/buildWithParameters"};
             
-            int responseCode = conn.getResponseCode();
-            conn.disconnect();
-            
-            if (responseCode == 201 || responseCode == 200) {
-                return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "Build triggered for " + jobName
-                ));
-            } else {
-                return ResponseEntity.ok(Map.of(
-                    "success", false,
-                    "message", "Failed to trigger build. Response code: " + responseCode
-                ));
+            for (String endpoint : buildEndpoints) {
+                String url = normalizeUrl(serverUrl) + "/job/" + encodeJobName(jobName) + endpoint;
+                HttpURLConnection conn = createPostConnection(url, serverUrl);
+                
+                // Add content-length header (some Jenkins versions require it)
+                conn.setRequestProperty("Content-Length", "0");
+                
+                int responseCode = conn.getResponseCode();
+                
+                // Read error response for debugging
+                String errorBody = "";
+                if (responseCode >= 400) {
+                    try {
+                        BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getErrorStream()));
+                        StringBuilder sb = new StringBuilder();
+                        String line;
+                        while ((line = reader.readLine()) != null) {
+                            sb.append(line);
+                        }
+                        reader.close();
+                        errorBody = sb.toString();
+                    } catch (Exception e) {
+                        // ignore
+                    }
+                }
+                
+                conn.disconnect();
+                
+                System.out.println("[JenkinsController] Build " + jobName + " via " + endpoint + 
+                    " - Response: " + responseCode + (errorBody.isEmpty() ? "" : " - " + errorBody.substring(0, Math.min(200, errorBody.length()))));
+                
+                if (responseCode == 201 || responseCode == 200 || responseCode == 302) {
+                    return ResponseEntity.ok(Map.of(
+                        "success", true,
+                        "message", "Build triggered for " + jobName
+                    ));
+                }
             }
+            
+            return ResponseEntity.ok(Map.of(
+                "success", false,
+                "message", "Failed to trigger build. Check if job requires parameters or authentication."
+            ));
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }

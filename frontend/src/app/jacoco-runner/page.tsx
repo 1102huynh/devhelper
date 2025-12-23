@@ -132,6 +132,25 @@ export default function JacocoRunnerPage() {
     const [selectedView, setSelectedView] = useState('all')
     const [jobSearchQuery, setJobSearchQuery] = useState('')
 
+    // New Jenkins features
+    const [favoriteJobs, setFavoriteJobs] = useState<string[]>(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('jenkins_favorites')
+            return saved ? JSON.parse(saved) : []
+        }
+        return []
+    })
+    const [batchMode, setBatchMode] = useState(false)
+    const [selectedBatchJobs, setSelectedBatchJobs] = useState<Set<string>>(new Set())
+    const [showCredentialsModal, setShowCredentialsModal] = useState(false)
+    const [jenkinsCredentials, setJenkinsCredentials] = useState({ username: 'admin', token: '' })
+    const [showParamsModal, setShowParamsModal] = useState(false)
+    const [pendingJobParams, setPendingJobParams] = useState<{ jobName: string; params: Record<string, string> } | null>(null)
+    const [liveConsoleJobName, setLiveConsoleJobName] = useState('')
+    const [liveConsoleBuildNum, setLiveConsoleBuildNum] = useState(0)
+    const [notificationsEnabled, setNotificationsEnabled] = useState(false)
+    const [previousJobStates, setPreviousJobStates] = useState<Record<string, string>>({})
+
     // Environment Profiles
     interface EnvironmentProfile {
         name: string
@@ -500,7 +519,14 @@ export default function JacocoRunnerPage() {
 
     // Check if job is currently running
     const isJobRunning = (color: string) => {
-        return color && (color.includes('anime') || color.includes('_anime'))
+        if (!color) return false
+        // Jenkins uses 'xxx_anime' suffix for running jobs (e.g., blue_anime, red_anime, notbuilt_anime)
+        const running = color.includes('anime') ||
+            color.includes('building') ||
+            color.endsWith('_anime')
+        // Debug log
+        if (running) console.log('Job running with color:', color)
+        return running
     }
 
     const getJobStatusColor = (color: string) => {
@@ -510,6 +536,118 @@ export default function JacocoRunnerPage() {
         if (color.includes('yellow') || color.includes('anime')) return 'bg-yellow-500 animate-pulse'
         if (color.includes('grey') || color.includes('disabled')) return 'bg-gray-500'
         return 'bg-gray-500'
+    }
+
+    // ===== NEW JENKINS FEATURES =====
+
+    // 1. Favorite Jobs
+    const toggleFavorite = (jobName: string) => {
+        setFavoriteJobs(prev => {
+            const newFavorites = prev.includes(jobName)
+                ? prev.filter(j => j !== jobName)
+                : [...prev, jobName]
+            localStorage.setItem('jenkins_favorites', JSON.stringify(newFavorites))
+            return newFavorites
+        })
+    }
+
+    const sortedJenkinsJobs = [...jenkinsJobs].sort((a, b) => {
+        const aFav = favoriteJobs.includes(a.name)
+        const bFav = favoriteJobs.includes(b.name)
+        if (aFav && !bFav) return -1
+        if (!aFav && bFav) return 1
+        return 0
+    })
+
+    // 2. Build Statistics
+    const getBuildStats = () => {
+        const successCount = jenkinsJobs.filter(j => j.color?.includes('blue')).length
+        const failCount = jenkinsJobs.filter(j => j.color?.includes('red')).length
+        const runningCount = jenkinsJobs.filter(j => isJobRunning(j.color)).length
+        const totalBuilds = jenkinsJobs.reduce((acc, j) => acc + (j.lastBuild?.number || 0), 0)
+        const avgDuration = jenkinsJobs.reduce((acc, j) => acc + (j.lastBuild?.duration || 0), 0) / (jenkinsJobs.length || 1)
+        return { successCount, failCount, runningCount, totalBuilds, avgDuration, successRate: jenkinsJobs.length ? Math.round((successCount / jenkinsJobs.length) * 100) : 0 }
+    }
+
+    // 3. Desktop Notifications
+    const enableNotifications = async () => {
+        if ('Notification' in window) {
+            const permission = await Notification.requestPermission()
+            setNotificationsEnabled(permission === 'granted')
+            if (permission === 'granted') {
+                showNotification('success', 'Desktop notifications enabled!')
+            }
+        }
+    }
+
+    const sendDesktopNotification = (title: string, body: string, isSuccess: boolean) => {
+        if (notificationsEnabled && 'Notification' in window) {
+            new Notification(title, {
+                body,
+                icon: isSuccess ? '✅' : '❌'
+            })
+        }
+    }
+
+    // Check for job state changes and notify
+    const checkJobStateChanges = (newJobs: any[]) => {
+        newJobs.forEach(job => {
+            const prevColor = previousJobStates[job.name]
+            const currColor = job.color
+            if (prevColor && prevColor !== currColor) {
+                if (prevColor.includes('anime') && !currColor.includes('anime')) {
+                    const isSuccess = currColor.includes('blue')
+                    sendDesktopNotification(
+                        `Build ${isSuccess ? 'Success' : 'Failed'}`,
+                        `Job: ${job.name}`,
+                        isSuccess
+                    )
+                }
+            }
+        })
+        const newStates: Record<string, string> = {}
+        newJobs.forEach(j => { newStates[j.name] = j.color })
+        setPreviousJobStates(newStates)
+    }
+
+    // 4. Batch Build
+    const toggleBatchSelect = (jobName: string) => {
+        setSelectedBatchJobs(prev => {
+            const newSet = new Set(prev)
+            if (newSet.has(jobName)) {
+                newSet.delete(jobName)
+            } else {
+                newSet.add(jobName)
+            }
+            return newSet
+        })
+    }
+
+    const runBatchBuild = async () => {
+        const jobs = Array.from(selectedBatchJobs)
+        showNotification('info', `Triggering ${jobs.length} builds...`)
+        for (const jobName of jobs) {
+            await triggerJenkinsBuild(jobName)
+        }
+        setSelectedBatchJobs(new Set())
+        setBatchMode(false)
+    }
+
+    // 5. Live Console
+    const startLiveConsole = (jobName: string, buildNumber: number) => {
+        setLiveConsoleJobName(jobName)
+        setLiveConsoleBuildNum(buildNumber)
+        setShowConsole(true)
+        viewConsoleOutput(jobName, buildNumber)
+    }
+
+    // 6. Build Trend (simple chart data)
+    const getBuildTrend = () => {
+        return jobBuilds.slice(0, 10).reverse().map(build => ({
+            number: build.number,
+            success: build.result === 'SUCCESS',
+            duration: build.duration || 0
+        }))
     }
 
     const formatDuration = (ms: number) => {
@@ -561,6 +699,33 @@ export default function JacocoRunnerPage() {
             checkJenkinsStatus()
         }
     }, [activeTab])
+
+    // Auto-refresh Jenkins jobs every 5 seconds when on jenkins tab
+    useEffect(() => {
+        if (activeTab === 'jenkins' && jenkinsOnline) {
+            const interval = setInterval(async () => {
+                const response = await fetch(`${API_BASE}/jenkins/jobs?serverUrl=${encodeURIComponent(selectedJenkinsServer)}&viewName=${encodeURIComponent(selectedView)}`)
+                if (response.ok) {
+                    const data = await response.json()
+                    const newJobs = data.jobs || []
+                    checkJobStateChanges(newJobs)
+                    setJenkinsJobs(newJobs)
+                }
+            }, 5000)
+
+            return () => clearInterval(interval)
+        }
+    }, [activeTab, jenkinsOnline, selectedView, notificationsEnabled])
+
+    // Live console auto-refresh
+    useEffect(() => {
+        if (showConsole && liveConsoleJobName && liveConsoleBuildNum > 0) {
+            const interval = setInterval(() => {
+                viewConsoleOutput(liveConsoleJobName, liveConsoleBuildNum)
+            }, 3000)
+            return () => clearInterval(interval)
+        }
+    }, [showConsole, liveConsoleJobName, liveConsoleBuildNum])
 
     // Auto-load Tomcats when tomcatBasePath changes
     useEffect(() => {
@@ -3408,27 +3573,25 @@ export default function JacocoRunnerPage() {
                     </TabsContent>
 
                     {/* Tab 5: Jenkins */}
-                    <TabsContent value="jenkins" className="space-y-6">
+                    <TabsContent value="jenkins" className="space-y-4 md:space-y-6">
                         {/* Server Selection Card */}
                         <Card className="border-2 border-dashed border-orange-300 dark:border-orange-800 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30">
-                            <CardContent className="p-4">
-                                <div className="flex items-center justify-between flex-wrap gap-4">
+                            <CardContent className="p-3 md:p-4">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                     <div className="flex items-center gap-3">
                                         <div className={`p-2 rounded-lg ${jenkinsOnline ? 'bg-green-500' : 'bg-gray-400'}`}>
-                                            <FolderKanban className="w-5 h-5 text-white" />
+                                            <FolderKanban className="w-4 h-4 md:w-5 md:h-5 text-white" />
                                         </div>
                                         <div>
-                                            <h3 className="font-semibold text-orange-700 dark:text-orange-300">Jenkins Server</h3>
-                                            <p className="text-xs text-muted-foreground">Connect to Jenkins instance</p>
+                                            <h3 className="font-semibold text-sm md:text-base text-orange-700 dark:text-orange-300">Jenkins Server</h3>
+                                            <p className="text-xs text-muted-foreground hidden sm:block">Connect to Jenkins instance</p>
                                         </div>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/50 dark:bg-black/20">
+                                        <div className="flex items-center gap-2 px-2 py-1 rounded-lg bg-white/50 dark:bg-black/20 ml-auto sm:ml-0">
                                             <span className={`w-2 h-2 rounded-full ${jenkinsOnline ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
-                                            <span className="text-sm font-medium">{jenkinsOnline ? 'Online' : 'Offline'}</span>
+                                            <span className="text-xs md:text-sm font-medium">{jenkinsOnline ? 'Online' : 'Offline'}</span>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                                         <select
                                             value={selectedJenkinsServer}
                                             onChange={(e) => {
@@ -3436,52 +3599,138 @@ export default function JacocoRunnerPage() {
                                                 setJenkinsJobs([])
                                                 setJenkinsOnline(false)
                                             }}
-                                            className="h-9 px-3 rounded-md border border-input bg-background text-sm"
+                                            className="h-9 px-3 rounded-md border border-input bg-background text-sm w-full sm:w-auto"
                                         >
                                             {jenkinsServers.map(server => (
                                                 <option key={server.url} value={server.url}>
-                                                    {server.name} ({server.url})
+                                                    {server.name}
                                                 </option>
                                             ))}
                                         </select>
-                                        <Button
-                                            size="sm"
-                                            onClick={checkJenkinsStatus}
-                                            disabled={jenkinsLoading}
-                                            className="bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white"
-                                        >
-                                            {jenkinsLoading ? (
-                                                <Loader2 className="w-4 h-4 animate-spin" />
-                                            ) : (
-                                                <RefreshCw className="w-4 h-4" />
-                                            )}
-                                        </Button>
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            onClick={() => window.open(`http://${selectedJenkinsServer}`, '_blank')}
-                                        >
-                                            <ExternalLink className="w-4 h-4 mr-1" />
-                                            Open
-                                        </Button>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                size="sm"
+                                                onClick={checkJenkinsStatus}
+                                                disabled={jenkinsLoading}
+                                                className="flex-1 sm:flex-none bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white"
+                                            >
+                                                {jenkinsLoading ? (
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                ) : (
+                                                    <RefreshCw className="w-4 h-4" />
+                                                )}
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => window.open(`http://${selectedJenkinsServer}`, '_blank')}
+                                                className="flex-1 sm:flex-none"
+                                            >
+                                                <ExternalLink className="w-4 h-4" />
+                                                <span className="ml-1 hidden sm:inline">Open</span>
+                                            </Button>
+                                        </div>
                                     </div>
                                 </div>
                             </CardContent>
                         </Card>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        {/* Build Statistics */}
+                        {jenkinsOnline && (
+                            <div className="grid grid-cols-3 md:grid-cols-6 gap-2 md:gap-3">
+                                <Card className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border-green-200 dark:border-green-800">
+                                    <CardContent className="p-2 md:p-3 text-center">
+                                        <div className="text-lg md:text-2xl font-bold text-green-600">{getBuildStats().successCount}</div>
+                                        <div className="text-[10px] md:text-xs text-green-700 dark:text-green-400">Success</div>
+                                    </CardContent>
+                                </Card>
+                                <Card className="bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-950/30 dark:to-rose-950/30 border-red-200 dark:border-red-800">
+                                    <CardContent className="p-2 md:p-3 text-center">
+                                        <div className="text-lg md:text-2xl font-bold text-red-600">{getBuildStats().failCount}</div>
+                                        <div className="text-[10px] md:text-xs text-red-700 dark:text-red-400">Failed</div>
+                                    </CardContent>
+                                </Card>
+                                <Card className="bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-950/30 dark:to-amber-950/30 border-yellow-200 dark:border-yellow-800">
+                                    <CardContent className="p-2 md:p-3 text-center">
+                                        <div className="text-lg md:text-2xl font-bold text-yellow-600">{getBuildStats().runningCount}</div>
+                                        <div className="text-[10px] md:text-xs text-yellow-700 dark:text-yellow-400">Running</div>
+                                    </CardContent>
+                                </Card>
+                                <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-200 dark:border-blue-800">
+                                    <CardContent className="p-2 md:p-3 text-center">
+                                        <div className="text-lg md:text-2xl font-bold text-blue-600">{getBuildStats().successRate}%</div>
+                                        <div className="text-[10px] md:text-xs text-blue-700 dark:text-blue-400">Rate</div>
+                                    </CardContent>
+                                </Card>
+                                <Card className="bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-950/30 dark:to-violet-950/30 border-purple-200 dark:border-purple-800">
+                                    <CardContent className="p-2 md:p-3 text-center">
+                                        <div className="text-lg md:text-2xl font-bold text-purple-600 truncate">{formatDuration(getBuildStats().avgDuration)}</div>
+                                        <div className="text-[10px] md:text-xs text-purple-700 dark:text-purple-400">Avg</div>
+                                    </CardContent>
+                                </Card>
+                                <Card className="bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-950/30 dark:to-slate-950/30 border-gray-200 dark:border-gray-800">
+                                    <CardContent className="p-2 md:p-3 text-center">
+                                        <div className="text-lg md:text-2xl font-bold text-gray-600">{jenkinsJobs.length}</div>
+                                        <div className="text-[10px] md:text-xs text-gray-700 dark:text-gray-400">Total</div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        )}
+
+                        {/* Action Bar */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <Button
+                                    size="sm"
+                                    variant={batchMode ? 'default' : 'outline'}
+                                    onClick={() => {
+                                        setBatchMode(!batchMode)
+                                        setSelectedBatchJobs(new Set())
+                                    }}
+                                    className="text-xs md:text-sm"
+                                >
+                                    {batchMode ? '✕ Exit' : '🔄 Batch'}
+                                </Button>
+                                {batchMode && selectedBatchJobs.size > 0 && (
+                                    <Button size="sm" onClick={runBatchBuild} className="bg-green-600 hover:bg-green-700 text-xs md:text-sm">
+                                        ▶️ Run {selectedBatchJobs.size}
+                                    </Button>
+                                )}
+                            </div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={enableNotifications}
+                                    className={`text-xs md:text-sm ${notificationsEnabled ? 'border-green-500 text-green-600' : ''}`}
+                                >
+                                    {notificationsEnabled ? '🔔' : '🔕'}
+                                    <span className="hidden sm:inline ml-1">{notificationsEnabled ? 'On' : 'Notify'}</span>
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setShowCredentialsModal(true)}
+                                    className="text-xs md:text-sm"
+                                >
+                                    🔐<span className="hidden sm:inline ml-1">Credentials</span>
+                                </Button>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
                             {/* Jobs List */}
                             <Card className="lg:col-span-5 border-t-4 border-t-orange-500 shadow-lg">
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="flex items-center justify-between">
+                                <CardHeader className="p-3 md:pb-2">
+                                    <CardTitle className="flex items-center justify-between text-sm md:text-base">
                                         <span className="flex items-center gap-2">
-                                            <FolderKanban className="w-5 h-5 text-orange-500" />
-                                            Jenkins Jobs
+                                            <FolderKanban className="w-4 h-4 md:w-5 md:h-5 text-orange-500" />
+                                            <span className="hidden sm:inline">Jenkins </span>Jobs
                                         </span>
-                                        <Badge variant="secondary">{jenkinsJobs.filter(j => !jobSearchQuery || j.name.toLowerCase().includes(jobSearchQuery.toLowerCase())).length} jobs</Badge>
+                                        <Badge variant="secondary" className="text-xs">{jenkinsJobs.filter(j => !jobSearchQuery || j.name.toLowerCase().includes(jobSearchQuery.toLowerCase())).length}</Badge>
                                     </CardTitle>
                                 </CardHeader>
-                                <CardContent className="space-y-3">
+                                <CardContent className="p-3 pt-0 space-y-2 md:space-y-3">
                                     {/* Search Input */}
                                     <div className="relative">
                                         <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
@@ -3535,22 +3784,40 @@ export default function JacocoRunnerPage() {
                                         </div>
                                     ) : (
                                         <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                                            {jenkinsJobs
+                                            {sortedJenkinsJobs
                                                 .filter(job => !jobSearchQuery || job.name.toLowerCase().includes(jobSearchQuery.toLowerCase()))
                                                 .map((job: any) => (
                                                     <div
                                                         key={job.name}
-                                                        className={`p-3 rounded-lg border transition-all cursor-pointer hover:bg-accent/50 ${selectedJob?.name === job.name ? 'border-orange-500 bg-orange-50 dark:bg-orange-950/20' : ''}`}
+                                                        className={`p-3 rounded-lg border transition-all cursor-pointer hover:bg-accent/50 ${selectedJob?.name === job.name ? 'border-orange-500 bg-orange-50 dark:bg-orange-950/20' : ''} ${favoriteJobs.includes(job.name) ? 'border-l-4 border-l-yellow-400' : ''}`}
                                                         onClick={() => {
-                                                            setSelectedJob(job)
-                                                            fetchJobBuilds(job.name)
+                                                            if (batchMode) {
+                                                                toggleBatchSelect(job.name)
+                                                            } else {
+                                                                setSelectedJob(job)
+                                                                fetchJobBuilds(job.name)
+                                                            }
                                                         }}
                                                     >
                                                         <div className="flex items-center justify-between">
                                                             <div className="flex items-center gap-3">
-                                                                <div className={`w-3 h-3 rounded-full ${getJobStatusColor(job.color)}`} />
+                                                                {/* Batch checkbox or Status dot */}
+                                                                {batchMode ? (
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={selectedBatchJobs.has(job.name)}
+                                                                        onChange={() => toggleBatchSelect(job.name)}
+                                                                        className="w-4 h-4 rounded border-gray-300"
+                                                                        onClick={(e) => e.stopPropagation()}
+                                                                    />
+                                                                ) : (
+                                                                    <div className={`w-3 h-3 rounded-full ${getJobStatusColor(job.color)}`} />
+                                                                )}
                                                                 <div>
-                                                                    <p className="font-medium text-sm">{job.name}</p>
+                                                                    <p className="font-medium text-sm flex items-center gap-1">
+                                                                        {job.name}
+                                                                        {favoriteJobs.includes(job.name) && <span className="text-yellow-500">⭐</span>}
+                                                                    </p>
                                                                     {job.lastBuild && (
                                                                         <p className="text-xs text-muted-foreground">
                                                                             #{job.lastBuild.number} - {isJobRunning(job.color) ? 'Running' : (job.lastBuild.result || 'Unknown')}
@@ -3559,6 +3826,19 @@ export default function JacocoRunnerPage() {
                                                                 </div>
                                                             </div>
                                                             <div className="flex items-center gap-1">
+                                                                {/* Favorite button */}
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="ghost"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation()
+                                                                        toggleFavorite(job.name)
+                                                                    }}
+                                                                    className="h-8 w-8 p-0"
+                                                                >
+                                                                    {favoriteJobs.includes(job.name) ? '⭐' : '☆'}
+                                                                </Button>
+                                                                {/* Run/Stop button */}
                                                                 {isJobRunning(job.color) ? (
                                                                     <Button
                                                                         size="sm"
@@ -3597,13 +3877,15 @@ export default function JacocoRunnerPage() {
 
                             {/* Build History */}
                             <Card className="lg:col-span-7 border-t-4 border-t-blue-500 shadow-lg">
-                                <CardHeader className="pb-3">
-                                    <CardTitle className="flex items-center gap-2">
-                                        <FileText className="w-5 h-5 text-blue-500" />
-                                        {selectedJob ? `Build History - ${selectedJob.name}` : 'Build History'}
+                                <CardHeader className="p-3 md:pb-3">
+                                    <CardTitle className="flex items-center gap-2 text-sm md:text-base">
+                                        <FileText className="w-4 h-4 md:w-5 md:h-5 text-blue-500" />
+                                        <span className="truncate">
+                                            {selectedJob ? `Builds - ${selectedJob.name}` : 'Build History'}
+                                        </span>
                                     </CardTitle>
                                 </CardHeader>
-                                <CardContent>
+                                <CardContent className="p-3 pt-0">
                                     {!selectedJob ? (
                                         <div className="text-center py-8 text-muted-foreground">
                                             <p>Select a job to see build history</p>
@@ -3652,7 +3934,7 @@ export default function JacocoRunnerPage() {
                                                         <Button
                                                             size="sm"
                                                             variant="ghost"
-                                                            onClick={() => viewConsoleOutput(selectedJob.name, build.number)}
+                                                            onClick={() => startLiveConsole(selectedJob.name, build.number)}
                                                             disabled={jenkinsLoading}
                                                         >
                                                             <Terminal className="w-4 h-4" />
@@ -3662,28 +3944,131 @@ export default function JacocoRunnerPage() {
                                             ))}
                                         </div>
                                     )}
+
+                                    {/* Build Trend Chart */}
+                                    {selectedJob && jobBuilds.length > 0 && (
+                                        <div className="mt-4 pt-4 border-t">
+                                            <p className="text-xs font-medium text-muted-foreground mb-2">📈 Build Trend (last 10)</p>
+                                            <div className="flex items-end gap-1 h-16">
+                                                {getBuildTrend().map((build, i) => (
+                                                    <div
+                                                        key={i}
+                                                        className={`flex-1 rounded-t transition-all ${build.success ? 'bg-green-500' : 'bg-red-500'}`}
+                                                        style={{ height: `${Math.max(20, Math.min(100, (build.duration / 1000 / 60) * 10))}%` }}
+                                                        title={`#${build.number} - ${build.success ? 'SUCCESS' : 'FAILURE'} - ${formatDuration(build.duration)}`}
+                                                    />
+                                                ))}
+                                            </div>
+                                            <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                                                <span>Older</span>
+                                                <span>Latest</span>
+                                            </div>
+                                        </div>
+                                    )}
                                 </CardContent>
                             </Card>
                         </div>
 
-                        {/* Console Output Modal */}
+                        {/* Console Output Modal with Live Update */}
                         {showConsole && (
                             <Card className="border-t-4 border-t-green-500">
                                 <CardHeader className="pb-2">
                                     <div className="flex items-center justify-between">
                                         <CardTitle className="flex items-center gap-2 text-sm">
                                             <Terminal className="w-4 h-4" />
-                                            Console Output
+                                            Console Output {liveConsoleJobName && `- ${liveConsoleJobName} #${liveConsoleBuildNum}`}
+                                            <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20 animate-pulse">
+                                                LIVE
+                                            </Badge>
                                         </CardTitle>
-                                        <Button size="sm" variant="ghost" onClick={() => setShowConsole(false)}>
-                                            <X className="w-4 h-4" />
-                                        </Button>
+                                        <div className="flex items-center gap-2">
+                                            <Button size="sm" variant="ghost" onClick={() => {
+                                                navigator.clipboard.writeText(consoleOutput)
+                                                showNotification('success', 'Console copied!')
+                                            }}>
+                                                <Copy className="w-4 h-4" />
+                                            </Button>
+                                            <Button size="sm" variant="ghost" onClick={() => {
+                                                setShowConsole(false)
+                                                setLiveConsoleJobName('')
+                                                setLiveConsoleBuildNum(0)
+                                            }}>
+                                                <X className="w-4 h-4" />
+                                            </Button>
+                                        </div>
                                     </div>
                                 </CardHeader>
                                 <CardContent>
                                     <pre className="bg-zinc-900 text-zinc-100 p-4 rounded-lg text-xs font-mono max-h-[400px] overflow-auto">
                                         {consoleOutput}
                                     </pre>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {/* Credentials Modal */}
+                        {showCredentialsModal && (
+                            <Card className="border-t-4 border-t-purple-500">
+                                <CardHeader className="pb-2">
+                                    <div className="flex items-center justify-between">
+                                        <CardTitle className="flex items-center gap-2 text-sm">
+                                            🔐 Jenkins Credentials
+                                        </CardTitle>
+                                        <Button size="sm" variant="ghost" onClick={() => setShowCredentialsModal(false)}>
+                                            <X className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label className="text-sm font-medium">Username</Label>
+                                            <Input
+                                                value={jenkinsCredentials.username}
+                                                onChange={(e) => setJenkinsCredentials(prev => ({ ...prev, username: e.target.value }))}
+                                                placeholder="admin"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-sm font-medium">API Token</Label>
+                                            <Input
+                                                type="password"
+                                                value={jenkinsCredentials.token}
+                                                onChange={(e) => setJenkinsCredentials(prev => ({ ...prev, token: e.target.value }))}
+                                                placeholder="Your API token"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-end gap-2">
+                                        <Button variant="outline" onClick={() => setShowCredentialsModal(false)}>
+                                            Cancel
+                                        </Button>
+                                        <Button
+                                            onClick={async () => {
+                                                try {
+                                                    await fetch(`${API_BASE}/jenkins/credentials`, {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({
+                                                            username: jenkinsCredentials.username,
+                                                            token: jenkinsCredentials.token
+                                                        })
+                                                    })
+                                                    showNotification('success', 'Credentials saved!')
+                                                    setShowCredentialsModal(false)
+                                                    checkJenkinsStatus()
+                                                } catch (error) {
+                                                    showNotification('error', 'Failed to save credentials')
+                                                }
+                                            }}
+                                            className="bg-purple-600 hover:bg-purple-700"
+                                        >
+                                            Save Credentials
+                                        </Button>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        💡 Get your API token from Jenkins → User → Configure → API Token
+                                    </p>
                                 </CardContent>
                             </Card>
                         )}
