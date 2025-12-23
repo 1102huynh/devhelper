@@ -115,6 +115,23 @@ export default function JacocoRunnerPage() {
     const [username] = useState('webservicetest')
     const [password] = useState('webservicetest')
 
+    // Jenkins states
+    const [jenkinsServers] = useState([
+        { name: 'Local', url: 'localhost:9090' },
+        { name: 'Remote (10.20.3.92)', url: '10.20.3.92:9090' }
+    ])
+    const [selectedJenkinsServer, setSelectedJenkinsServer] = useState('localhost:9090')
+    const [jenkinsOnline, setJenkinsOnline] = useState(false)
+    const [jenkinsJobs, setJenkinsJobs] = useState<any[]>([])
+    const [jenkinsLoading, setJenkinsLoading] = useState(false)
+    const [selectedJob, setSelectedJob] = useState<any>(null)
+    const [jobBuilds, setJobBuilds] = useState<any[]>([])
+    const [consoleOutput, setConsoleOutput] = useState('')
+    const [showConsole, setShowConsole] = useState(false)
+    const [jenkinsViews, setJenkinsViews] = useState<{ name: string; url: string }[]>([])
+    const [selectedView, setSelectedView] = useState('all')
+    const [jobSearchQuery, setJobSearchQuery] = useState('')
+
     // Environment Profiles
     interface EnvironmentProfile {
         name: string
@@ -351,6 +368,165 @@ export default function JacocoRunnerPage() {
         }
     }
 
+    // Jenkins functions
+    const checkJenkinsStatus = async () => {
+        setJenkinsLoading(true)
+        try {
+            const response = await fetch(`${API_BASE}/jenkins/status?serverUrl=${encodeURIComponent(selectedJenkinsServer)}`)
+            if (response.ok) {
+                const data = await response.json()
+                setJenkinsOnline(data.online)
+                if (data.online) {
+                    await fetchJenkinsViews()
+                    await fetchJenkinsJobs()
+                }
+            }
+        } catch (error) {
+            setJenkinsOnline(false)
+        } finally {
+            setJenkinsLoading(false)
+        }
+    }
+
+    const fetchJenkinsViews = async () => {
+        try {
+            const response = await fetch(`${API_BASE}/jenkins/views?serverUrl=${encodeURIComponent(selectedJenkinsServer)}`)
+            if (response.ok) {
+                const data = await response.json()
+                setJenkinsViews(data.views || [])
+            }
+        } catch (error) {
+            console.error('Failed to fetch views:', error)
+        }
+    }
+
+    const fetchJenkinsJobs = async (viewName?: string) => {
+        try {
+            const view = viewName !== undefined ? viewName : selectedView
+            const response = await fetch(`${API_BASE}/jenkins/jobs?serverUrl=${encodeURIComponent(selectedJenkinsServer)}&viewName=${encodeURIComponent(view)}`)
+            if (response.ok) {
+                const data = await response.json()
+                setJenkinsJobs(data.jobs || [])
+            }
+        } catch (error) {
+            console.error('Failed to fetch jobs:', error)
+        }
+    }
+
+    const triggerJenkinsBuild = async (jobName: string) => {
+        setJenkinsLoading(true)
+        try {
+            const response = await fetch(`${API_BASE}/jenkins/build`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    serverUrl: selectedJenkinsServer,
+                    jobName: jobName
+                })
+            })
+            if (response.ok) {
+                const data = await response.json()
+                if (data.success) {
+                    showNotification('success', `Build triggered for ${jobName}`)
+                    // Refresh jobs after a short delay
+                    setTimeout(() => fetchJenkinsJobs(), 2000)
+                } else {
+                    showNotification('error', data.message || 'Failed to trigger build')
+                }
+            }
+        } catch (error) {
+            showNotification('error', 'Failed to trigger build')
+        } finally {
+            setJenkinsLoading(false)
+        }
+    }
+
+    const fetchJobBuilds = async (jobName: string) => {
+        try {
+            const response = await fetch(`${API_BASE}/jenkins/job/${encodeURIComponent(jobName)}/builds?serverUrl=${encodeURIComponent(selectedJenkinsServer)}`)
+            if (response.ok) {
+                const data = await response.json()
+                setJobBuilds(data.builds || [])
+            }
+        } catch (error) {
+            console.error('Failed to fetch builds:', error)
+        }
+    }
+
+    const viewConsoleOutput = async (jobName: string, buildNumber: number) => {
+        setJenkinsLoading(true)
+        try {
+            const response = await fetch(`${API_BASE}/jenkins/job/${encodeURIComponent(jobName)}/${buildNumber}/console?serverUrl=${encodeURIComponent(selectedJenkinsServer)}`)
+            if (response.ok) {
+                const data = await response.json()
+                setConsoleOutput(data.console || 'No output available')
+                setShowConsole(true)
+            }
+        } catch (error) {
+            showNotification('error', 'Failed to fetch console output')
+        } finally {
+            setJenkinsLoading(false)
+        }
+    }
+
+    // Stop a running Jenkins build
+    const stopJenkinsBuild = async (jobName: string, buildNumber?: number) => {
+        setJenkinsLoading(true)
+        try {
+            const response = await fetch(`${API_BASE}/jenkins/stop`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    serverUrl: selectedJenkinsServer,
+                    jobName: jobName,
+                    buildNumber: buildNumber
+                })
+            })
+            if (response.ok) {
+                const data = await response.json()
+                if (data.success) {
+                    showNotification('success', `Stop request sent for ${jobName}`)
+                    setTimeout(() => fetchJenkinsJobs(), 2000)
+                } else {
+                    showNotification('error', data.message || 'Failed to stop build')
+                }
+            }
+        } catch (error) {
+            showNotification('error', 'Failed to stop build')
+        } finally {
+            setJenkinsLoading(false)
+        }
+    }
+
+    // Check if job is currently running
+    const isJobRunning = (color: string) => {
+        return color && (color.includes('anime') || color.includes('_anime'))
+    }
+
+    const getJobStatusColor = (color: string) => {
+        if (!color) return 'bg-gray-500'
+        if (color.includes('blue')) return 'bg-green-500'
+        if (color.includes('red')) return 'bg-red-500'
+        if (color.includes('yellow') || color.includes('anime')) return 'bg-yellow-500 animate-pulse'
+        if (color.includes('grey') || color.includes('disabled')) return 'bg-gray-500'
+        return 'bg-gray-500'
+    }
+
+    const formatDuration = (ms: number) => {
+        if (!ms) return '-'
+        const seconds = Math.floor(ms / 1000)
+        const minutes = Math.floor(seconds / 60)
+        const hours = Math.floor(minutes / 60)
+        if (hours > 0) return `${hours}h ${minutes % 60}m`
+        if (minutes > 0) return `${minutes}m ${seconds % 60}s`
+        return `${seconds}s`
+    }
+
+    const formatTimestamp = (ts: number) => {
+        if (!ts) return '-'
+        return new Date(ts).toLocaleString()
+    }
+
     // Load basePath and tomcatPath from localStorage on mount
     useEffect(() => {
         const savedPath = localStorage.getItem(STORAGE_KEY)
@@ -380,6 +556,9 @@ export default function JacocoRunnerPage() {
         if (activeTab === 'test') {
             checkSeleniumStatus()
             checkChromeDriverInfo()
+        }
+        if (activeTab === 'jenkins') {
+            checkJenkinsStatus()
         }
     }, [activeTab])
 
@@ -3230,66 +3409,284 @@ export default function JacocoRunnerPage() {
 
                     {/* Tab 5: Jenkins */}
                     <TabsContent value="jenkins" className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Jenkins Controller */}
-                            <Card className="border-t-4 border-t-orange-500 shadow-lg">
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2 text-orange-600">
-                                        <FolderKanban className="w-6 h-6" />
-                                        Jenkins Controller
-                                    </CardTitle>
-                                    <CardDescription>Start and manage Jenkins Local Server</CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="p-4 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-100 dark:border-orange-900/50">
-                                        <Label className="mb-2 block font-semibold text-orange-700 dark:text-orange-400">Startup Command</Label>
-                                        <div className="flex gap-2">
-                                            <Input className="font-mono bg-white dark:bg-black" defaultValue="java -jar jenkins.war --httpPort=9090" />
-                                            <Button className="bg-orange-600 hover:bg-orange-700 text-white shadow-md hover:shadow-orange-500/20">
-                                                <Play className="w-4 h-4 mr-2" /> Start
-                                            </Button>
+                        {/* Server Selection Card */}
+                        <Card className="border-2 border-dashed border-orange-300 dark:border-orange-800 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30">
+                            <CardContent className="p-4">
+                                <div className="flex items-center justify-between flex-wrap gap-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`p-2 rounded-lg ${jenkinsOnline ? 'bg-green-500' : 'bg-gray-400'}`}>
+                                            <FolderKanban className="w-5 h-5 text-white" />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-semibold text-orange-700 dark:text-orange-300">Jenkins Server</h3>
+                                            <p className="text-xs text-muted-foreground">Connect to Jenkins instance</p>
                                         </div>
                                     </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <Button variant="outline" className="h-20 flex flex-col items-center justify-center gap-2 hover:border-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition-all group" onClick={() => window.open('http://localhost:9090', '_blank')}>
-                                            <ExternalLink className="w-6 h-6 text-orange-500 group-hover:scale-110 transition-transform" />
-                                            <span>Open Dashboard</span>
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/50 dark:bg-black/20">
+                                            <span className={`w-2 h-2 rounded-full ${jenkinsOnline ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
+                                            <span className="text-sm font-medium">{jenkinsOnline ? 'Online' : 'Offline'}</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <select
+                                            value={selectedJenkinsServer}
+                                            onChange={(e) => {
+                                                setSelectedJenkinsServer(e.target.value)
+                                                setJenkinsJobs([])
+                                                setJenkinsOnline(false)
+                                            }}
+                                            className="h-9 px-3 rounded-md border border-input bg-background text-sm"
+                                        >
+                                            {jenkinsServers.map(server => (
+                                                <option key={server.url} value={server.url}>
+                                                    {server.name} ({server.url})
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <Button
+                                            size="sm"
+                                            onClick={checkJenkinsStatus}
+                                            disabled={jenkinsLoading}
+                                            className="bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white"
+                                        >
+                                            {jenkinsLoading ? (
+                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                            ) : (
+                                                <RefreshCw className="w-4 h-4" />
+                                            )}
                                         </Button>
-                                        <Button variant="outline" className="h-20 flex flex-col items-center justify-center gap-2 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-all group">
-                                            <FileText className="w-6 h-6 text-blue-500 group-hover:scale-110 transition-transform" />
-                                            <span>View Reports</span>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => window.open(`http://${selectedJenkinsServer}`, '_blank')}
+                                        >
+                                            <ExternalLink className="w-4 h-4 mr-1" />
+                                            Open
                                         </Button>
                                     </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                            {/* Jobs List */}
+                            <Card className="lg:col-span-5 border-t-4 border-t-orange-500 shadow-lg">
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="flex items-center justify-between">
+                                        <span className="flex items-center gap-2">
+                                            <FolderKanban className="w-5 h-5 text-orange-500" />
+                                            Jenkins Jobs
+                                        </span>
+                                        <Badge variant="secondary">{jenkinsJobs.filter(j => !jobSearchQuery || j.name.toLowerCase().includes(jobSearchQuery.toLowerCase())).length} jobs</Badge>
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                    {/* Search Input */}
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
+                                        <Input
+                                            placeholder="Search jobs..."
+                                            value={jobSearchQuery}
+                                            onChange={(e) => setJobSearchQuery(e.target.value)}
+                                            className="pl-9 h-9"
+                                        />
+                                    </div>
+
+                                    {/* View Tabs */}
+                                    {jenkinsViews.length > 0 && (
+                                        <div className="flex flex-wrap gap-1">
+                                            <Button
+                                                size="sm"
+                                                variant={selectedView === 'all' ? 'default' : 'outline'}
+                                                className="h-7 text-xs"
+                                                onClick={() => {
+                                                    setSelectedView('all')
+                                                    fetchJenkinsJobs('all')
+                                                }}
+                                            >
+                                                All
+                                            </Button>
+                                            {jenkinsViews.map((view) => (
+                                                <Button
+                                                    key={view.name}
+                                                    size="sm"
+                                                    variant={selectedView === view.name ? 'default' : 'outline'}
+                                                    className="h-7 text-xs"
+                                                    onClick={() => {
+                                                        setSelectedView(view.name)
+                                                        fetchJenkinsJobs(view.name)
+                                                    }}
+                                                >
+                                                    {view.name}
+                                                </Button>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Jobs List */}
+                                    {jenkinsJobs.length === 0 ? (
+                                        <div className="text-center py-8 text-muted-foreground">
+                                            {jenkinsOnline ? (
+                                                <p>No jobs found</p>
+                                            ) : (
+                                                <p>Connect to Jenkins to see jobs</p>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                                            {jenkinsJobs
+                                                .filter(job => !jobSearchQuery || job.name.toLowerCase().includes(jobSearchQuery.toLowerCase()))
+                                                .map((job: any) => (
+                                                    <div
+                                                        key={job.name}
+                                                        className={`p-3 rounded-lg border transition-all cursor-pointer hover:bg-accent/50 ${selectedJob?.name === job.name ? 'border-orange-500 bg-orange-50 dark:bg-orange-950/20' : ''}`}
+                                                        onClick={() => {
+                                                            setSelectedJob(job)
+                                                            fetchJobBuilds(job.name)
+                                                        }}
+                                                    >
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className={`w-3 h-3 rounded-full ${getJobStatusColor(job.color)}`} />
+                                                                <div>
+                                                                    <p className="font-medium text-sm">{job.name}</p>
+                                                                    {job.lastBuild && (
+                                                                        <p className="text-xs text-muted-foreground">
+                                                                            #{job.lastBuild.number} - {isJobRunning(job.color) ? 'Running' : (job.lastBuild.result || 'Unknown')}
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center gap-1">
+                                                                {isJobRunning(job.color) ? (
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="destructive"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation()
+                                                                            stopJenkinsBuild(job.name)
+                                                                        }}
+                                                                        disabled={jenkinsLoading}
+                                                                        className="h-8"
+                                                                    >
+                                                                        <Square className="w-4 h-4" />
+                                                                    </Button>
+                                                                ) : (
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="ghost"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation()
+                                                                            triggerJenkinsBuild(job.name)
+                                                                        }}
+                                                                        disabled={jenkinsLoading}
+                                                                        className="h-8 hover:bg-green-100 hover:text-green-700"
+                                                                    >
+                                                                        <Play className="w-4 h-4" />
+                                                                    </Button>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                        </div>
+                                    )}
                                 </CardContent>
                             </Card>
 
-                            {/* Recent Jobs Mockup */}
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="text-base">Recent Jobs</CardTitle>
+                            {/* Build History */}
+                            <Card className="lg:col-span-7 border-t-4 border-t-blue-500 shadow-lg">
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="flex items-center gap-2">
+                                        <FileText className="w-5 h-5 text-blue-500" />
+                                        {selectedJob ? `Build History - ${selectedJob.name}` : 'Build History'}
+                                    </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="space-y-3">
-                                        {[1, 2, 3].map((i) => (
-                                            <div key={i} className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`w-2 h-2 rounded-full ${i === 1 ? 'bg-green-500' : i === 2 ? 'bg-red-500' : 'bg-blue-500 animate-pulse'}`} />
-                                                    <div>
-                                                        <p className="font-medium text-sm">Pipeline_Build_v{i}.0</p>
-                                                        <p className="text-xs text-muted-foreground">Updated 10 mins ago</p>
+                                    {!selectedJob ? (
+                                        <div className="text-center py-8 text-muted-foreground">
+                                            <p>Select a job to see build history</p>
+                                        </div>
+                                    ) : jobBuilds.length === 0 ? (
+                                        <div className="text-center py-8 text-muted-foreground">
+                                            <p>No builds found</p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                                            {jobBuilds.slice(0, 10).map((build: any) => (
+                                                <div
+                                                    key={build.number}
+                                                    className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent/50 transition-colors"
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`w-3 h-3 rounded-full ${build.building ? 'bg-yellow-500 animate-pulse' :
+                                                            build.result === 'SUCCESS' ? 'bg-green-500' :
+                                                                build.result === 'FAILURE' ? 'bg-red-500' :
+                                                                    'bg-gray-500'
+                                                            }`} />
+                                                        <div>
+                                                            <p className="font-medium text-sm">Build #{build.number}</p>
+                                                            <p className="text-xs text-muted-foreground">
+                                                                {build.building ? 'Running...' : build.result || 'Unknown'}
+                                                                {' • '}
+                                                                {formatDuration(build.duration)}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-xs text-muted-foreground">
+                                                            {formatTimestamp(build.timestamp)}
+                                                        </span>
+                                                        {build.building && (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="destructive"
+                                                                onClick={() => stopJenkinsBuild(selectedJob.name, build.number)}
+                                                                disabled={jenkinsLoading}
+                                                                className="h-7"
+                                                            >
+                                                                <Square className="w-3 h-3" />
+                                                            </Button>
+                                                        )}
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            onClick={() => viewConsoleOutput(selectedJob.name, build.number)}
+                                                            disabled={jenkinsLoading}
+                                                        >
+                                                            <Terminal className="w-4 h-4" />
+                                                        </Button>
                                                     </div>
                                                 </div>
-                                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-                                                    <ChevronRight className="w-4 h-4" />
-                                                </Button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <Button variant="link" className="w-full mt-2 text-sm text-muted-foreground">View All Jobs</Button>
+                                            ))}
+                                        </div>
+                                    )}
                                 </CardContent>
                             </Card>
                         </div>
+
+                        {/* Console Output Modal */}
+                        {showConsole && (
+                            <Card className="border-t-4 border-t-green-500">
+                                <CardHeader className="pb-2">
+                                    <div className="flex items-center justify-between">
+                                        <CardTitle className="flex items-center gap-2 text-sm">
+                                            <Terminal className="w-4 h-4" />
+                                            Console Output
+                                        </CardTitle>
+                                        <Button size="sm" variant="ghost" onClick={() => setShowConsole(false)}>
+                                            <X className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                </CardHeader>
+                                <CardContent>
+                                    <pre className="bg-zinc-900 text-zinc-100 p-4 rounded-lg text-xs font-mono max-h-[400px] overflow-auto">
+                                        {consoleOutput}
+                                    </pre>
+                                </CardContent>
+                            </Card>
+                        )}
                     </TabsContent>
                 </Tabs>
             </motion.div>
