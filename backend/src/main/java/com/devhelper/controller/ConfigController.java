@@ -1,5 +1,6 @@
 package com.devhelper.controller;
 
+import com.devhelper.dto.ConfigResultDTO;
 import com.devhelper.service.ConfigService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +18,7 @@ public class ConfigController {
 
     /**
      * Replace database IP in project properties files only
+     * Returns list of updated files
      */
     @PostMapping("/replace-database")
     public ResponseEntity<?> replaceDatabaseIp(@RequestBody Map<String, String> request) {
@@ -28,13 +30,9 @@ public class ConfigController {
                 return ResponseEntity.badRequest().body(Map.of("error", "Missing projectPath or newDatabaseIp"));
             }
             
-            int filesUpdated = configService.replaceDatabaseOnly(projectPath, newDatabaseIp);
+            ConfigResultDTO result = configService.replaceDatabaseOnlyWithDetails(projectPath, newDatabaseIp);
             
-            return ResponseEntity.ok(Map.of(
-                "success", true,
-                "filesUpdated", filesUpdated,
-                "message", "Database IP replaced successfully"
-            ));
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
@@ -42,7 +40,7 @@ public class ConfigController {
 
     /**
      * Replace XML test suite configurations (hub, sso credentials, orgAlias)
-     * Only for qa-rpmoverall project
+     * Returns list of updated files
      */
     @PostMapping("/replace-testsuite")
     public ResponseEntity<?> replaceTestSuite(@RequestBody Map<String, String> request) {
@@ -57,13 +55,9 @@ public class ConfigController {
                 return ResponseEntity.badRequest().body(Map.of("error", "Missing projectPath"));
             }
             
-            int filesUpdated = configService.replaceTestSuiteConfig(projectPath, hub, ssoUsername, ssoPassword, orgAlias);
+            ConfigResultDTO result = configService.replaceTestSuiteConfigWithDetails(projectPath, hub, ssoUsername, ssoPassword, orgAlias);
             
-            return ResponseEntity.ok(Map.of(
-                "success", true,
-                "filesUpdated", filesUpdated,
-                "message", "Test suite configuration replaced successfully"
-            ));
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

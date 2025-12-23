@@ -115,15 +115,44 @@ export default function JacocoRunnerPage() {
     const [username] = useState('webservicetest')
     const [password] = useState('webservicetest')
 
+    // Environment Profiles
+    interface EnvironmentProfile {
+        name: string
+        databaseIp: string
+        userId: string
+        orgAlias: string
+        hubUrl: string
+        color: string
+    }
+
+    const environmentProfiles: EnvironmentProfile[] = [
+        { name: 'QA07', databaseIp: '192.168.84.55', userId: 'chava', orgAlias: 'qa07', hubUrl: 'http://localhost:', color: 'bg-blue-500' },
+        { name: 'QA08', databaseIp: '192.168.84.56', userId: 'qatester', orgAlias: 'qa08', hubUrl: 'http://localhost:', color: 'bg-green-500' },
+        { name: 'QA09', databaseIp: '192.168.84.57', userId: 'chava', orgAlias: 'qa09', hubUrl: 'http://localhost:', color: 'bg-purple-500' },
+        { name: 'QA10', databaseIp: '192.168.84.58', userId: 'chava', orgAlias: 'qa10', hubUrl: 'http://localhost:', color: 'bg-orange-500' },
+    ]
+
+    const [selectedProfile, setSelectedProfile] = useState<EnvironmentProfile | null>(environmentProfiles[0])
+
     // Database Configuration states
-    const [databaseIps] = useState<string[]>(['192.168.84.55', '192.168.84.56'])
+    const [databaseIps] = useState<string[]>(['192.168.84.55', '192.168.84.56', '192.168.84.57', '192.168.84.58'])
     const [selectedDatabase, setSelectedDatabase] = useState<string>('192.168.84.55')
     const [selectedConfigProjects, setSelectedConfigProjects] = useState<Set<string>>(new Set())
     const [configLoading, setConfigLoading] = useState(false)
-    const [configResults, setConfigResults] = useState<{ projectName: string; filesUpdated: number; success: boolean }[]>([])
+    const [configResults, setConfigResults] = useState<{ projectName: string; filesUpdated: number; success: boolean; files?: string[] }[]>([])
     const [hubUrl, setHubUrl] = useState('http://localhost:')
     const [configOrgAlias, setConfigOrgAlias] = useState('qa07')
     const [configUserId, setConfigUserId] = useState('chava')
+
+    // Apply environment profile
+    const applyEnvironmentProfile = (profile: EnvironmentProfile) => {
+        setSelectedProfile(profile)
+        setSelectedDatabase(profile.databaseIp)
+        setConfigUserId(profile.userId)
+        setConfigOrgAlias(profile.orgAlias)
+        setHubUrl(profile.hubUrl)
+        showNotification('success', `Loaded profile: ${profile.name}`)
+    }
 
     // Load basePath and tomcatPath from localStorage on mount
     useEffect(() => {
@@ -672,7 +701,7 @@ export default function JacocoRunnerPage() {
         setConfigLoading(true)
         setConfigResults([])
 
-        const results: { projectName: string; filesUpdated: number; success: boolean }[] = []
+        const results: { projectName: string; filesUpdated: number; success: boolean; files?: string[] }[] = []
 
         for (const projectPath of selectedConfigProjects) {
             const project = projects.find(p => p.path === projectPath)
@@ -693,7 +722,8 @@ export default function JacocoRunnerPage() {
                     results.push({
                         projectName: project.name,
                         filesUpdated: data.filesUpdated || 0,
-                        success: true
+                        success: true,
+                        files: data.updatedFiles || []
                     })
                 } else {
                     results.push({
@@ -753,7 +783,8 @@ export default function JacocoRunnerPage() {
                 setConfigResults([{
                     projectName: qaProject.name,
                     filesUpdated: data.filesUpdated || 0,
-                    success: true
+                    success: true,
+                    files: data.updatedFiles || []
                 }])
                 showNotification('success', `Updated ${data.filesUpdated} test suite files in ${qaProject.name}`)
             } else {
@@ -796,6 +827,110 @@ export default function JacocoRunnerPage() {
     // Clear all config project selections
     const clearConfigProjectSelections = () => {
         setSelectedConfigProjects(new Set())
+    }
+
+    // Apply all configurations (Database + Test Suite) at once
+    const applyAllConfigs = async () => {
+        if (selectedConfigProjects.size === 0) {
+            showNotification('error', 'Please select at least one project for database config')
+            return
+        }
+
+        setConfigLoading(true)
+        setConfigResults([])
+
+        const results: { projectName: string; filesUpdated: number; success: boolean; files?: string[] }[] = []
+
+        // 1. Apply Database Config to selected projects
+        showNotification('success', 'Applying database configuration...')
+        for (const projectPath of selectedConfigProjects) {
+            const project = projects.find(p => p.path === projectPath)
+            if (!project) continue
+
+            try {
+                const response = await fetch(`${API_BASE}/config/replace-database`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        projectPath: project.path,
+                        newDatabaseIp: selectedDatabase
+                    })
+                })
+
+                if (response.ok) {
+                    const data = await response.json()
+                    results.push({
+                        projectName: `[DB] ${project.name}`,
+                        filesUpdated: data.filesUpdated || 0,
+                        success: true,
+                        files: data.updatedFiles || []
+                    })
+                } else {
+                    results.push({
+                        projectName: `[DB] ${project.name}`,
+                        filesUpdated: 0,
+                        success: false
+                    })
+                }
+            } catch (error) {
+                results.push({
+                    projectName: `[DB] ${project.name}`,
+                    filesUpdated: 0,
+                    success: false
+                })
+            }
+        }
+
+        // 2. Apply Test Suite Config to qa-rpmoverall
+        const qaProject = projects.find(p => p.name.toLowerCase().includes('qa-rpmoverall'))
+        if (qaProject) {
+            showNotification('success', 'Applying test suite configuration...')
+            const ssoUsername = `${username}_${configUserId}`
+            const ssoPassword = `${password}_${configUserId}`
+
+            try {
+                const response = await fetch(`${API_BASE}/config/replace-testsuite`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        projectPath: qaProject.path,
+                        hub: hubUrl,
+                        ssoUsername: ssoUsername,
+                        ssoPassword: ssoPassword,
+                        orgAlias: configOrgAlias
+                    })
+                })
+
+                if (response.ok) {
+                    const data = await response.json()
+                    results.push({
+                        projectName: `[TestSuite] ${qaProject.name}`,
+                        filesUpdated: data.filesUpdated || 0,
+                        success: true,
+                        files: data.updatedFiles || []
+                    })
+                } else {
+                    results.push({
+                        projectName: `[TestSuite] ${qaProject.name}`,
+                        filesUpdated: 0,
+                        success: false
+                    })
+                }
+            } catch (error) {
+                results.push({
+                    projectName: `[TestSuite] ${qaProject.name}`,
+                    filesUpdated: 0,
+                    success: false
+                })
+            }
+        }
+
+        setConfigResults(results)
+        setConfigLoading(false)
+
+        const successCount = results.filter(r => r.success).length
+        const totalFiles = results.reduce((sum, r) => sum + r.filesUpdated, 0)
+        showNotification('success', `Applied all configs: ${totalFiles} files in ${successCount}/${results.length} operations`)
     }
 
     // Load test suites for selected project
@@ -1635,6 +1770,70 @@ export default function JacocoRunnerPage() {
 
                     {/* Tab 2: Configuration */}
                     <TabsContent value="config" className="space-y-4">
+                        {/* Environment Profiles Quick Switch */}
+                        <Card className="border-2 border-dashed border-indigo-300 dark:border-indigo-800 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30">
+                            <CardContent className="p-4">
+                                <div className="flex items-center justify-between flex-wrap gap-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-indigo-500 rounded-lg">
+                                            <Settings className="w-5 h-5 text-white" />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-semibold text-indigo-700 dark:text-indigo-300">Environment Profiles</h3>
+                                            <p className="text-xs text-muted-foreground">Quick switch between QA environments</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2 flex-wrap">
+                                        {environmentProfiles.map((profile) => (
+                                            <Button
+                                                key={profile.name}
+                                                variant={selectedProfile?.name === profile.name ? "default" : "outline"}
+                                                size="sm"
+                                                onClick={() => applyEnvironmentProfile(profile)}
+                                                className={`h-9 px-4 font-semibold transition-all ${selectedProfile?.name === profile.name
+                                                    ? `${profile.color} text-white border-0 shadow-lg scale-105`
+                                                    : 'hover:scale-105'
+                                                    }`}
+                                            >
+                                                {profile.name}
+                                            </Button>
+                                        ))}
+                                    </div>
+                                </div>
+                                {selectedProfile && (
+                                    <div className="mt-3 pt-3 border-t border-indigo-200 dark:border-indigo-800">
+                                        <div className="flex flex-wrap gap-4 text-xs">
+                                            <span className="flex items-center gap-1">
+                                                <span className="text-muted-foreground">Database:</span>
+                                                <code className="px-1.5 py-0.5 bg-white dark:bg-zinc-900 rounded font-mono text-indigo-600 dark:text-indigo-400">{selectedProfile.databaseIp}</code>
+                                            </span>
+                                            <span className="flex items-center gap-1">
+                                                <span className="text-muted-foreground">UserId:</span>
+                                                <code className="px-1.5 py-0.5 bg-white dark:bg-zinc-900 rounded font-mono text-purple-600 dark:text-purple-400">{selectedProfile.userId}</code>
+                                            </span>
+                                            <span className="flex items-center gap-1">
+                                                <span className="text-muted-foreground">OrgAlias:</span>
+                                                <code className="px-1.5 py-0.5 bg-white dark:bg-zinc-900 rounded font-mono text-cyan-600 dark:text-cyan-400">{selectedProfile.orgAlias}</code>
+                                            </span>
+                                            <div className="flex-1" />
+                                            <Button
+                                                onClick={applyAllConfigs}
+                                                disabled={configLoading || selectedConfigProjects.size === 0}
+                                                size="sm"
+                                                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-lg"
+                                            >
+                                                {configLoading ? (
+                                                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Applying...</>
+                                                ) : (
+                                                    <><Rocket className="w-4 h-4 mr-2" />Apply All Configs</>
+                                                )}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                             {/* Left Column: Two Config Cards */}
                             <div className="lg:col-span-5 space-y-4">
@@ -1817,8 +2016,8 @@ export default function JacocoRunnerPage() {
                                             <p className="text-sm mt-2">Select projects and click "Apply" to see results</p>
                                         </div>
                                     ) : (
-                                        <div className="space-y-3">
-                                            <div className="flex items-center justify-between mb-4">
+                                        <div className="space-y-3 max-h-[500px] overflow-y-auto">
+                                            <div className="flex items-center justify-between mb-4 sticky top-0 bg-background py-2">
                                                 <p className="text-sm text-muted-foreground">
                                                     Database IP: <span className="font-mono font-semibold text-purple-600">{selectedDatabase}</span>
                                                 </p>
@@ -1829,22 +2028,40 @@ export default function JacocoRunnerPage() {
                                             {configResults.map((result, index) => (
                                                 <div
                                                     key={index}
-                                                    className={`flex items-center justify-between p-4 rounded-lg border ${result.success
+                                                    className={`rounded-lg border overflow-hidden ${result.success
                                                         ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-900'
                                                         : 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900'
                                                         }`}
                                                 >
-                                                    <div className="flex items-center gap-3">
-                                                        {result.success ? (
-                                                            <CheckCircle2 className="w-5 h-5 text-green-500" />
-                                                        ) : (
-                                                            <XCircle className="w-5 h-5 text-red-500" />
-                                                        )}
-                                                        <span className="font-medium">{result.projectName}</span>
+                                                    <div className="flex items-center justify-between p-3">
+                                                        <div className="flex items-center gap-3">
+                                                            {result.success ? (
+                                                                <CheckCircle2 className="w-5 h-5 text-green-500" />
+                                                            ) : (
+                                                                <XCircle className="w-5 h-5 text-red-500" />
+                                                            )}
+                                                            <span className="font-medium">{result.projectName}</span>
+                                                        </div>
+                                                        <Badge variant={result.success ? 'default' : 'destructive'}>
+                                                            {result.success ? `${result.filesUpdated} files` : 'Failed'}
+                                                        </Badge>
                                                     </div>
-                                                    <Badge variant={result.success ? 'default' : 'destructive'}>
-                                                        {result.success ? `${result.filesUpdated} files updated` : 'Failed'}
-                                                    </Badge>
+                                                    {result.success && result.files && result.files.length > 0 && (
+                                                        <div className="border-t border-green-200 dark:border-green-900 bg-white/50 dark:bg-black/20 p-2">
+                                                            <p className="text-xs text-muted-foreground mb-1 px-1">Updated files:</p>
+                                                            <div className="space-y-0.5 max-h-[120px] overflow-y-auto">
+                                                                {result.files.map((file, fileIndex) => (
+                                                                    <div
+                                                                        key={fileIndex}
+                                                                        className="text-xs font-mono text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded truncate hover:text-clip hover:overflow-visible"
+                                                                        title={file}
+                                                                    >
+                                                                        {file.split(/[/\\]/).slice(-3).join('/')}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             ))}
                                         </div>
