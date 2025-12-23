@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { TestTube2, FolderOpen, GitBranch, RefreshCw, Archive, Download, ArrowUpFromLine, ArrowDownToLine, AlertCircle, CheckCircle2, XCircle, Loader2, FolderGit2, Search, ChevronLeft, ChevronRight, Settings, Rocket, FolderKanban, Hammer, Package, X, Filter, FileText, Upload, Play, Square, Trash2, ExternalLink, RotateCw, Copy, Terminal } from 'lucide-react'
+import { TestTube2, FolderOpen, GitBranch, RefreshCw, Archive, Download, ArrowUpFromLine, ArrowDownToLine, AlertCircle, CheckCircle2, XCircle, Loader2, FolderGit2, Search, ChevronLeft, ChevronRight, Settings, Rocket, FolderKanban, Hammer, Package, X, Filter, FileText, Upload, Play, Square, Trash2, ExternalLink, RotateCw, Copy, Terminal, Activity, Server } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Badge } from '@/components/ui/badge'
 
@@ -154,6 +154,203 @@ export default function JacocoRunnerPage() {
         showNotification('success', `Loaded profile: ${profile.name}`)
     }
 
+    // Selenium Grid state
+    const [seleniumHubRunning, setSeleniumHubRunning] = useState(false)
+    const [seleniumNodeCount, setSeleniumNodeCount] = useState(0)
+    const [seleniumLoading, setSeleniumLoading] = useState(false)
+    const [seleniumHubPath] = useState('D:\\Selenium4\\SeleniumHub.bat')
+    const [seleniumNodePath] = useState('D:\\Selenium4\\SeleniumNodeStart.bat')
+
+    // Check Selenium Grid status
+    const checkSeleniumStatus = async () => {
+        try {
+            const response = await fetch(`${API_BASE}/selenium/status`)
+            if (response.ok) {
+                const data = await response.json()
+                setSeleniumHubRunning(data.hubRunning)
+                setSeleniumNodeCount(data.nodeCount || 0)
+            }
+        } catch (error) {
+            setSeleniumHubRunning(false)
+            setSeleniumNodeCount(0)
+        }
+    }
+
+    // Start Selenium Hub
+    const startSeleniumHub = async () => {
+        setSeleniumLoading(true)
+        try {
+            const response = await fetch(`${API_BASE}/selenium/start-hub`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ hubPath: seleniumHubPath })
+            })
+            if (response.ok) {
+                showNotification('success', 'Selenium Hub starting...')
+                // Wait and check status
+                setTimeout(() => checkSeleniumStatus(), 4000)
+            } else {
+                showNotification('error', 'Failed to start Selenium Hub')
+            }
+        } catch (error) {
+            showNotification('error', 'Failed to start Selenium Hub')
+        } finally {
+            setSeleniumLoading(false)
+        }
+    }
+
+    // Start Selenium Node
+    const startSeleniumNode = async () => {
+        setSeleniumLoading(true)
+        try {
+            const response = await fetch(`${API_BASE}/selenium/start-node`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nodePath: seleniumNodePath })
+            })
+            if (response.ok) {
+                showNotification('success', 'Selenium Node starting...')
+                // Wait and check status
+                setTimeout(() => checkSeleniumStatus(), 4000)
+            } else {
+                showNotification('error', 'Failed to start Selenium Node')
+            }
+        } catch (error) {
+            showNotification('error', 'Failed to start Selenium Node')
+        } finally {
+            setSeleniumLoading(false)
+        }
+    }
+
+    // Stop all Selenium
+    const stopSelenium = async () => {
+        setSeleniumLoading(true)
+        try {
+            const response = await fetch(`${API_BASE}/selenium/stop-all`, {
+                method: 'POST'
+            })
+            if (response.ok) {
+                showNotification('success', 'Selenium Grid stopped')
+                setSeleniumHubRunning(false)
+                setSeleniumNodeCount(0)
+            } else {
+                showNotification('error', 'Failed to stop Selenium Grid')
+            }
+        } catch (error) {
+            showNotification('error', 'Failed to stop Selenium Grid')
+        } finally {
+            setSeleniumLoading(false)
+        }
+    }
+
+    // ChromeDriver state
+    const [chromeDriverInfo, setChromeDriverInfo] = useState<{
+        chromeVersion: string
+        latestDriverVersion: string
+        installedDriverVersion: string
+        updateAvailable: boolean
+    } | null>(null)
+    const [chromeDriverLoading, setChromeDriverLoading] = useState(false)
+
+    // Check ChromeDriver info
+    const checkChromeDriverInfo = async () => {
+        setChromeDriverLoading(true)
+        try {
+            const response = await fetch(`${API_BASE}/selenium/chromedriver-info`)
+            if (response.ok) {
+                const data = await response.json()
+                setChromeDriverInfo(data)
+            }
+        } catch (error) {
+            showNotification('error', 'Failed to check ChromeDriver info')
+        } finally {
+            setChromeDriverLoading(false)
+        }
+    }
+
+    // Download latest ChromeDriver
+    const downloadChromeDriver = async () => {
+        setChromeDriverLoading(true)
+        showNotification('success', 'Downloading ChromeDriver... This may take a moment.')
+        try {
+            const response = await fetch(`${API_BASE}/selenium/download-chromedriver`, {
+                method: 'POST'
+            })
+            if (response.ok) {
+                const data = await response.json()
+                showNotification('success', data.message || 'ChromeDriver downloaded successfully!')
+                // Refresh info
+                await checkChromeDriverInfo()
+            } else {
+                const error = await response.json()
+                showNotification('error', error.error || 'Failed to download ChromeDriver')
+            }
+        } catch (error) {
+            showNotification('error', 'Failed to download ChromeDriver')
+        } finally {
+            setChromeDriverLoading(false)
+        }
+    }
+
+    // Quick Start All - Start Hub + Node in sequence
+    const quickStartSelenium = async () => {
+        setSeleniumLoading(true)
+
+        // Step 1: Start Hub
+        showNotification('success', 'Starting Selenium Hub...')
+        try {
+            const hubResponse = await fetch(`${API_BASE}/selenium/start-hub`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ hubPath: seleniumHubPath })
+            })
+
+            if (!hubResponse.ok) {
+                showNotification('error', 'Failed to start Hub')
+                setSeleniumLoading(false)
+                return
+            }
+
+            // Wait for Hub to be ready
+            await new Promise(resolve => setTimeout(resolve, 4000))
+            await checkSeleniumStatus()
+
+            if (!seleniumHubRunning) {
+                // Check again
+                const statusResponse = await fetch(`${API_BASE}/selenium/status`)
+                if (statusResponse.ok) {
+                    const data = await statusResponse.json()
+                    if (!data.hubRunning) {
+                        showNotification('error', 'Hub failed to start')
+                        setSeleniumLoading(false)
+                        return
+                    }
+                    setSeleniumHubRunning(data.hubRunning)
+                }
+            }
+
+            // Step 2: Start Node
+            showNotification('success', 'Hub started! Starting Node...')
+            const nodeResponse = await fetch(`${API_BASE}/selenium/start-node`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nodePath: seleniumNodePath })
+            })
+
+            if (nodeResponse.ok) {
+                await new Promise(resolve => setTimeout(resolve, 3000))
+                await checkSeleniumStatus()
+                showNotification('success', 'Selenium Grid is ready! Hub + Node running.')
+            } else {
+                showNotification('error', 'Failed to start Node')
+            }
+        } catch (error) {
+            showNotification('error', 'Failed to start Selenium Grid')
+        } finally {
+            setSeleniumLoading(false)
+        }
+    }
+
     // Load basePath and tomcatPath from localStorage on mount
     useEffect(() => {
         const savedPath = localStorage.getItem(STORAGE_KEY)
@@ -177,6 +374,14 @@ export default function JacocoRunnerPage() {
             loadProjects()
         }
     }, [basePath])
+
+    // Auto-check Selenium status when switching to test tab
+    useEffect(() => {
+        if (activeTab === 'test') {
+            checkSeleniumStatus()
+            checkChromeDriverInfo()
+        }
+    }, [activeTab])
 
     // Auto-load Tomcats when tomcatBasePath changes
     useEffect(() => {
@@ -2344,6 +2549,168 @@ export default function JacocoRunnerPage() {
 
                     {/* Tab 4: Run Test */}
                     <TabsContent value="test" className="space-y-6">
+                        {/* Selenium Grid Control */}
+                        <Card className="border-2 border-dashed border-cyan-300 dark:border-cyan-800 bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-cyan-950/30 dark:to-blue-950/30">
+                            <CardContent className="p-4">
+                                <div className="flex items-center justify-between flex-wrap gap-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`p-2 rounded-lg ${seleniumHubRunning ? 'bg-green-500' : 'bg-gray-400'}`}>
+                                            <Activity className="w-5 h-5 text-white" />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-semibold text-cyan-700 dark:text-cyan-300">Selenium Grid Control</h3>
+                                            <p className="text-xs text-muted-foreground">Start Hub and Node for Selenium tests</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        {/* Hub Status */}
+                                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/50 dark:bg-black/20">
+                                            <span className={`w-2 h-2 rounded-full ${seleniumHubRunning ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
+                                            <span className="text-sm font-medium">Hub: {seleniumHubRunning ? 'Running' : 'Stopped'}</span>
+                                        </div>
+                                        {/* Node Count */}
+                                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/50 dark:bg-black/20">
+                                            <Server className="w-4 h-4 text-cyan-600" />
+                                            <span className="text-sm font-medium">Nodes: {seleniumNodeCount}</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            size="sm"
+                                            onClick={startSeleniumHub}
+                                            disabled={seleniumLoading || seleniumHubRunning}
+                                            className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white"
+                                        >
+                                            {seleniumLoading ? (
+                                                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                            ) : (
+                                                <Rocket className="w-4 h-4 mr-1" />
+                                            )}
+                                            Start Hub
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            onClick={startSeleniumNode}
+                                            disabled={seleniumLoading || !seleniumHubRunning}
+                                            className="bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white"
+                                        >
+                                            {seleniumLoading ? (
+                                                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                            ) : (
+                                                <Server className="w-4 h-4 mr-1" />
+                                            )}
+                                            Start Node
+                                        </Button>
+                                        {!seleniumHubRunning && seleniumNodeCount === 0 && (
+                                            <Button
+                                                size="sm"
+                                                onClick={quickStartSelenium}
+                                                disabled={seleniumLoading}
+                                                className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white"
+                                            >
+                                                {seleniumLoading ? (
+                                                    <><Loader2 className="w-4 h-4 mr-1 animate-spin" />Starting...</>
+                                                ) : (
+                                                    <><Rocket className="w-4 h-4 mr-1" />Quick Start All</>
+                                                )}
+                                            </Button>
+                                        )}
+                                        <Button
+                                            size="sm"
+                                            variant="destructive"
+                                            onClick={stopSelenium}
+                                            disabled={seleniumLoading || (!seleniumHubRunning && seleniumNodeCount === 0)}
+                                        >
+                                            <Square className="w-4 h-4 mr-1" />
+                                            Stop All
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={checkSeleniumStatus}
+                                            disabled={seleniumLoading}
+                                        >
+                                            <RefreshCw className={`w-4 h-4 ${seleniumLoading ? 'animate-spin' : ''}`} />
+                                        </Button>
+                                    </div>
+                                </div>
+                                {seleniumHubRunning && (
+                                    <div className="mt-3 pt-3 border-t border-cyan-200 dark:border-cyan-800">
+                                        <div className="flex items-center gap-4 text-xs">
+                                            <span className="flex items-center gap-1">
+                                                <span className="text-muted-foreground">Grid Console:</span>
+                                                <a
+                                                    href="http://localhost:4444/ui"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-cyan-600 hover:underline font-mono"
+                                                >
+                                                    http://localhost:4444/ui
+                                                </a>
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
+                                {/* ChromeDriver Section */}
+                                <div className="mt-3 pt-3 border-t border-cyan-200 dark:border-cyan-800">
+                                    <div className="flex items-center justify-between flex-wrap gap-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-1.5 bg-orange-500 rounded">
+                                                <Download className="w-4 h-4 text-white" />
+                                            </div>
+                                            <div>
+                                                <span className="text-sm font-medium">ChromeDriver</span>
+                                                {chromeDriverInfo && (
+                                                    <div className="flex gap-2 text-xs text-muted-foreground">
+                                                        <span>Installed: <code className="text-orange-600">{chromeDriverInfo.installedDriverVersion}</code></span>
+                                                        <span>Latest: <code className="text-green-600">{chromeDriverInfo.latestDriverVersion}</code></span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={checkChromeDriverInfo}
+                                                disabled={chromeDriverLoading}
+                                            >
+                                                {chromeDriverLoading ? (
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                ) : (
+                                                    <RefreshCw className="w-4 h-4" />
+                                                )}
+                                            </Button>
+                                            {chromeDriverInfo?.updateAvailable && (
+                                                <Button
+                                                    size="sm"
+                                                    onClick={downloadChromeDriver}
+                                                    disabled={chromeDriverLoading}
+                                                    className="bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white"
+                                                >
+                                                    {chromeDriverLoading ? (
+                                                        <><Loader2 className="w-4 h-4 mr-1 animate-spin" />Downloading...</>
+                                                    ) : (
+                                                        <><Download className="w-4 h-4 mr-1" />Update Driver</>
+                                                    )}
+                                                </Button>
+                                            )}
+                                            {!chromeDriverInfo && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={checkChromeDriverInfo}
+                                                    disabled={chromeDriverLoading}
+                                                >
+                                                    Check Version
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[700px]">
                             {/* Left Column: Configuration */}
                             <Card className="lg:col-span-4 flex flex-col border-t-4 border-t-blue-500 shadow-lg overflow-hidden">
