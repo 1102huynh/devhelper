@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { TestTube2, FolderOpen, GitBranch, RefreshCw, Archive, Download, ArrowUpFromLine, ArrowDownToLine, AlertCircle, CheckCircle2, XCircle, Loader2, FolderGit2, Search, ChevronLeft, ChevronRight, Settings, Rocket, FolderKanban, Hammer, Package, X, Filter, FileText, Upload, Play, Square, Trash2, ExternalLink, RotateCw, Copy, Terminal, Activity, Server } from 'lucide-react'
+import { TestTube2, FolderOpen, GitBranch, RefreshCw, Archive, Download, ArrowUpFromLine, ArrowDownToLine, AlertCircle, CheckCircle2, XCircle, Loader2, FolderGit2, Search, ChevronLeft, ChevronRight, Settings, Rocket, FolderKanban, Hammer, Package, X, Filter, FileText, Upload, Play, Square, Trash2, ExternalLink, RotateCw, Copy, Terminal, Activity, Server, Shield } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Badge } from '@/components/ui/badge'
 
@@ -150,6 +150,19 @@ export default function JacocoRunnerPage() {
     const [liveConsoleBuildNum, setLiveConsoleBuildNum] = useState(0)
     const [notificationsEnabled, setNotificationsEnabled] = useState(false)
     const [previousJobStates, setPreviousJobStates] = useState<Record<string, string>>({})
+
+    // VPN states
+    const [vpnConnected, setVpnConnected] = useState(false)
+    const [vpnState, setVpnState] = useState('Unknown')
+    const [vpnLoading, setVpnLoading] = useState(false)
+    const [showVpnConfig, setShowVpnConfig] = useState(false)
+    const [vpnCredentials, setVpnCredentials] = useState({
+        server: '',
+        username: '',
+        password: '',
+        group: '',
+        pushMethod: 'push' // push, phone, sms, passcode
+    })
 
     // Environment Profiles
     interface EnvironmentProfile {
@@ -384,6 +397,64 @@ export default function JacocoRunnerPage() {
             showNotification('error', 'Failed to start Selenium Grid')
         } finally {
             setSeleniumLoading(false)
+        }
+    }
+
+    // VPN functions
+    const checkVpnStatus = async () => {
+        try {
+            const response = await fetch(`${API_BASE}/vpn/status`)
+            if (response.ok) {
+                const data = await response.json()
+                setVpnConnected(data.connected)
+                setVpnState(data.state)
+            }
+        } catch (error) {
+            setVpnState('Error')
+        }
+    }
+
+    const connectVpn = async () => {
+        if (!vpnCredentials.server || !vpnCredentials.username || !vpnCredentials.password) {
+            showNotification('error', 'Please configure VPN credentials first')
+            setShowVpnConfig(true)
+            return
+        }
+
+        setVpnLoading(true)
+        setVpnState('Connecting...')
+        try {
+            const response = await fetch(`${API_BASE}/vpn/connect`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(vpnCredentials)
+            })
+            const data = await response.json()
+            if (data.success) {
+                showNotification('success', 'VPN connection initiated. Check Duo push!')
+                setTimeout(checkVpnStatus, 5000)
+            } else {
+                showNotification('error', data.message || 'VPN connection failed')
+            }
+        } catch (error) {
+            showNotification('error', 'Failed to connect VPN')
+        } finally {
+            setVpnLoading(false)
+            setTimeout(checkVpnStatus, 3000)
+        }
+    }
+
+    const disconnectVpn = async () => {
+        setVpnLoading(true)
+        try {
+            await fetch(`${API_BASE}/vpn/disconnect`, { method: 'POST' })
+            showNotification('success', 'VPN disconnected')
+            setVpnConnected(false)
+            setVpnState('Disconnected')
+        } catch (error) {
+            showNotification('error', 'Failed to disconnect')
+        } finally {
+            setVpnLoading(false)
         }
     }
 
@@ -680,6 +751,15 @@ export default function JacocoRunnerPage() {
         } else {
             setTomcatBasePath('D:\\opt')
         }
+
+        // Load VPN credentials from localStorage
+        const savedVpn = localStorage.getItem('vpn_credentials')
+        if (savedVpn) {
+            setVpnCredentials(JSON.parse(savedVpn))
+        }
+
+        // Check VPN status on mount
+        checkVpnStatus()
     }, [])
 
     // Auto-load projects when basePath changes (from localStorage or input)
@@ -1844,6 +1924,146 @@ export default function JacocoRunnerPage() {
 
                     {/* Tab 1: Projects */}
                     <TabsContent value="projects" className="space-y-4">
+                        {/* VPN Quick Connect */}
+                        <Card className={`border-2 ${vpnConnected ? 'border-green-500 bg-green-50 dark:bg-green-950/20' : 'border-dashed border-cyan-300 dark:border-cyan-800 bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-cyan-950/30 dark:to-blue-950/30'}`}>
+                            <CardContent className="p-3 md:p-4">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`p-2 rounded-lg ${vpnConnected ? 'bg-green-500' : 'bg-cyan-500'}`}>
+                                            <Shield className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-semibold text-sm md:text-base text-cyan-700 dark:text-cyan-300">Cisco AnyConnect VPN</h3>
+                                            <p className="text-xs text-muted-foreground">{vpnCredentials.server || 'Not configured'}</p>
+                                        </div>
+                                        <div className={`flex items-center gap-2 px-2 py-1 rounded-lg ${vpnConnected ? 'bg-green-100 dark:bg-green-900/30' : 'bg-white/50 dark:bg-black/20'}`}>
+                                            <span className={`w-2 h-2 rounded-full ${vpnConnected ? 'bg-green-500' : vpnState === 'Connecting...' ? 'bg-yellow-500 animate-pulse' : 'bg-gray-400'}`} />
+                                            <span className="text-xs md:text-sm font-medium">{vpnState}</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        {vpnConnected ? (
+                                            <Button
+                                                size="sm"
+                                                variant="destructive"
+                                                onClick={disconnectVpn}
+                                                disabled={vpnLoading}
+                                            >
+                                                {vpnLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : '🔓 Disconnect'}
+                                            </Button>
+                                        ) : (
+                                            <Button
+                                                size="sm"
+                                                onClick={connectVpn}
+                                                disabled={vpnLoading}
+                                                className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white"
+                                            >
+                                                {vpnLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : '🔐 Connect VPN'}
+                                            </Button>
+                                        )}
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => setShowVpnConfig(true)}
+                                        >
+                                            <Settings className="w-4 h-4" />
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={checkVpnStatus}
+                                        >
+                                            <RefreshCw className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* VPN Config Modal */}
+                        {showVpnConfig && (
+                            <Card className="border-t-4 border-t-cyan-500">
+                                <CardHeader className="pb-2">
+                                    <div className="flex items-center justify-between">
+                                        <CardTitle className="flex items-center gap-2 text-sm">
+                                            🔐 VPN Configuration
+                                        </CardTitle>
+                                        <Button size="sm" variant="ghost" onClick={() => setShowVpnConfig(false)}>
+                                            <X className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label className="text-sm font-medium">VPN Server</Label>
+                                            <Input
+                                                value={vpnCredentials.server}
+                                                onChange={(e) => setVpnCredentials(prev => ({ ...prev, server: e.target.value }))}
+                                                placeholder="vpn.company.com"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-sm font-medium">Group (optional)</Label>
+                                            <Input
+                                                value={vpnCredentials.group}
+                                                onChange={(e) => setVpnCredentials(prev => ({ ...prev, group: e.target.value }))}
+                                                placeholder="VPN Group"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-sm font-medium">Username</Label>
+                                            <Input
+                                                value={vpnCredentials.username}
+                                                onChange={(e) => setVpnCredentials(prev => ({ ...prev, username: e.target.value }))}
+                                                placeholder="your.username"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-sm font-medium">Password</Label>
+                                            <Input
+                                                type="password"
+                                                value={vpnCredentials.password}
+                                                onChange={(e) => setVpnCredentials(prev => ({ ...prev, password: e.target.value }))}
+                                                placeholder="••••••••"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-sm font-medium">Duo Push Method</Label>
+                                        <select
+                                            value={vpnCredentials.pushMethod}
+                                            onChange={(e) => setVpnCredentials(prev => ({ ...prev, pushMethod: e.target.value }))}
+                                            className="h-9 w-full px-3 rounded-md border border-input bg-background text-sm"
+                                        >
+                                            <option value="push">📱 Duo Push (Mobile App)</option>
+                                            <option value="phone">📞 Phone Call</option>
+                                            <option value="sms">💬 SMS Passcode</option>
+                                            <option value="1">1 - First option</option>
+                                        </select>
+                                    </div>
+                                    <div className="flex justify-end gap-2">
+                                        <Button variant="outline" onClick={() => setShowVpnConfig(false)}>
+                                            Cancel
+                                        </Button>
+                                        <Button
+                                            onClick={() => {
+                                                localStorage.setItem('vpn_credentials', JSON.stringify(vpnCredentials))
+                                                showNotification('success', 'VPN credentials saved!')
+                                                setShowVpnConfig(false)
+                                            }}
+                                            className="bg-cyan-600 hover:bg-cyan-700"
+                                        >
+                                            Save Credentials
+                                        </Button>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        ⚠️ Credentials are saved locally. After clicking Connect, approve the Duo push on your phone.
+                                    </p>
+                                </CardContent>
+                            </Card>
+                        )}
+
                         {/* Path Configuration */}
                         <Card>
                             <CardHeader className="pb-3">
