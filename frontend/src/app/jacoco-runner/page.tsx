@@ -164,6 +164,21 @@ export default function JacocoRunnerPage() {
         pushMethod: 'push' // push, phone, sms, passcode
     })
 
+    // Pipeline editor states
+    const [showPipelineEditor, setShowPipelineEditor] = useState(false)
+    const [editingJobName, setEditingJobName] = useState('')
+    const [pipelineScript, setPipelineScript] = useState('')
+    const [isPipelineJob, setIsPipelineJob] = useState(false)
+    const [savingPipeline, setSavingPipeline] = useState(false)
+    const [configXml, setConfigXml] = useState('')
+    const [editMode, setEditMode] = useState<'pipeline' | 'xml'>('pipeline')
+
+    // Create new job states
+    const [showCreateJobModal, setShowCreateJobModal] = useState(false)
+    const [newJobName, setNewJobName] = useState('')
+    const [newJobType, setNewJobType] = useState<'pipeline' | 'freestyle'>('pipeline')
+    const [creatingJob, setCreatingJob] = useState(false)
+
     // Environment Profiles
     interface EnvironmentProfile {
         name: string
@@ -528,6 +543,122 @@ export default function JacocoRunnerPage() {
             showNotification('error', 'Failed to trigger build')
         } finally {
             setJenkinsLoading(false)
+        }
+    }
+
+    // Pipeline Editor functions
+    const openPipelineEditor = async (jobName: string) => {
+        setEditingJobName(jobName)
+        setJenkinsLoading(true)
+        setEditMode('pipeline')
+        try {
+            const response = await fetch(`${API_BASE}/jenkins/job/${encodeURIComponent(jobName)}/config?serverUrl=${encodeURIComponent(selectedJenkinsServer)}`)
+            if (response.ok) {
+                const data = await response.json()
+                setPipelineScript(data.pipelineScript || '')
+                setConfigXml(data.configXml || '')
+                setIsPipelineJob(data.isPipeline)
+                setShowPipelineEditor(true)
+                if (!data.isPipeline) {
+                    setEditMode('xml')
+                }
+            } else {
+                showNotification('error', 'Failed to load job config')
+            }
+        } catch (error) {
+            showNotification('error', 'Failed to load job config')
+        } finally {
+            setJenkinsLoading(false)
+        }
+    }
+
+    const saveJobConfig = async () => {
+        setSavingPipeline(true)
+        try {
+            const body = editMode === 'pipeline'
+                ? { pipelineScript: pipelineScript }
+                : { configXml: configXml }
+
+            const response = await fetch(`${API_BASE}/jenkins/job/${encodeURIComponent(editingJobName)}/config?serverUrl=${encodeURIComponent(selectedJenkinsServer)}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            })
+            if (response.ok) {
+                const data = await response.json()
+                if (data.success) {
+                    showNotification('success', 'Job config saved!')
+                    setShowPipelineEditor(false)
+                } else {
+                    showNotification('error', data.message || 'Failed to save')
+                }
+            }
+        } catch (error) {
+            showNotification('error', 'Failed to save job config')
+        } finally {
+            setSavingPipeline(false)
+        }
+    }
+
+    const deleteJenkinsJob = async (jobName: string) => {
+        if (!confirm(`⚠️ Are you sure you want to DELETE "${jobName}"?\n\nThis action cannot be undone!`)) {
+            return
+        }
+
+        setJenkinsLoading(true)
+        try {
+            const response = await fetch(`${API_BASE}/jenkins/job/${encodeURIComponent(jobName)}?serverUrl=${encodeURIComponent(selectedJenkinsServer)}`, {
+                method: 'DELETE'
+            })
+            if (response.ok) {
+                const data = await response.json()
+                if (data.success) {
+                    showNotification('success', `Job "${jobName}" deleted!`)
+                    fetchJenkinsJobs()
+                    setSelectedJob(null)
+                } else {
+                    showNotification('error', data.message || 'Failed to delete job')
+                }
+            }
+        } catch (error) {
+            showNotification('error', 'Failed to delete job')
+        } finally {
+            setJenkinsLoading(false)
+        }
+    }
+
+    const createNewJob = async () => {
+        if (!newJobName.trim()) {
+            showNotification('error', 'Job name is required')
+            return
+        }
+
+        setCreatingJob(true)
+        try {
+            const response = await fetch(`${API_BASE}/jenkins/job/create`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    serverUrl: selectedJenkinsServer,
+                    jobName: newJobName.trim(),
+                    jobType: newJobType
+                })
+            })
+            if (response.ok) {
+                const data = await response.json()
+                if (data.success) {
+                    showNotification('success', `Job "${newJobName}" created!`)
+                    setShowCreateJobModal(false)
+                    setNewJobName('')
+                    fetchJenkinsJobs()
+                } else {
+                    showNotification('error', data.message || 'Failed to create job')
+                }
+            }
+        } catch (error) {
+            showNotification('error', 'Failed to create job')
+        } finally {
+            setCreatingJob(false)
         }
     }
 
@@ -3902,6 +4033,13 @@ export default function JacocoRunnerPage() {
                             <div className="flex items-center gap-2 flex-wrap">
                                 <Button
                                     size="sm"
+                                    onClick={() => setShowCreateJobModal(true)}
+                                    className="bg-green-600 hover:bg-green-700 text-xs md:text-sm"
+                                >
+                                    ➕ New Job
+                                </Button>
+                                <Button
+                                    size="sm"
                                     variant={batchMode ? 'default' : 'outline'}
                                     onClick={() => {
                                         setBatchMode(!batchMode)
@@ -3912,7 +4050,7 @@ export default function JacocoRunnerPage() {
                                     {batchMode ? '✕ Exit' : '🔄 Batch'}
                                 </Button>
                                 {batchMode && selectedBatchJobs.size > 0 && (
-                                    <Button size="sm" onClick={runBatchBuild} className="bg-green-600 hover:bg-green-700 text-xs md:text-sm">
+                                    <Button size="sm" onClick={runBatchBuild} className="bg-blue-600 hover:bg-blue-700 text-xs md:text-sm">
                                         ▶️ Run {selectedBatchJobs.size}
                                     </Button>
                                 )}
@@ -4058,6 +4196,20 @@ export default function JacocoRunnerPage() {
                                                                 >
                                                                     {favoriteJobs.includes(job.name) ? '⭐' : '☆'}
                                                                 </Button>
+                                                                {/* Edit button */}
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="ghost"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation()
+                                                                        openPipelineEditor(job.name)
+                                                                    }}
+                                                                    disabled={jenkinsLoading}
+                                                                    className="h-8 w-8 p-0 hover:bg-blue-100 hover:text-blue-700"
+                                                                    title="Edit Pipeline"
+                                                                >
+                                                                    ✏️
+                                                                </Button>
                                                                 {/* Run/Stop button */}
                                                                 {isJobRunning(job.color) ? (
                                                                     <Button
@@ -4086,6 +4238,20 @@ export default function JacocoRunnerPage() {
                                                                         <Play className="w-4 h-4" />
                                                                     </Button>
                                                                 )}
+                                                                {/* Delete button */}
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="ghost"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation()
+                                                                        deleteJenkinsJob(job.name)
+                                                                    }}
+                                                                    disabled={jenkinsLoading}
+                                                                    className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-700"
+                                                                    title="Delete Job"
+                                                                >
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </Button>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -4292,6 +4458,171 @@ export default function JacocoRunnerPage() {
                                 </CardContent>
                             </Card>
                         )}
+
+                        {/* Pipeline Script Editor */}
+                        {showPipelineEditor && (
+                            <Card className="border-t-4 border-t-indigo-500">
+                                <CardHeader className="pb-2">
+                                    <div className="flex items-center justify-between">
+                                        <CardTitle className="flex items-center gap-2 text-sm">
+                                            ✏️ Job Config Editor
+                                            <Badge variant="secondary">{editingJobName}</Badge>
+                                            {isPipelineJob && (
+                                                <Badge variant="outline" className="text-green-600 border-green-500">Pipeline Job</Badge>
+                                            )}
+                                        </CardTitle>
+                                        <Button size="sm" variant="ghost" onClick={() => setShowPipelineEditor(false)}>
+                                            <X className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                    {/* Mode Toggle */}
+                                    {isPipelineJob && (
+                                        <div className="flex gap-2 mt-2">
+                                            <Button
+                                                size="sm"
+                                                variant={editMode === 'pipeline' ? 'default' : 'outline'}
+                                                onClick={() => setEditMode('pipeline')}
+                                            >
+                                                📝 Pipeline Script
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant={editMode === 'xml' ? 'default' : 'outline'}
+                                                onClick={() => setEditMode('xml')}
+                                            >
+                                                📄 Full XML Config
+                                            </Button>
+                                        </div>
+                                    )}
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    {editMode === 'pipeline' && isPipelineJob ? (
+                                        <div className="space-y-2">
+                                            <Label className="text-sm font-medium">Groovy Pipeline Script</Label>
+                                            <textarea
+                                                value={pipelineScript}
+                                                onChange={(e) => setPipelineScript(e.target.value)}
+                                                className="w-full h-80 p-3 font-mono text-sm bg-zinc-900 text-zinc-100 rounded-lg border border-zinc-700 resize-y"
+                                                placeholder="pipeline {
+    agent any
+    stages {
+        stage('Build') {
+            steps {
+                echo 'Building...'
+            }
+        }
+    }
+}"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            <Label className="text-sm font-medium">Job Configuration (config.xml)</Label>
+                                            <textarea
+                                                value={configXml}
+                                                onChange={(e) => setConfigXml(e.target.value)}
+                                                className="w-full h-80 p-3 font-mono text-xs bg-zinc-900 text-zinc-100 rounded-lg border border-zinc-700 resize-y"
+                                                placeholder="<?xml version='1.0'?>..."
+                                            />
+                                            <p className="text-xs text-amber-600">
+                                                ⚠️ Editing raw XML. Be careful with syntax!
+                                            </p>
+                                        </div>
+                                    )}
+                                    <div className="flex justify-between items-center">
+                                        <div className="flex items-center gap-2">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => window.open(`http://${selectedJenkinsServer}/job/${encodeURIComponent(editingJobName)}/configure`, '_blank')}
+                                            >
+                                                <ExternalLink className="w-4 h-4 mr-1" />
+                                                Open in Jenkins
+                                            </Button>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Button variant="outline" onClick={() => setShowPipelineEditor(false)}>
+                                                Cancel
+                                            </Button>
+                                            <Button
+                                                onClick={saveJobConfig}
+                                                disabled={savingPipeline}
+                                                className="bg-indigo-600 hover:bg-indigo-700"
+                                            >
+                                                {savingPipeline ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                                                Save Config
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {/* Create New Job Modal */}
+                        {showCreateJobModal && (
+                            <Card className="border-t-4 border-t-green-500">
+                                <CardHeader className="pb-2">
+                                    <div className="flex items-center justify-between">
+                                        <CardTitle className="flex items-center gap-2 text-sm">
+                                            ➕ Create New Job
+                                        </CardTitle>
+                                        <Button size="sm" variant="ghost" onClick={() => setShowCreateJobModal(false)}>
+                                            <X className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label className="text-sm font-medium">Job Name</Label>
+                                        <Input
+                                            value={newJobName}
+                                            onChange={(e) => setNewJobName(e.target.value)}
+                                            placeholder="my-new-pipeline-job"
+                                            onKeyDown={(e) => e.key === 'Enter' && createNewJob()}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-sm font-medium">Job Type</Label>
+                                        <div className="flex gap-3">
+                                            <Button
+                                                type="button"
+                                                variant={newJobType === 'pipeline' ? 'default' : 'outline'}
+                                                onClick={() => setNewJobType('pipeline')}
+                                                className={newJobType === 'pipeline' ? 'bg-blue-600' : ''}
+                                            >
+                                                📋 Pipeline
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant={newJobType === 'freestyle' ? 'default' : 'outline'}
+                                                onClick={() => setNewJobType('freestyle')}
+                                                className={newJobType === 'freestyle' ? 'bg-orange-600' : ''}
+                                            >
+                                                🔧 Freestyle
+                                            </Button>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground">
+                                            {newJobType === 'pipeline'
+                                                ? '📋 Pipeline: Use Groovy script for CI/CD pipeline definition'
+                                                : '🔧 Freestyle: Traditional job with shell commands'}
+                                        </p>
+                                    </div>
+                                    <div className="flex justify-end gap-2">
+                                        <Button variant="outline" onClick={() => setShowCreateJobModal(false)}>
+                                            Cancel
+                                        </Button>
+                                        <Button
+                                            onClick={createNewJob}
+                                            disabled={creatingJob || !newJobName.trim()}
+                                            className="bg-green-600 hover:bg-green-700"
+                                        >
+                                            {creatingJob ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                                            Create Job
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
                     </TabsContent>
                 </Tabs>
             </motion.div>
@@ -4366,6 +4697,6 @@ export default function JacocoRunnerPage() {
                     </motion.div>
                 )}
             </AnimatePresence>
-        </div>
+        </div >
     )
 }

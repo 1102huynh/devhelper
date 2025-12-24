@@ -251,6 +251,295 @@ public class JenkinsController {
     }
 
     /**
+     * Delete a job
+     */
+    @DeleteMapping("/job/{jobName}")
+    public ResponseEntity<?> deleteJob(@RequestParam String serverUrl, @PathVariable String jobName) {
+        try {
+            String url = normalizeUrl(serverUrl) + "/job/" + encodeJobName(jobName) + "/doDelete";
+            HttpURLConnection conn = createPostConnection(url, serverUrl);
+            
+            int responseCode = conn.getResponseCode();
+            conn.disconnect();
+            
+            return ResponseEntity.ok(Map.of(
+                "success", responseCode == 200 || responseCode == 302,
+                "message", responseCode == 200 || responseCode == 302 ? 
+                    "Job " + jobName + " deleted successfully" : 
+                    "Failed to delete job: " + responseCode
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Create a new job
+     */
+    @PostMapping("/job/create")
+    public ResponseEntity<?> createJob(@RequestBody Map<String, String> request) {
+        try {
+            String serverUrl = request.get("serverUrl");
+            String jobName = request.get("jobName");
+            String jobType = request.getOrDefault("jobType", "pipeline"); // pipeline, freestyle
+            String configXml = request.get("configXml");
+            
+            if (jobName == null || jobName.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Job name is required"));
+            }
+            
+            // Use default template if no config provided
+            if (configXml == null || configXml.isEmpty()) {
+                configXml = getDefaultJobConfig(jobType);
+            }
+            
+            String url = normalizeUrl(serverUrl) + "/createItem?name=" + encodeJobName(jobName);
+            HttpURLConnection conn = createPostConnection(url, serverUrl);
+            conn.setRequestProperty("Content-Type", "application/xml");
+            
+            // Write config XML
+            conn.getOutputStream().write(configXml.getBytes("UTF-8"));
+            
+            int responseCode = conn.getResponseCode();
+            
+            String message = "";
+            if (responseCode != 200) {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getErrorStream()));
+                StringBuilder errorResponse = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    errorResponse.append(line);
+                }
+                reader.close();
+                message = errorResponse.toString();
+            }
+            
+            conn.disconnect();
+            
+            return ResponseEntity.ok(Map.of(
+                "success", responseCode == 200,
+                "message", responseCode == 200 ? 
+                    "Job '" + jobName + "' created successfully" : 
+                    "Failed to create job: " + message
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+    
+    /**
+     * Get default job config template
+     */
+    private String getDefaultJobConfig(String jobType) {
+        if ("freestyle".equals(jobType)) {
+            return "<?xml version='1.1' encoding='UTF-8'?>\n" +
+                   "<project>\n" +
+                   "  <description></description>\n" +
+                   "  <keepDependencies>false</keepDependencies>\n" +
+                   "  <properties/>\n" +
+                   "  <scm class=\"hudson.scm.NullSCM\"/>\n" +
+                   "  <canRoam>true</canRoam>\n" +
+                   "  <disabled>false</disabled>\n" +
+                   "  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>\n" +
+                   "  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>\n" +
+                   "  <triggers/>\n" +
+                   "  <concurrentBuild>false</concurrentBuild>\n" +
+                   "  <builders>\n" +
+                   "    <hudson.tasks.Shell>\n" +
+                   "      <command>echo \"Hello from new job!\"</command>\n" +
+                   "    </hudson.tasks.Shell>\n" +
+                   "  </builders>\n" +
+                   "  <publishers/>\n" +
+                   "  <buildWrappers/>\n" +
+                   "</project>";
+        } else {
+            // Pipeline job (default)
+            return "<?xml version='1.1' encoding='UTF-8'?>\n" +
+                   "<flow-definition plugin=\"workflow-job\">\n" +
+                   "  <description></description>\n" +
+                   "  <keepDependencies>false</keepDependencies>\n" +
+                   "  <properties/>\n" +
+                   "  <definition class=\"org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition\" plugin=\"workflow-cps\">\n" +
+                   "    <script>pipeline {\n" +
+                   "    agent any\n" +
+                   "    stages {\n" +
+                   "        stage('Hello') {\n" +
+                   "            steps {\n" +
+                   "                echo 'Hello World!'\n" +
+                   "            }\n" +
+                   "        }\n" +
+                   "    }\n" +
+                   "}</script>\n" +
+                   "    <sandbox>true</sandbox>\n" +
+                   "  </definition>\n" +
+                   "  <triggers/>\n" +
+                   "  <disabled>false</disabled>\n" +
+                   "</flow-definition>";
+        }
+    }
+
+    /**
+     * Get job parameters definition
+     */
+    @GetMapping("/job/{jobName}/parameters")
+    public ResponseEntity<?> getJobParameters(@RequestParam String serverUrl, @PathVariable String jobName) {
+        try {
+            String url = normalizeUrl(serverUrl) + "/job/" + encodeJobName(jobName) + 
+                "/api/json?tree=property[parameterDefinitions[name,type,defaultParameterValue[value],description,choices]]";
+            HttpURLConnection conn = createConnection(url);
+            
+            int responseCode = conn.getResponseCode();
+            if (responseCode == 200) {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    response.append(line);
+                }
+                reader.close();
+                
+                return ResponseEntity.ok(Map.of(
+                    "parameters", response.toString()
+                ));
+            } else {
+                return ResponseEntity.badRequest().body(Map.of("error", "Failed to get parameters: " + responseCode));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Get job configuration (config.xml)
+     */
+    @GetMapping("/job/{jobName}/config")
+    public ResponseEntity<?> getJobConfig(@RequestParam String serverUrl, @PathVariable String jobName) {
+        try {
+            String url = normalizeUrl(serverUrl) + "/job/" + encodeJobName(jobName) + "/config.xml";
+            HttpURLConnection conn = createConnection(url);
+            
+            int responseCode = conn.getResponseCode();
+            if (responseCode == 200) {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    response.append(line).append("\n");
+                }
+                reader.close();
+                
+                String configXml = response.toString();
+                
+                // Extract pipeline script if exists
+                String pipelineScript = extractPipelineScript(configXml);
+                
+                return ResponseEntity.ok(Map.of(
+                    "configXml", configXml,
+                    "pipelineScript", pipelineScript != null ? pipelineScript : "",
+                    "isPipeline", pipelineScript != null
+                ));
+            } else {
+                return ResponseEntity.badRequest().body(Map.of("error", "Failed to get config: " + responseCode));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Update job configuration
+     */
+    @PostMapping("/job/{jobName}/config")
+    public ResponseEntity<?> updateJobConfig(@RequestParam String serverUrl, 
+                                             @PathVariable String jobName,
+                                             @RequestBody Map<String, String> request) {
+        try {
+            String configXml = request.get("configXml");
+            String pipelineScript = request.get("pipelineScript");
+            
+            // If only pipeline script is provided, update just the script in existing config
+            if (pipelineScript != null && (configXml == null || configXml.isEmpty())) {
+                // Get current config
+                String getUrl = normalizeUrl(serverUrl) + "/job/" + encodeJobName(jobName) + "/config.xml";
+                HttpURLConnection getConn = createConnection(getUrl);
+                if (getConn.getResponseCode() == 200) {
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(getConn.getInputStream()));
+                    StringBuilder response = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        response.append(line).append("\n");
+                    }
+                    reader.close();
+                    configXml = updatePipelineScript(response.toString(), pipelineScript);
+                }
+                getConn.disconnect();
+            }
+            
+            if (configXml == null || configXml.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "No config provided"));
+            }
+            
+            String url = normalizeUrl(serverUrl) + "/job/" + encodeJobName(jobName) + "/config.xml";
+            HttpURLConnection conn = createPostConnection(url, serverUrl);
+            conn.setRequestProperty("Content-Type", "application/xml");
+            
+            // Write config XML
+            conn.getOutputStream().write(configXml.getBytes("UTF-8"));
+            
+            int responseCode = conn.getResponseCode();
+            conn.disconnect();
+            
+            return ResponseEntity.ok(Map.of(
+                "success", responseCode == 200,
+                "message", responseCode == 200 ? "Config updated successfully" : "Failed to update: " + responseCode
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Extract pipeline script from config.xml
+     */
+    private String extractPipelineScript(String configXml) {
+        // Look for <script> tag inside <definition> for Pipeline jobs
+        int scriptStart = configXml.indexOf("<script>");
+        int scriptEnd = configXml.indexOf("</script>");
+        
+        if (scriptStart != -1 && scriptEnd != -1 && scriptEnd > scriptStart) {
+            String script = configXml.substring(scriptStart + 8, scriptEnd);
+            // Decode XML entities
+            script = script.replace("&lt;", "<")
+                          .replace("&gt;", ">")
+                          .replace("&amp;", "&")
+                          .replace("&quot;", "\"")
+                          .replace("&apos;", "'");
+            return script.trim();
+        }
+        return null;
+    }
+
+    /**
+     * Update pipeline script in config.xml
+     */
+    private String updatePipelineScript(String configXml, String newScript) {
+        // Encode for XML
+        String encodedScript = newScript.replace("&", "&amp;")
+                                        .replace("<", "&lt;")
+                                        .replace(">", "&gt;")
+                                        .replace("\"", "&quot;")
+                                        .replace("'", "&apos;");
+        
+        int scriptStart = configXml.indexOf("<script>");
+        int scriptEnd = configXml.indexOf("</script>");
+        
+        if (scriptStart != -1 && scriptEnd != -1 && scriptEnd > scriptStart) {
+            return configXml.substring(0, scriptStart + 8) + encodedScript + configXml.substring(scriptEnd);
+        }
+        return configXml;
+    }
+
+    /**
      * Get build info for a job
      */
     @GetMapping("/job/{jobName}/builds")
