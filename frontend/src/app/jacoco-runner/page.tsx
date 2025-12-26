@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { TestTube2, FolderOpen, GitBranch, RefreshCw, Archive, Download, ArrowUpFromLine, ArrowDownToLine, AlertCircle, CheckCircle2, XCircle, Loader2, FolderGit2, Search, ChevronLeft, ChevronRight, Settings, Rocket, FolderKanban, Hammer, Package, X, Filter, FileText, Upload, Play, Square, Trash2, ExternalLink, RotateCw, Copy, Terminal, Activity, Server, Shield } from 'lucide-react'
+import { TestTube2, FolderOpen, GitBranch, RefreshCw, Archive, Download, ArrowUpFromLine, ArrowDownToLine, AlertCircle, CheckCircle2, XCircle, Loader2, FolderGit2, Search, ChevronLeft, ChevronRight, Settings, Rocket, FolderKanban, Hammer, Package, X, Filter, FileText, Upload, Play, Square, Trash2, ExternalLink, RotateCw, Copy, Terminal, Activity, Server, Shield, History, Lightbulb, Clock, Eye, Moon, Sun, Star, Keyboard, ListOrdered } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Badge } from '@/components/ui/badge'
 
@@ -128,6 +128,27 @@ export default function JacocoRunnerPage() {
     const [testSuites, setTestSuites] = useState<TestSuite[]>([])
     const [selectedSuites, setSelectedSuites] = useState<Set<string>>(new Set())
     const [loadingSuites, setLoadingSuites] = useState(false)
+
+    // Test tab improvements
+    const [testHistory, setTestHistory] = useState<{
+        id: string
+        projectName: string
+        suites: string[]
+        status: 'running' | 'success' | 'failed' | 'cancelled'
+        startTime: string
+        endTime?: string
+        duration?: number
+        passedCount?: number
+        failedCount?: number
+        skippedCount?: number
+    }[]>([])
+    const [testProgress, setTestProgress] = useState<{ step: string; progress: number } | null>(null)
+    const [currentTestStats, setCurrentTestStats] = useState<{
+        passed: number
+        failed: number
+        skipped: number
+        total: number
+    }>({ passed: 0, failed: 0, skipped: 0, total: 0 })
     const [activeTestTab, setActiveTestTab] = useState<string>('all')
     const [orgAlias, setOrgAlias] = useState('qa07')
     const [userId, setUserId] = useState('chava')
@@ -198,6 +219,25 @@ export default function JacocoRunnerPage() {
     const [newJobType, setNewJobType] = useState<'pipeline' | 'freestyle'>('pipeline')
     const [creatingJob, setCreatingJob] = useState(false)
 
+    // Enhancement 1: Dark Mode
+    const [darkMode, setDarkMode] = useState(false)
+
+    // Enhancement 7: Favorites/Pinning
+    const [favoriteProjects, setFavoriteProjects] = useState<Set<string>>(new Set())
+
+    // Enhancement 8: Build Queue (Jenkins)
+    const [buildQueue, setBuildQueue] = useState<{
+        id: number
+        jobName: string
+        why: string
+        stuck: boolean
+        buildableStartMilliseconds: number
+    }[]>([])
+
+    // Enhancement 10: Tab Badges - running counts
+    const [runningTestCount, setRunningTestCount] = useState(0)
+    const [runningBuildCount, setRunningBuildCount] = useState(0)
+
     // Environment Profiles
     interface EnvironmentProfile {
         name: string
@@ -227,6 +267,30 @@ export default function JacocoRunnerPage() {
     const [configOrgAlias, setConfigOrgAlias] = useState('qa07')
     const [configUserId, setConfigUserId] = useState('chava')
 
+    // Config Preview and History
+    const [showConfigPreview, setShowConfigPreview] = useState(false)
+    const [configPreviewData, setConfigPreviewData] = useState<{
+        type: 'database' | 'testsuite' | 'all'
+        databaseIp?: string
+        projects?: string[]
+        orgAlias?: string
+        userId?: string
+        hubUrl?: string
+        estimatedFiles?: number
+    } | null>(null)
+    const [configHistory, setConfigHistory] = useState<{
+        id: string
+        type: 'database' | 'testsuite' | 'all'
+        timestamp: string
+        profileName?: string
+        databaseIp?: string
+        orgAlias?: string
+        userId?: string
+        projectsCount: number
+        filesUpdated: number
+        status: 'success' | 'partial' | 'failed'
+    }[]>([])
+
     // Apply environment profile
     const applyEnvironmentProfile = (profile: EnvironmentProfile) => {
         setSelectedProfile(profile)
@@ -236,6 +300,100 @@ export default function JacocoRunnerPage() {
         setHubUrl(profile.hubUrl)
         showNotification('success', `Loaded profile: ${profile.name}`)
     }
+
+    // Enhancement 1: Dark Mode Toggle
+    const toggleDarkMode = () => {
+        setDarkMode(!darkMode)
+        if (!darkMode) {
+            document.documentElement.classList.add('dark')
+        } else {
+            document.documentElement.classList.remove('dark')
+        }
+    }
+
+    // Enhancement 2: Export History to JSON
+    const exportHistory = (type: 'test' | 'config' | 'deploy') => {
+        let data: any[]
+        let filename: string
+        if (type === 'test') {
+            data = testHistory
+            filename = `test-history-${new Date().toISOString().split('T')[0]}.json`
+        } else if (type === 'config') {
+            data = configHistory
+            filename = `config-history-${new Date().toISOString().split('T')[0]}.json`
+        } else {
+            data = deploymentHistory
+            filename = `deploy-history-${new Date().toISOString().split('T')[0]}.json`
+        }
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = filename
+        a.click()
+        URL.revokeObjectURL(url)
+        showNotification('success', `Exported ${type} history`)
+    }
+
+    // Enhancement 3: Keyboard Shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Ctrl+Enter to Run Test
+            if (e.ctrlKey && e.key === 'Enter' && activeTab === 'test' && selectedTestProject && !testRunning) {
+                e.preventDefault()
+                runTest()
+            }
+            // Ctrl+D for dark mode toggle
+            if (e.ctrlKey && e.key === 'd') {
+                e.preventDefault()
+                toggleDarkMode()
+            }
+            // Ctrl+1-5 for tab switching
+            if (e.ctrlKey && e.key >= '1' && e.key <= '5') {
+                e.preventDefault()
+                const tabs = ['projects', 'config', 'deploy', 'test', 'jenkins']
+                setActiveTab(tabs[parseInt(e.key) - 1])
+            }
+        }
+        window.addEventListener('keydown', handleKeyDown)
+        return () => window.removeEventListener('keydown', handleKeyDown)
+    }, [activeTab, selectedTestProject, testRunning])
+
+    // Enhancement 7: Toggle Favorite Project
+    const toggleFavoriteProject = (projectPath: string) => {
+        const newFavorites = new Set(favoriteProjects)
+        if (newFavorites.has(projectPath)) {
+            newFavorites.delete(projectPath)
+            showNotification('success', 'Removed from favorites')
+        } else {
+            newFavorites.add(projectPath)
+            showNotification('success', 'Added to favorites')
+        }
+        setFavoriteProjects(newFavorites)
+    }
+
+    // Enhancement 8: Fetch Build Queue (Jenkins)
+    const fetchBuildQueue = async () => {
+        try {
+            const response = await fetch(`${API_BASE}/jenkins/queue?serverUrl=${encodeURIComponent(selectedJenkinsServer)}`)
+            if (response.ok) {
+                const data = await response.json()
+                setBuildQueue(data.items || [])
+            }
+        } catch (error) {
+            console.error('Failed to fetch build queue')
+        }
+    }
+
+    // Enhancement 10: Update Running Counts
+    useEffect(() => {
+        setRunningTestCount(testRunning ? 1 : 0)
+    }, [testRunning])
+
+    useEffect(() => {
+        const running = jenkinsJobs.filter(j => j.color?.includes('anime')).length
+        setRunningBuildCount(running)
+    }, [jenkinsJobs])
 
     // Selenium Grid state
     const [seleniumHubRunning, setSeleniumHubRunning] = useState(false)
@@ -1918,7 +2076,54 @@ export default function JacocoRunnerPage() {
 
         const successCount = results.filter(r => r.success).length
         const totalFiles = results.reduce((sum, r) => sum + r.filesUpdated, 0)
+
+        // Add to config history
+        const historyEntry = {
+            id: Date.now().toString(),
+            type: 'all' as const,
+            timestamp: new Date().toLocaleString(),
+            profileName: selectedProfile?.name,
+            databaseIp: selectedDatabase,
+            orgAlias: configOrgAlias,
+            userId: configUserId,
+            projectsCount: selectedConfigProjects.size,
+            filesUpdated: totalFiles,
+            status: successCount === results.length ? 'success' as const : successCount > 0 ? 'partial' as const : 'failed' as const
+        }
+        setConfigHistory(prev => [historyEntry, ...prev].slice(0, 20))
+
         showNotification('success', `Applied all configs: ${totalFiles} files in ${successCount}/${results.length} operations`)
+    }
+
+    // Show config preview before applying
+    const showPreviewBeforeApply = (type: 'database' | 'testsuite' | 'all') => {
+        const projectNames = Array.from(selectedConfigProjects).map(path => {
+            const proj = projects.find(p => p.path === path)
+            return proj?.name || path
+        })
+
+        setConfigPreviewData({
+            type,
+            databaseIp: selectedDatabase,
+            projects: projectNames,
+            orgAlias: configOrgAlias,
+            userId: configUserId,
+            hubUrl: hubUrl,
+            estimatedFiles: projectNames.length * 3 // Approximate estimate
+        })
+        setShowConfigPreview(true)
+    }
+
+    // Confirm and apply config from preview
+    const confirmApplyConfig = async () => {
+        setShowConfigPreview(false)
+        if (configPreviewData?.type === 'all') {
+            await applyAllConfigs()
+        } else if (configPreviewData?.type === 'database') {
+            await applyDatabaseConfig()
+        } else if (configPreviewData?.type === 'testsuite') {
+            await applyTestSuiteConfig()
+        }
     }
 
     // Load test suites for selected project
@@ -1991,7 +2196,25 @@ export default function JacocoRunnerPage() {
             return
         }
 
+        const testStartTime = new Date()
+        const testId = Date.now().toString()
+        const selectedSuitesArray = Array.from(selectedSuites)
+
+        // Add to history as running
+        const historyEntry = {
+            id: testId,
+            projectName: selectedTestProject.name,
+            suites: selectedSuitesArray.map(s => {
+                const suite = testSuites.find(ts => ts.className === s)
+                return suite?.name || s
+            }),
+            status: 'running' as const,
+            startTime: testStartTime.toLocaleString()
+        }
+        setTestHistory(prev => [historyEntry, ...prev].slice(0, 20))
+
         setTestRunning(true)
+        setTestProgress({ step: 'Initializing test execution...', progress: 10 })
 
         // Clear log on backend before starting
         try {
@@ -2003,12 +2226,13 @@ export default function JacocoRunnerPage() {
         }
 
         setTestLog('Starting test execution...\n')
+        setTestProgress({ step: 'Preparing test environment...', progress: 20 })
 
         try {
-            const selectedSuitesArray = Array.from(selectedSuites)
-
             if (selectedSuitesArray.length === 0) {
                 // No suites selected, use custom command
+                setTestProgress({ step: 'Running custom command...', progress: 50 })
+
                 const res = await fetch(`${API_BASE}/test/run`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -2021,12 +2245,22 @@ export default function JacocoRunnerPage() {
 
                 if (!res.ok) throw new Error('Failed to trigger test')
 
+                // Update history as success (CMD opened)
+                setTestHistory(prev => prev.map(entry =>
+                    entry.id === testId
+                        ? { ...entry, status: 'success' as const, endTime: new Date().toLocaleString(), duration: Math.floor((Date.now() - testStartTime.getTime()) / 1000) }
+                        : entry
+                ))
+
                 // Don't need to poll, CMD window will show everything
                 setTestRunning(false)
+                setTestProgress(null)
                 showNotification('success', 'Test started in CMD window')
             } else {
                 // Run suites sequentially in ONE CMD window
                 const commands: string[] = []
+
+                setTestProgress({ step: `Building ${selectedSuitesArray.length} test commands...`, progress: 30 })
 
                 for (let i = 0; i < selectedSuitesArray.length; i++) {
                     const suiteName = selectedSuitesArray[i]
@@ -2052,11 +2286,13 @@ export default function JacocoRunnerPage() {
                     commands.push(command)
                     setTestLog(prev => prev + `Suite ${i + 1}: ${suiteName}\n`)
                     setTestLog(prev => prev + `Command: ${command}\n\n`)
+                    setTestProgress({ step: `Preparing suite ${i + 1}/${selectedSuitesArray.length}...`, progress: 30 + (i / selectedSuitesArray.length) * 30 })
                 }
 
                 // Chain all commands with && (run sequentially in one CMD)
                 const chainedCommand = commands.join(' && ')
 
+                setTestProgress({ step: 'Opening CMD window...', progress: 70 })
                 setTestLog(prev => prev + `Opening 1 CMD window to run ${selectedSuitesArray.length} test suites sequentially...\n\n`)
 
                 const res = await fetch(`${API_BASE}/test/run`, {
@@ -2070,8 +2306,23 @@ export default function JacocoRunnerPage() {
                 })
 
                 if (!res.ok) {
+                    // Update history as failed
+                    setTestHistory(prev => prev.map(entry =>
+                        entry.id === testId
+                            ? { ...entry, status: 'failed' as const, endTime: new Date().toLocaleString(), duration: Math.floor((Date.now() - testStartTime.getTime()) / 1000) }
+                            : entry
+                    ))
                     showNotification('error', 'Failed to start test execution')
                 } else {
+                    setTestProgress({ step: 'Tests running in CMD window...', progress: 100 })
+
+                    // Update history as success (CMD opened)
+                    setTestHistory(prev => prev.map(entry =>
+                        entry.id === testId
+                            ? { ...entry, status: 'success' as const, endTime: new Date().toLocaleString(), duration: Math.floor((Date.now() - testStartTime.getTime()) / 1000) }
+                            : entry
+                    ))
+
                     setTestLog(prev => prev + `✅ CMD window opened\n`)
                     setTestLog(prev => prev + `Running ${selectedSuitesArray.length} test suites sequentially\n`)
                     setTestLog(prev => prev + `Check CMD window for real-time progress\n`)
@@ -2079,11 +2330,19 @@ export default function JacocoRunnerPage() {
                 }
 
                 setTestRunning(false)
+                setTestProgress(null)
             }
 
         } catch (e) {
+            // Update history as failed
+            setTestHistory(prev => prev.map(entry =>
+                entry.id === testId
+                    ? { ...entry, status: 'failed' as const, endTime: new Date().toLocaleString(), duration: Math.floor((Date.now() - testStartTime.getTime()) / 1000) }
+                    : entry
+            ))
             showNotification('error', 'Failed to start test')
             setTestRunning(false)
+            setTestProgress(null)
         }
     }
 
@@ -2218,14 +2477,42 @@ export default function JacocoRunnerPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
             >
-                {/* Header */}
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg">
-                        <TestTube2 className="w-6 h-6 text-white" />
+                {/* Header with Dark Mode Toggle */}
+                <div className="flex items-center justify-between gap-3 mb-6">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg">
+                            <TestTube2 className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                            <h1 className="text-3xl font-bold">Jacoco Runner</h1>
+                            <p className="text-muted-foreground">Manage projects, configure builds and deploy applications</p>
+                        </div>
                     </div>
-                    <div>
-                        <h1 className="text-3xl font-bold">Jacoco Runner</h1>
-                        <p className="text-muted-foreground">Manage projects, configure builds and deploy applications</p>
+                    <div className="flex items-center gap-2">
+                        {/* Keyboard Shortcuts Hint */}
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            className="hidden md:flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                            title="Keyboard Shortcuts: Ctrl+1-5 (Tabs), Ctrl+Enter (Run Test), Ctrl+D (Dark Mode)"
+                        >
+                            <Keyboard className="w-4 h-4" />
+                            <span className="hidden lg:inline">Ctrl+1-5</span>
+                        </Button>
+                        {/* Dark Mode Toggle */}
+                        <Button
+                            size="icon"
+                            variant="outline"
+                            onClick={toggleDarkMode}
+                            className="w-9 h-9"
+                            title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                        >
+                            {darkMode ? (
+                                <Sun className="w-4 h-4 text-yellow-500" />
+                            ) : (
+                                <Moon className="w-4 h-4" />
+                            )}
+                        </Button>
                     </div>
                 </div>
 
@@ -2274,15 +2561,217 @@ export default function JacocoRunnerPage() {
                         <TabsTrigger value="test" className="flex items-center gap-2 text-sm">
                             <TestTube2 className="w-4 h-4" />
                             <span className="hidden sm:inline">Run Test</span>
+                            {runningTestCount > 0 && (
+                                <Badge className="ml-1 text-xs bg-blue-500 text-white animate-pulse">
+                                    {runningTestCount}
+                                </Badge>
+                            )}
                         </TabsTrigger>
                         <TabsTrigger value="jenkins" className="flex items-center gap-2 text-sm">
                             <FolderKanban className="w-4 h-4" />
                             <span className="hidden sm:inline">Jenkins</span>
+                            {runningBuildCount > 0 && (
+                                <Badge className="ml-1 text-xs bg-orange-500 text-white animate-pulse">
+                                    {runningBuildCount}
+                                </Badge>
+                            )}
                         </TabsTrigger>
                     </TabsList>
 
                     {/* Tab 1: Projects */}
                     <TabsContent value="projects" className="space-y-4">
+                        {/* Dashboard Overview Stats */}
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.1 }}
+                                className="bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl p-4 text-white shadow-lg"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-white/20 rounded-lg">
+                                        <FolderGit2 className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <p className="text-2xl font-bold">{projects.filter(p => !p.isFolder).length}</p>
+                                        <p className="text-xs opacity-80">Total Projects</p>
+                                    </div>
+                                </div>
+                            </motion.div>
+
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.15 }}
+                                className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl p-4 text-white shadow-lg"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-white/20 rounded-lg">
+                                        <GitBranch className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <p className="text-2xl font-bold">{gitRepoCount}</p>
+                                        <p className="text-xs opacity-80">Git Repos</p>
+                                    </div>
+                                </div>
+                            </motion.div>
+
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.2 }}
+                                className="bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl p-4 text-white shadow-lg"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-white/20 rounded-lg">
+                                        <Hammer className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <p className="text-2xl font-bold">{mavenProjectCount}</p>
+                                        <p className="text-xs opacity-80">Maven</p>
+                                    </div>
+                                </div>
+                            </motion.div>
+
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.25 }}
+                                className="bg-gradient-to-br from-teal-500 to-cyan-600 rounded-xl p-4 text-white shadow-lg"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-white/20 rounded-lg">
+                                        <Package className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <p className="text-2xl font-bold">{nodeProjectCount}</p>
+                                        <p className="text-xs opacity-80">Node.js</p>
+                                    </div>
+                                </div>
+                            </motion.div>
+
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.3 }}
+                                className="bg-gradient-to-br from-yellow-500 to-orange-600 rounded-xl p-4 text-white shadow-lg"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-white/20 rounded-lg">
+                                        <AlertCircle className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <p className="text-2xl font-bold">{projects.filter(p => p.hasUncommittedChanges).length}</p>
+                                        <p className="text-xs opacity-80">Uncommitted</p>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </div>
+
+                        {/* Quick Actions Card */}
+                        {projects.length > 0 && gitRepoCount > 0 && (
+                            <Card className="border-2 border-dashed border-purple-300 dark:border-purple-800 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30">
+                                <CardContent className="p-4">
+                                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-purple-500 rounded-lg">
+                                                <Rocket className="w-5 h-5 text-white" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-semibold text-purple-700 dark:text-purple-300">Quick Actions</h3>
+                                                <p className="text-xs text-muted-foreground">Batch operations for all Git repositories</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            <Button
+                                                size="sm"
+                                                onClick={batchPullAll}
+                                                disabled={batchPulling || gitRepoCount === 0}
+                                                className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white"
+                                            >
+                                                {batchPulling ? (
+                                                    <>
+                                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                        {batchProgress.current}/{batchProgress.total}
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <ArrowDownToLine className="w-4 h-4 mr-2" />
+                                                        Pull All ({gitRepoCount})
+                                                    </>
+                                                )}
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={async () => {
+                                                    const gitProjects = projects.filter(p => p.isGitRepo && !p.isFolder)
+                                                    if (gitProjects.length === 0) return
+
+                                                    showNotification('success', `Fetching ${gitProjects.length} repositories...`)
+                                                    for (const project of gitProjects) {
+                                                        try {
+                                                            await fetch(`${API_BASE}/projects/git/fetch`, {
+                                                                method: 'POST',
+                                                                headers: { 'Content-Type': 'application/json' },
+                                                                body: JSON.stringify({ projectPath: project.path })
+                                                            })
+                                                        } catch (e) {
+                                                            console.error(`Failed to fetch ${project.name}`, e)
+                                                        }
+                                                    }
+                                                    showNotification('success', 'Fetch completed for all repositories')
+                                                }}
+                                                className="border-blue-500 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                                            >
+                                                <RefreshCw className="w-4 h-4 mr-2" />
+                                                Fetch All
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={async () => {
+                                                    const mavenProjects = projects.filter(p => p.isMavenProject && !p.isFolder)
+                                                    if (mavenProjects.length === 0) {
+                                                        showNotification('error', 'No Maven projects found')
+                                                        return
+                                                    }
+
+                                                    showNotification('success', `Building ${mavenProjects.length} Maven projects...`)
+                                                    for (const project of mavenProjects) {
+                                                        try {
+                                                            await fetch(`${API_BASE}/projects/build`, {
+                                                                method: 'POST',
+                                                                headers: { 'Content-Type': 'application/json' },
+                                                                body: JSON.stringify({ projectPath: project.path })
+                                                            })
+                                                        } catch (e) {
+                                                            console.error(`Failed to build ${project.name}`, e)
+                                                        }
+                                                    }
+                                                    showNotification('success', 'Build started for all Maven projects')
+                                                    await loadProjects()
+                                                }}
+                                                className="border-orange-500 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/30"
+                                            >
+                                                <Hammer className="w-4 h-4 mr-2" />
+                                                Build All Maven
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => loadProjects()}
+                                                disabled={isLoading}
+                                            >
+                                                <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                                                Refresh
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+
                         {/* VPN Quick Connect */}
                         <Card className={`border-2 ${vpnConnected ? 'border-green-500 bg-green-50 dark:bg-green-950/20' : 'border-dashed border-cyan-300 dark:border-cyan-800 bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-cyan-950/30 dark:to-blue-950/30'}`}>
                             <CardContent className="p-3 md:p-4">
@@ -2466,32 +2955,6 @@ export default function JacocoRunnerPage() {
                                         )}
                                     </Button>
                                 </div>
-
-                                {/* Quick Stats */}
-                                {projects.length > 0 && (
-                                    <div className="flex gap-4 mt-4 pt-4 border-t flex-wrap">
-                                        <div className="flex items-center gap-2 text-sm">
-                                            <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                                            <span className="text-muted-foreground">Git Repos:</span>
-                                            <span className="font-semibold">{gitRepoCount}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-sm">
-                                            <div className="w-3 h-3 rounded-full bg-orange-500"></div>
-                                            <span className="text-muted-foreground">Maven:</span>
-                                            <span className="font-semibold">{mavenProjectCount}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-sm">
-                                            <div className="w-3 h-3 rounded-full bg-teal-500"></div>
-                                            <span className="text-muted-foreground">Node.js:</span>
-                                            <span className="font-semibold">{nodeProjectCount}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-sm">
-                                            <div className="w-3 h-3 rounded-full bg-gray-400"></div>
-                                            <span className="text-muted-foreground">Others:</span>
-                                            <span className="font-semibold">{projects.length - gitRepoCount}</span>
-                                        </div>
-                                    </div>
-                                )}
                             </CardContent>
                         </Card>
 
@@ -2524,26 +2987,6 @@ export default function JacocoRunnerPage() {
                                         </select>
                                         <Filter className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                                     </div>
-
-                                    {/* Batch Pull All Button */}
-                                    <Button
-                                        variant="outline"
-                                        onClick={batchPullAll}
-                                        disabled={batchPulling || gitRepoCount === 0}
-                                        className="whitespace-nowrap"
-                                    >
-                                        {batchPulling ? (
-                                            <>
-                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                                {batchProgress.current}/{batchProgress.total}
-                                            </>
-                                        ) : (
-                                            <>
-                                                <ArrowDownToLine className="w-4 h-4 mr-2" />
-                                                Pull All
-                                            </>
-                                        )}
-                                    </Button>
                                 </div>
 
                                 {/* Results info and items per page */}
@@ -2612,6 +3055,21 @@ export default function JacocoRunnerPage() {
                                                             <FolderGit2 className={`w-5 h-5 flex-shrink-0 ${project.isGitRepo ? 'text-green-500' : 'text-gray-400'}`} />
                                                         )}
                                                         <CardTitle className="text-lg truncate" title={project.name}>{project.name}</CardTitle>
+                                                        {/* Favorite Button */}
+                                                        {!project.isFolder && (
+                                                            <Button
+                                                                size="icon"
+                                                                variant="ghost"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation()
+                                                                    toggleFavoriteProject(project.path)
+                                                                }}
+                                                                className="w-6 h-6 p-0 hover:bg-yellow-100"
+                                                                title={favoriteProjects.has(project.path) ? 'Remove from favorites' : 'Add to favorites'}
+                                                            >
+                                                                <Star className={`w-4 h-4 ${favoriteProjects.has(project.path) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
+                                                            </Button>
+                                                        )}
                                                     </div>
                                                     {project.isFolder ? (
                                                         <Badge variant="outline" className="text-blue-500 border-blue-500/50 flex-shrink-0">
@@ -2898,6 +3356,94 @@ export default function JacocoRunnerPage() {
 
                     {/* Tab 2: Configuration */}
                     <TabsContent value="config" className="space-y-4">
+                        {/* Dashboard Overview Stats */}
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.1 }}
+                                className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl p-4 text-white shadow-lg"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-white/20 rounded-lg">
+                                        <Settings className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <p className="text-2xl font-bold">{environmentProfiles.length}</p>
+                                        <p className="text-xs opacity-80">Profiles</p>
+                                    </div>
+                                </div>
+                            </motion.div>
+
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.15 }}
+                                className="bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl p-4 text-white shadow-lg"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-white/20 rounded-lg">
+                                        <FolderGit2 className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <p className="text-2xl font-bold">{selectedConfigProjects.size}</p>
+                                        <p className="text-xs opacity-80">Selected</p>
+                                    </div>
+                                </div>
+                            </motion.div>
+
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.2 }}
+                                className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl p-4 text-white shadow-lg"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-white/20 rounded-lg">
+                                        <CheckCircle2 className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <p className="text-2xl font-bold">{configHistory.filter(h => h.status === 'success').length}</p>
+                                        <p className="text-xs opacity-80">Success</p>
+                                    </div>
+                                </div>
+                            </motion.div>
+
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.25 }}
+                                className="bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl p-4 text-white shadow-lg"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-white/20 rounded-lg">
+                                        <FileText className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <p className="text-2xl font-bold">{configResults.reduce((sum, r) => sum + r.filesUpdated, 0)}</p>
+                                        <p className="text-xs opacity-80">Files Updated</p>
+                                    </div>
+                                </div>
+                            </motion.div>
+
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.3 }}
+                                className="bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl p-4 text-white shadow-lg"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-white/20 rounded-lg">
+                                        <History className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <p className="text-2xl font-bold">{configHistory.length}</p>
+                                        <p className="text-xs opacity-80">Total Configs</p>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </div>
+
                         {/* Environment Profiles Quick Switch */}
                         <Card className="border-2 border-dashed border-indigo-300 dark:border-indigo-800 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30">
                             <CardContent className="p-4">
@@ -2945,7 +3491,7 @@ export default function JacocoRunnerPage() {
                                             </span>
                                             <div className="flex-1" />
                                             <Button
-                                                onClick={applyAllConfigs}
+                                                onClick={() => showPreviewBeforeApply('all')}
                                                 disabled={configLoading || selectedConfigProjects.size === 0}
                                                 size="sm"
                                                 className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-lg"
@@ -2953,7 +3499,7 @@ export default function JacocoRunnerPage() {
                                                 {configLoading ? (
                                                     <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Applying...</>
                                                 ) : (
-                                                    <><Rocket className="w-4 h-4 mr-2" />Apply All Configs</>
+                                                    <><Eye className="w-4 h-4 mr-2" />Preview & Apply</>
                                                 )}
                                             </Button>
                                         </div>
@@ -3213,6 +3759,209 @@ export default function JacocoRunnerPage() {
                                 <p>• Always review changes before building and deploying your application</p>
                             </CardContent>
                         </Card>
+
+                        {/* Config History Panel */}
+                        <Card className="border-t-4 border-t-indigo-500 shadow-lg">
+                            <CardHeader className="bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-950/20 dark:to-background border-b pb-3">
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="flex items-center gap-2 text-lg text-indigo-600 dark:text-indigo-400">
+                                        <History className="w-5 h-5" />
+                                        Configuration History
+                                        {configHistory.length > 0 && (
+                                            <Badge variant="secondary" className="ml-2">
+                                                {configHistory.length}
+                                            </Badge>
+                                        )}
+                                    </CardTitle>
+                                    <div className="flex items-center gap-2">
+                                        {configHistory.length > 0 && (
+                                            <>
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => exportHistory('config')}
+                                                    className="text-muted-foreground hover:text-blue-500"
+                                                >
+                                                    <Download className="w-4 h-4 mr-1" />
+                                                    Export
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    onClick={() => setConfigHistory([])}
+                                                    className="text-muted-foreground hover:text-red-500"
+                                                >
+                                                    <Trash2 className="w-4 h-4 mr-1" />
+                                                    Clear
+                                                </Button>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="p-4">
+                                {configHistory.length === 0 ? (
+                                    <div className="text-center py-8 text-muted-foreground">
+                                        <History className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                                        <p className="text-sm">No configuration history yet</p>
+                                        <p className="text-xs">Applied configurations will appear here</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                                        <AnimatePresence>
+                                            {configHistory.map((entry, index) => (
+                                                <motion.div
+                                                    key={entry.id}
+                                                    initial={{ opacity: 0, x: -20 }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                    transition={{ delay: index * 0.05 }}
+                                                    className={`flex items-center justify-between p-3 rounded-lg border transition-all hover:shadow-md ${entry.status === 'success'
+                                                        ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800'
+                                                        : entry.status === 'partial'
+                                                            ? 'bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800'
+                                                            : 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800'
+                                                        }`}
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${entry.status === 'success'
+                                                            ? 'bg-green-500 text-white'
+                                                            : entry.status === 'partial'
+                                                                ? 'bg-yellow-500 text-white'
+                                                                : 'bg-red-500 text-white'
+                                                            }`}>
+                                                            {entry.status === 'success' && <CheckCircle2 className="w-5 h-5" />}
+                                                            {entry.status === 'partial' && <AlertCircle className="w-5 h-5" />}
+                                                            {entry.status === 'failed' && <XCircle className="w-5 h-5" />}
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-medium text-sm flex items-center gap-2">
+                                                                {entry.profileName && (
+                                                                    <Badge variant="outline" className="text-xs font-normal">
+                                                                        {entry.profileName}
+                                                                    </Badge>
+                                                                )}
+                                                                {entry.type === 'all' ? 'Full Config' : entry.type === 'database' ? 'Database' : 'Test Suite'}
+                                                            </p>
+                                                            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mt-1">
+                                                                {entry.databaseIp && (
+                                                                    <span className="flex items-center gap-1">
+                                                                        <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                                                                        DB: {entry.databaseIp}
+                                                                    </span>
+                                                                )}
+                                                                {entry.orgAlias && (
+                                                                    <span className="flex items-center gap-1">
+                                                                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-500"></span>
+                                                                        Org: {entry.orgAlias}
+                                                                    </span>
+                                                                )}
+                                                                <span className="flex items-center gap-1">
+                                                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                                                                    {entry.projectsCount} projects
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <Badge variant="outline" className={`mb-1 ${entry.status === 'success'
+                                                            ? 'text-green-600 border-green-500'
+                                                            : entry.status === 'partial'
+                                                                ? 'text-yellow-600 border-yellow-500'
+                                                                : 'text-red-600 border-red-500'
+                                                            }`}>
+                                                            {entry.filesUpdated} files
+                                                        </Badge>
+                                                        <p className="text-xs text-muted-foreground">{entry.timestamp}</p>
+                                                    </div>
+                                                </motion.div>
+                                            ))}
+                                        </AnimatePresence>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* Config Preview Modal */}
+                        <AnimatePresence>
+                            {showConfigPreview && configPreviewData && (
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+                                    onClick={() => setShowConfigPreview(false)}
+                                >
+                                    <motion.div
+                                        initial={{ scale: 0.9, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
+                                        exit={{ scale: 0.9, opacity: 0 }}
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="bg-white dark:bg-zinc-900 rounded-xl shadow-2xl max-w-lg w-full overflow-hidden"
+                                    >
+                                        <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-4">
+                                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                                <Eye className="w-5 h-5" />
+                                                Configuration Preview
+                                            </h3>
+                                            <p className="text-sm text-white/80">Review changes before applying</p>
+                                        </div>
+                                        <div className="p-6 space-y-4">
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="bg-purple-50 dark:bg-purple-950/30 rounded-lg p-3">
+                                                    <p className="text-xs text-muted-foreground mb-1">Database IP</p>
+                                                    <p className="font-mono font-semibold text-purple-600 dark:text-purple-400">{configPreviewData.databaseIp}</p>
+                                                </div>
+                                                <div className="bg-cyan-50 dark:bg-cyan-950/30 rounded-lg p-3">
+                                                    <p className="text-xs text-muted-foreground mb-1">Org Alias</p>
+                                                    <p className="font-mono font-semibold text-cyan-600 dark:text-cyan-400">{configPreviewData.orgAlias}</p>
+                                                </div>
+                                                <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-3">
+                                                    <p className="text-xs text-muted-foreground mb-1">User ID</p>
+                                                    <p className="font-mono font-semibold text-blue-600 dark:text-blue-400">{configPreviewData.userId}</p>
+                                                </div>
+                                                <div className="bg-green-50 dark:bg-green-950/30 rounded-lg p-3">
+                                                    <p className="text-xs text-muted-foreground mb-1">Estimated Files</p>
+                                                    <p className="font-mono font-semibold text-green-600 dark:text-green-400">~{configPreviewData.estimatedFiles}</p>
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <p className="text-sm font-medium mb-2">Target Projects ({configPreviewData.projects?.length || 0})</p>
+                                                <div className="max-h-32 overflow-y-auto space-y-1">
+                                                    {configPreviewData.projects?.map((proj, i) => (
+                                                        <div key={i} className="flex items-center gap-2 text-sm bg-gray-50 dark:bg-zinc-800 rounded px-2 py-1">
+                                                            <FolderGit2 className="w-4 h-4 text-muted-foreground" />
+                                                            {proj}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                                                <div className="flex items-start gap-2">
+                                                    <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5" />
+                                                    <p className="text-xs text-amber-700 dark:text-amber-400">
+                                                        This will modify .properties and .xml files in selected projects. Make sure to review changes and rebuild your projects after applying.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="border-t p-4 flex justify-end gap-3 bg-gray-50 dark:bg-zinc-800">
+                                            <Button variant="outline" onClick={() => setShowConfigPreview(false)}>
+                                                Cancel
+                                            </Button>
+                                            <Button
+                                                onClick={confirmApplyConfig}
+                                                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white"
+                                            >
+                                                <Rocket className="w-4 h-4 mr-2" />
+                                                Apply Now
+                                            </Button>
+                                        </div>
+                                    </motion.div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </TabsContent>
 
                     {/* Tab 3: Deploy */}
@@ -3859,6 +4608,98 @@ export default function JacocoRunnerPage() {
 
                     {/* Tab 4: Run Test */}
                     <TabsContent value="test" className="space-y-6">
+                        {/* Dashboard Overview Stats */}
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.1 }}
+                                className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl p-4 text-white shadow-lg"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-white/20 rounded-lg">
+                                        <History className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <p className="text-2xl font-bold">{testHistory.length}</p>
+                                        <p className="text-xs opacity-80">Total Runs</p>
+                                    </div>
+                                </div>
+                            </motion.div>
+
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.15 }}
+                                className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl p-4 text-white shadow-lg"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-white/20 rounded-lg">
+                                        <CheckCircle2 className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <p className="text-2xl font-bold">{testHistory.filter(t => t.status === 'success').length}</p>
+                                        <p className="text-xs opacity-80">Passed</p>
+                                    </div>
+                                </div>
+                            </motion.div>
+
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.2 }}
+                                className="bg-gradient-to-br from-red-500 to-rose-600 rounded-xl p-4 text-white shadow-lg"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-white/20 rounded-lg">
+                                        <XCircle className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <p className="text-2xl font-bold">{testHistory.filter(t => t.status === 'failed').length}</p>
+                                        <p className="text-xs opacity-80">Failed</p>
+                                    </div>
+                                </div>
+                            </motion.div>
+
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.25 }}
+                                className="bg-gradient-to-br from-yellow-500 to-amber-600 rounded-xl p-4 text-white shadow-lg"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-white/20 rounded-lg">
+                                        <Loader2 className={`w-5 h-5 ${testRunning ? 'animate-spin' : ''}`} />
+                                    </div>
+                                    <div>
+                                        <p className="text-2xl font-bold">{testRunning ? 1 : 0}</p>
+                                        <p className="text-xs opacity-80">Running</p>
+                                    </div>
+                                </div>
+                            </motion.div>
+
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.3 }}
+                                className="bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl p-4 text-white shadow-lg"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-white/20 rounded-lg">
+                                        <Activity className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <p className="text-2xl font-bold">
+                                            {testHistory.length > 0
+                                                ? Math.round((testHistory.filter(t => t.status === 'success').length / testHistory.length) * 100)
+                                                : 0}%
+                                        </p>
+                                        <p className="text-xs opacity-80">Success Rate</p>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </div>
+
                         {/* Selenium Grid Control */}
                         <Card className="border-2 border-dashed border-cyan-300 dark:border-cyan-800 bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-cyan-950/30 dark:to-blue-950/30">
                             <CardContent className="p-4">
@@ -4021,7 +4862,64 @@ export default function JacocoRunnerPage() {
                             </CardContent>
                         </Card>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[700px]">
+                        {/* Test Progress Bar (shown when running) */}
+                        {testRunning && testProgress && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                            >
+                                <Card className="border-2 border-blue-300 dark:border-blue-800 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30">
+                                    <CardContent className="p-4">
+                                        <div className="flex items-center gap-4">
+                                            <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
+                                            <div className="flex-1">
+                                                <div className="flex justify-between mb-1">
+                                                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">{testProgress.step}</span>
+                                                    <span className="text-sm font-mono text-blue-600">{testProgress.progress}%</span>
+                                                </div>
+                                                <div className="h-2 bg-blue-200 dark:bg-blue-900 rounded-full overflow-hidden">
+                                                    <motion.div
+                                                        className="h-full bg-gradient-to-r from-blue-500 to-indigo-600"
+                                                        initial={{ width: 0 }}
+                                                        animate={{ width: `${testProgress.progress}%` }}
+                                                        transition={{ duration: 0.3 }}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <Button
+                                                size="sm"
+                                                variant="destructive"
+                                                onClick={() => {
+                                                    setTestRunning(false)
+                                                    setTestProgress(null)
+                                                    // Add to history as cancelled
+                                                    if (selectedTestProject) {
+                                                        const entry = {
+                                                            id: Date.now().toString(),
+                                                            projectName: selectedTestProject.name,
+                                                            suites: Array.from(selectedSuites).map(s => {
+                                                                const suite = testSuites.find(ts => ts.className === s)
+                                                                return suite?.name || s
+                                                            }),
+                                                            status: 'cancelled' as const,
+                                                            startTime: new Date().toLocaleString()
+                                                        }
+                                                        setTestHistory(prev => [entry, ...prev].slice(0, 20))
+                                                    }
+                                                    showNotification('error', 'Test cancelled')
+                                                }}
+                                            >
+                                                <Square className="w-3 h-3 mr-1" />
+                                                Cancel
+                                            </Button>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </motion.div>
+                        )}
+
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                             {/* Left Column: Configuration */}
                             <Card className="lg:col-span-4 flex flex-col border-t-4 border-t-blue-500 shadow-lg overflow-hidden">
                                 <CardHeader className="bg-gradient-to-br from-blue-50 to-white dark:from-blue-950/20 dark:to-background border-b">
@@ -4536,6 +5434,137 @@ export default function JacocoRunnerPage() {
                                 </CardContent>
                             </Card>
                         </div>
+
+                        {/* Test History Panel */}
+                        <Card className="border-t-4 border-t-indigo-500 shadow-lg">
+                            <CardHeader className="bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-950/20 dark:to-background border-b pb-3">
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="flex items-center gap-2 text-lg text-indigo-600 dark:text-indigo-400">
+                                        <Clock className="w-5 h-5" />
+                                        Test History
+                                        {testHistory.length > 0 && (
+                                            <Badge variant="secondary" className="ml-2">
+                                                {testHistory.length}
+                                            </Badge>
+                                        )}
+                                    </CardTitle>
+                                    <div className="flex items-center gap-2">
+                                        {testHistory.length > 0 && (
+                                            <>
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => exportHistory('test')}
+                                                    className="text-muted-foreground hover:text-blue-500"
+                                                >
+                                                    <Download className="w-4 h-4 mr-1" />
+                                                    Export
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    onClick={() => setTestHistory([])}
+                                                    className="text-muted-foreground hover:text-red-500"
+                                                >
+                                                    <Trash2 className="w-4 h-4 mr-1" />
+                                                    Clear
+                                                </Button>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="p-4">
+                                {testHistory.length === 0 ? (
+                                    <div className="text-center py-8 text-muted-foreground">
+                                        <History className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                                        <p className="text-sm">No test runs yet</p>
+                                        <p className="text-xs">Run a test to see history here</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2 max-h-[250px] overflow-y-auto">
+                                        <AnimatePresence>
+                                            {testHistory.map((entry, index) => (
+                                                <motion.div
+                                                    key={entry.id}
+                                                    initial={{ opacity: 0, x: -20 }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                    transition={{ delay: index * 0.05 }}
+                                                    className={`flex items-center justify-between p-3 rounded-lg border transition-all hover:shadow-md ${entry.status === 'success'
+                                                        ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800'
+                                                        : entry.status === 'failed'
+                                                            ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800'
+                                                            : entry.status === 'running'
+                                                                ? 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800'
+                                                                : 'bg-gray-50 dark:bg-gray-950/20 border-gray-200 dark:border-gray-800'
+                                                        }`}
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${entry.status === 'success'
+                                                            ? 'bg-green-500 text-white'
+                                                            : entry.status === 'failed'
+                                                                ? 'bg-red-500 text-white'
+                                                                : entry.status === 'running'
+                                                                    ? 'bg-blue-500 text-white'
+                                                                    : 'bg-gray-400 text-white'
+                                                            }`}>
+                                                            {entry.status === 'success' && <CheckCircle2 className="w-4 h-4" />}
+                                                            {entry.status === 'failed' && <XCircle className="w-4 h-4" />}
+                                                            {entry.status === 'running' && <Loader2 className="w-4 h-4 animate-spin" />}
+                                                            {entry.status === 'cancelled' && <Square className="w-4 h-4" />}
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-medium text-sm">{entry.projectName}</p>
+                                                            <p className="text-xs text-muted-foreground">
+                                                                {entry.suites.length > 0
+                                                                    ? `${entry.suites.length} suite${entry.suites.length > 1 ? 's' : ''}: ${entry.suites.slice(0, 2).join(', ')}${entry.suites.length > 2 ? '...' : ''}`
+                                                                    : 'Custom command'}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <Badge variant="outline" className={`mb-1 ${entry.status === 'success'
+                                                            ? 'text-green-600 border-green-500'
+                                                            : entry.status === 'failed'
+                                                                ? 'text-red-600 border-red-500'
+                                                                : entry.status === 'running'
+                                                                    ? 'text-blue-600 border-blue-500'
+                                                                    : 'text-gray-600 border-gray-500'
+                                                            }`}>
+                                                            {entry.status.charAt(0).toUpperCase() + entry.status.slice(1)}
+                                                        </Badge>
+                                                        <p className="text-xs text-muted-foreground">{entry.startTime}</p>
+                                                        {entry.duration && (
+                                                            <p className="text-xs font-mono text-muted-foreground">
+                                                                {Math.floor(entry.duration / 60)}m {entry.duration % 60}s
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </motion.div>
+                                            ))}
+                                        </AnimatePresence>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* Quick Tips */}
+                        <Card className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/20 dark:to-purple-950/20 border-indigo-200 dark:border-indigo-800">
+                            <CardContent className="p-4">
+                                <div className="flex items-start gap-3">
+                                    <Lightbulb className="w-5 h-5 text-indigo-500 mt-0.5" />
+                                    <div className="space-y-1">
+                                        <p className="font-medium text-indigo-700 dark:text-indigo-300">Quick Tips</p>
+                                        <ul className="text-xs text-muted-foreground space-y-1">
+                                            <li>• Start Selenium Hub first, then add Nodes for parallel testing</li>
+                                            <li>• Select multiple test suites for batch execution</li>
+                                            <li>• Use the progress bar to track test execution in real-time</li>
+                                            <li>• Check test history to analyze past runs and identify patterns</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
                     </TabsContent>
 
                     {/* Tab 5: Jenkins */}
@@ -4601,46 +5630,147 @@ export default function JacocoRunnerPage() {
                             </CardContent>
                         </Card>
 
-                        {/* Build Statistics */}
+                        {/* Dashboard Overview Stats */}
                         {jenkinsOnline && (
-                            <div className="grid grid-cols-3 md:grid-cols-6 gap-2 md:gap-3">
-                                <Card className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border-green-200 dark:border-green-800">
-                                    <CardContent className="p-2 md:p-3 text-center">
-                                        <div className="text-lg md:text-2xl font-bold text-green-600">{getBuildStats().successCount}</div>
-                                        <div className="text-[10px] md:text-xs text-green-700 dark:text-green-400">Success</div>
-                                    </CardContent>
-                                </Card>
-                                <Card className="bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-950/30 dark:to-rose-950/30 border-red-200 dark:border-red-800">
-                                    <CardContent className="p-2 md:p-3 text-center">
-                                        <div className="text-lg md:text-2xl font-bold text-red-600">{getBuildStats().failCount}</div>
-                                        <div className="text-[10px] md:text-xs text-red-700 dark:text-red-400">Failed</div>
-                                    </CardContent>
-                                </Card>
-                                <Card className="bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-950/30 dark:to-amber-950/30 border-yellow-200 dark:border-yellow-800">
-                                    <CardContent className="p-2 md:p-3 text-center">
-                                        <div className="text-lg md:text-2xl font-bold text-yellow-600">{getBuildStats().runningCount}</div>
-                                        <div className="text-[10px] md:text-xs text-yellow-700 dark:text-yellow-400">Running</div>
-                                    </CardContent>
-                                </Card>
-                                <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-200 dark:border-blue-800">
-                                    <CardContent className="p-2 md:p-3 text-center">
-                                        <div className="text-lg md:text-2xl font-bold text-blue-600">{getBuildStats().successRate}%</div>
-                                        <div className="text-[10px] md:text-xs text-blue-700 dark:text-blue-400">Rate</div>
-                                    </CardContent>
-                                </Card>
-                                <Card className="bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-950/30 dark:to-violet-950/30 border-purple-200 dark:border-purple-800">
-                                    <CardContent className="p-2 md:p-3 text-center">
-                                        <div className="text-lg md:text-2xl font-bold text-purple-600 truncate">{formatDuration(getBuildStats().avgDuration)}</div>
-                                        <div className="text-[10px] md:text-xs text-purple-700 dark:text-purple-400">Avg</div>
-                                    </CardContent>
-                                </Card>
-                                <Card className="bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-950/30 dark:to-slate-950/30 border-gray-200 dark:border-gray-800">
-                                    <CardContent className="p-2 md:p-3 text-center">
-                                        <div className="text-lg md:text-2xl font-bold text-gray-600">{jenkinsJobs.length}</div>
-                                        <div className="text-[10px] md:text-xs text-gray-700 dark:text-gray-400">Total</div>
-                                    </CardContent>
-                                </Card>
+                            <div className="grid grid-cols-2 md:grid-cols-6 gap-3 md:gap-4">
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.1 }}
+                                    className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl p-4 text-white shadow-lg"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-white/20 rounded-lg">
+                                            <CheckCircle2 className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <p className="text-2xl font-bold">{getBuildStats().successCount}</p>
+                                            <p className="text-xs opacity-80">Success</p>
+                                        </div>
+                                    </div>
+                                </motion.div>
+
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.15 }}
+                                    className="bg-gradient-to-br from-red-500 to-rose-600 rounded-xl p-4 text-white shadow-lg"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-white/20 rounded-lg">
+                                            <XCircle className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <p className="text-2xl font-bold">{getBuildStats().failCount}</p>
+                                            <p className="text-xs opacity-80">Failed</p>
+                                        </div>
+                                    </div>
+                                </motion.div>
+
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.2 }}
+                                    className="bg-gradient-to-br from-yellow-500 to-amber-600 rounded-xl p-4 text-white shadow-lg"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-white/20 rounded-lg">
+                                            <Loader2 className={`w-5 h-5 ${getBuildStats().runningCount > 0 ? 'animate-spin' : ''}`} />
+                                        </div>
+                                        <div>
+                                            <p className="text-2xl font-bold">{getBuildStats().runningCount}</p>
+                                            <p className="text-xs opacity-80">Running</p>
+                                        </div>
+                                    </div>
+                                </motion.div>
+
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.25 }}
+                                    className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl p-4 text-white shadow-lg"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-white/20 rounded-lg">
+                                            <Activity className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <p className="text-2xl font-bold">{getBuildStats().successRate}%</p>
+                                            <p className="text-xs opacity-80">Success Rate</p>
+                                        </div>
+                                    </div>
+                                </motion.div>
+
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.3 }}
+                                    className="bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl p-4 text-white shadow-lg"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-white/20 rounded-lg">
+                                            <Clock className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <p className="text-2xl font-bold truncate">{formatDuration(getBuildStats().avgDuration)}</p>
+                                            <p className="text-xs opacity-80">Avg Duration</p>
+                                        </div>
+                                    </div>
+                                </motion.div>
+
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.35 }}
+                                    className="bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl p-4 text-white shadow-lg"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-white/20 rounded-lg">
+                                            <FolderKanban className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <p className="text-2xl font-bold">{jenkinsJobs.length}</p>
+                                            <p className="text-xs opacity-80">Total Jobs</p>
+                                        </div>
+                                    </div>
+                                </motion.div>
                             </div>
+                        )}
+
+                        {/* Build Queue */}
+                        {jenkinsOnline && buildQueue.length > 0 && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-950/20 dark:to-amber-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4"
+                            >
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="flex items-center gap-2">
+                                        <ListOrdered className="w-5 h-5 text-yellow-600" />
+                                        <span className="font-semibold text-yellow-700 dark:text-yellow-400">Build Queue</span>
+                                        <Badge className="bg-yellow-500 text-white">{buildQueue.length}</Badge>
+                                    </div>
+                                    <Button size="sm" variant="outline" onClick={fetchBuildQueue} className="h-7">
+                                        <RefreshCw className="w-3 h-3" />
+                                    </Button>
+                                </div>
+                                <div className="space-y-2 max-h-[150px] overflow-y-auto">
+                                    {buildQueue.map((item) => (
+                                        <div
+                                            key={item.id}
+                                            className="flex items-center justify-between p-2 bg-white dark:bg-black/20 rounded-lg border border-yellow-100 dark:border-yellow-900"
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <Loader2 className="w-4 h-4 text-yellow-500 animate-spin" />
+                                                <span className="text-sm font-medium">{item.jobName}</span>
+                                            </div>
+                                            <span className="text-xs text-muted-foreground truncate max-w-[200px]" title={item.why}>
+                                                {item.why}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </motion.div>
                         )}
 
                         {/* Action Bar */}
@@ -4693,281 +5823,295 @@ export default function JacocoRunnerPage() {
 
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
                             {/* Jobs List */}
-                            <Card className="lg:col-span-5 border-t-4 border-t-orange-500 shadow-lg">
-                                <CardHeader className="p-3 md:pb-2">
-                                    <CardTitle className="flex items-center justify-between text-sm md:text-base">
-                                        <span className="flex items-center gap-2">
-                                            <FolderKanban className="w-4 h-4 md:w-5 md:h-5 text-orange-500" />
-                                            <span className="hidden sm:inline">Jenkins </span>Jobs
-                                        </span>
-                                        <Badge variant="secondary" className="text-xs">{jenkinsJobs.filter(j => !jobSearchQuery || j.name.toLowerCase().includes(jobSearchQuery.toLowerCase())).length}</Badge>
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="p-3 pt-0 space-y-2 md:space-y-3">
-                                    {/* Search Input */}
-                                    <div className="relative">
-                                        <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
-                                        <Input
-                                            placeholder="Search jobs..."
-                                            value={jobSearchQuery}
-                                            onChange={(e) => setJobSearchQuery(e.target.value)}
-                                            className="pl-9 h-9"
-                                        />
-                                    </div>
+                            <motion.div
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.2 }}
+                                className="lg:col-span-5"
+                            >
+                                <Card className="border-t-4 border-t-orange-500 shadow-lg h-full">
+                                    <CardHeader className="p-3 md:pb-2">
+                                        <CardTitle className="flex items-center justify-between text-sm md:text-base">
+                                            <span className="flex items-center gap-2">
+                                                <FolderKanban className="w-4 h-4 md:w-5 md:h-5 text-orange-500" />
+                                                <span className="hidden sm:inline">Jenkins </span>Jobs
+                                            </span>
+                                            <Badge variant="secondary" className="text-xs">{jenkinsJobs.filter(j => !jobSearchQuery || j.name.toLowerCase().includes(jobSearchQuery.toLowerCase())).length}</Badge>
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="p-3 pt-0 space-y-2 md:space-y-3">
+                                        {/* Search Input */}
+                                        <div className="relative">
+                                            <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
+                                            <Input
+                                                placeholder="Search jobs..."
+                                                value={jobSearchQuery}
+                                                onChange={(e) => setJobSearchQuery(e.target.value)}
+                                                className="pl-9 h-9"
+                                            />
+                                        </div>
 
-                                    {/* View Tabs */}
-                                    {jenkinsViews.length > 0 && (
-                                        <div className="flex flex-wrap gap-1">
-                                            <Button
-                                                size="sm"
-                                                variant={selectedView === 'all' ? 'default' : 'outline'}
-                                                className="h-7 text-xs"
-                                                onClick={() => {
-                                                    setSelectedView('all')
-                                                    fetchJenkinsJobs('all')
-                                                }}
-                                            >
-                                                All
-                                            </Button>
-                                            {jenkinsViews.map((view) => (
+                                        {/* View Tabs */}
+                                        {jenkinsViews.length > 0 && (
+                                            <div className="flex flex-wrap gap-1">
                                                 <Button
-                                                    key={view.name}
                                                     size="sm"
-                                                    variant={selectedView === view.name ? 'default' : 'outline'}
+                                                    variant={selectedView === 'all' ? 'default' : 'outline'}
                                                     className="h-7 text-xs"
                                                     onClick={() => {
-                                                        setSelectedView(view.name)
-                                                        fetchJenkinsJobs(view.name)
+                                                        setSelectedView('all')
+                                                        fetchJenkinsJobs('all')
                                                     }}
                                                 >
-                                                    {view.name}
+                                                    All
                                                 </Button>
-                                            ))}
-                                        </div>
-                                    )}
-
-                                    {/* Jobs List */}
-                                    {jenkinsJobs.length === 0 ? (
-                                        <div className="text-center py-8 text-muted-foreground">
-                                            {jenkinsOnline ? (
-                                                <p>No jobs found</p>
-                                            ) : (
-                                                <p>Connect to Jenkins to see jobs</p>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                                            {sortedJenkinsJobs
-                                                .filter(job => !jobSearchQuery || job.name.toLowerCase().includes(jobSearchQuery.toLowerCase()))
-                                                .map((job: any) => (
-                                                    <div
-                                                        key={job.name}
-                                                        className={`p-3 rounded-lg border transition-all cursor-pointer hover:bg-accent/50 ${selectedJob?.name === job.name ? 'border-orange-500 bg-orange-50 dark:bg-orange-950/20' : ''} ${favoriteJobs.includes(job.name) ? 'border-l-4 border-l-yellow-400' : ''}`}
+                                                {jenkinsViews.map((view) => (
+                                                    <Button
+                                                        key={view.name}
+                                                        size="sm"
+                                                        variant={selectedView === view.name ? 'default' : 'outline'}
+                                                        className="h-7 text-xs"
                                                         onClick={() => {
-                                                            if (batchMode) {
-                                                                toggleBatchSelect(job.name)
-                                                            } else {
-                                                                setSelectedJob(job)
-                                                                fetchJobBuilds(job.name)
-                                                            }
+                                                            setSelectedView(view.name)
+                                                            fetchJenkinsJobs(view.name)
                                                         }}
                                                     >
-                                                        <div className="flex items-center justify-between">
-                                                            <div className="flex items-center gap-3">
-                                                                {/* Batch checkbox or Status dot */}
-                                                                {batchMode ? (
-                                                                    <input
-                                                                        type="checkbox"
-                                                                        checked={selectedBatchJobs.has(job.name)}
-                                                                        onChange={() => toggleBatchSelect(job.name)}
-                                                                        className="w-4 h-4 rounded border-gray-300"
-                                                                        onClick={(e) => e.stopPropagation()}
-                                                                    />
-                                                                ) : (
-                                                                    <div className={`w-3 h-3 rounded-full ${getJobStatusColor(job.color)}`} />
-                                                                )}
-                                                                <div>
-                                                                    <p className="font-medium text-sm flex items-center gap-1">
-                                                                        {job.name}
-                                                                        {favoriteJobs.includes(job.name) && <span className="text-yellow-500">⭐</span>}
-                                                                    </p>
-                                                                    {job.lastBuild && (
-                                                                        <p className="text-xs text-muted-foreground">
-                                                                            #{job.lastBuild.number} - {isJobRunning(job.color) ? 'Running' : (job.lastBuild.result || 'Unknown')}
-                                                                        </p>
+                                                        {view.name}
+                                                    </Button>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {/* Jobs List */}
+                                        {jenkinsJobs.length === 0 ? (
+                                            <div className="text-center py-8 text-muted-foreground">
+                                                {jenkinsOnline ? (
+                                                    <p>No jobs found</p>
+                                                ) : (
+                                                    <p>Connect to Jenkins to see jobs</p>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                                                {sortedJenkinsJobs
+                                                    .filter(job => !jobSearchQuery || job.name.toLowerCase().includes(jobSearchQuery.toLowerCase()))
+                                                    .map((job: any) => (
+                                                        <div
+                                                            key={job.name}
+                                                            className={`p-3 rounded-lg border transition-all cursor-pointer hover:bg-accent/50 ${selectedJob?.name === job.name ? 'border-orange-500 bg-orange-50 dark:bg-orange-950/20' : ''} ${favoriteJobs.includes(job.name) ? 'border-l-4 border-l-yellow-400' : ''}`}
+                                                            onClick={() => {
+                                                                if (batchMode) {
+                                                                    toggleBatchSelect(job.name)
+                                                                } else {
+                                                                    setSelectedJob(job)
+                                                                    fetchJobBuilds(job.name)
+                                                                }
+                                                            }}
+                                                        >
+                                                            <div className="flex items-center justify-between">
+                                                                <div className="flex items-center gap-3">
+                                                                    {/* Batch checkbox or Status dot */}
+                                                                    {batchMode ? (
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={selectedBatchJobs.has(job.name)}
+                                                                            onChange={() => toggleBatchSelect(job.name)}
+                                                                            className="w-4 h-4 rounded border-gray-300"
+                                                                            onClick={(e) => e.stopPropagation()}
+                                                                        />
+                                                                    ) : (
+                                                                        <div className={`w-3 h-3 rounded-full ${getJobStatusColor(job.color)}`} />
                                                                     )}
+                                                                    <div>
+                                                                        <p className="font-medium text-sm flex items-center gap-1">
+                                                                            {job.name}
+                                                                            {favoriteJobs.includes(job.name) && <span className="text-yellow-500">⭐</span>}
+                                                                        </p>
+                                                                        {job.lastBuild && (
+                                                                            <p className="text-xs text-muted-foreground">
+                                                                                #{job.lastBuild.number} - {isJobRunning(job.color) ? 'Running' : (job.lastBuild.result || 'Unknown')}
+                                                                            </p>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
-                                                            </div>
-                                                            <div className="flex items-center gap-1">
-                                                                {/* Favorite button */}
-                                                                <Button
-                                                                    size="sm"
-                                                                    variant="ghost"
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation()
-                                                                        toggleFavorite(job.name)
-                                                                    }}
-                                                                    className="h-8 w-8 p-0"
-                                                                >
-                                                                    {favoriteJobs.includes(job.name) ? '⭐' : '☆'}
-                                                                </Button>
-                                                                {/* Edit button */}
-                                                                <Button
-                                                                    size="sm"
-                                                                    variant="ghost"
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation()
-                                                                        openPipelineEditor(job.name)
-                                                                    }}
-                                                                    disabled={jenkinsLoading}
-                                                                    className="h-8 w-8 p-0 hover:bg-blue-100 hover:text-blue-700"
-                                                                    title="Edit Pipeline"
-                                                                >
-                                                                    ✏️
-                                                                </Button>
-                                                                {/* Run/Stop button */}
-                                                                {isJobRunning(job.color) ? (
-                                                                    <Button
-                                                                        size="sm"
-                                                                        variant="destructive"
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation()
-                                                                            stopJenkinsBuild(job.name)
-                                                                        }}
-                                                                        disabled={jenkinsLoading}
-                                                                        className="h-8"
-                                                                    >
-                                                                        <Square className="w-4 h-4" />
-                                                                    </Button>
-                                                                ) : (
+                                                                <div className="flex items-center gap-1">
+                                                                    {/* Favorite button */}
                                                                     <Button
                                                                         size="sm"
                                                                         variant="ghost"
                                                                         onClick={(e) => {
                                                                             e.stopPropagation()
-                                                                            triggerJenkinsBuild(job.name)
+                                                                            toggleFavorite(job.name)
+                                                                        }}
+                                                                        className="h-8 w-8 p-0"
+                                                                    >
+                                                                        {favoriteJobs.includes(job.name) ? '⭐' : '☆'}
+                                                                    </Button>
+                                                                    {/* Edit button */}
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="ghost"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation()
+                                                                            openPipelineEditor(job.name)
                                                                         }}
                                                                         disabled={jenkinsLoading}
-                                                                        className="h-8 hover:bg-green-100 hover:text-green-700"
+                                                                        className="h-8 w-8 p-0 hover:bg-blue-100 hover:text-blue-700"
+                                                                        title="Edit Pipeline"
                                                                     >
-                                                                        <Play className="w-4 h-4" />
+                                                                        ✏️
                                                                     </Button>
-                                                                )}
-                                                                {/* Delete button */}
-                                                                <Button
-                                                                    size="sm"
-                                                                    variant="ghost"
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation()
-                                                                        deleteJenkinsJob(job.name)
-                                                                    }}
-                                                                    disabled={jenkinsLoading}
-                                                                    className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-700"
-                                                                    title="Delete Job"
-                                                                >
-                                                                    <Trash2 className="w-4 h-4" />
-                                                                </Button>
+                                                                    {/* Run/Stop button */}
+                                                                    {isJobRunning(job.color) ? (
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="destructive"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation()
+                                                                                stopJenkinsBuild(job.name)
+                                                                            }}
+                                                                            disabled={jenkinsLoading}
+                                                                            className="h-8"
+                                                                        >
+                                                                            <Square className="w-4 h-4" />
+                                                                        </Button>
+                                                                    ) : (
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="ghost"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation()
+                                                                                triggerJenkinsBuild(job.name)
+                                                                            }}
+                                                                            disabled={jenkinsLoading}
+                                                                            className="h-8 hover:bg-green-100 hover:text-green-700"
+                                                                        >
+                                                                            <Play className="w-4 h-4" />
+                                                                        </Button>
+                                                                    )}
+                                                                    {/* Delete button */}
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="ghost"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation()
+                                                                            deleteJenkinsJob(job.name)
+                                                                        }}
+                                                                        disabled={jenkinsLoading}
+                                                                        className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-700"
+                                                                        title="Delete Job"
+                                                                    >
+                                                                        <Trash2 className="w-4 h-4" />
+                                                                    </Button>
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                ))}
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
+                                                    ))}
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            </motion.div>
 
                             {/* Build History */}
-                            <Card className="lg:col-span-7 border-t-4 border-t-blue-500 shadow-lg">
-                                <CardHeader className="p-3 md:pb-3">
-                                    <CardTitle className="flex items-center gap-2 text-sm md:text-base">
-                                        <FileText className="w-4 h-4 md:w-5 md:h-5 text-blue-500" />
-                                        <span className="truncate">
-                                            {selectedJob ? `Builds - ${selectedJob.name}` : 'Build History'}
-                                        </span>
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="p-3 pt-0">
-                                    {!selectedJob ? (
-                                        <div className="text-center py-8 text-muted-foreground">
-                                            <p>Select a job to see build history</p>
-                                        </div>
-                                    ) : jobBuilds.length === 0 ? (
-                                        <div className="text-center py-8 text-muted-foreground">
-                                            <p>No builds found</p>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-2 max-h-[500px] overflow-y-auto">
-                                            {jobBuilds.slice(0, 10).map((build: any) => (
-                                                <div
-                                                    key={build.number}
-                                                    className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent/50 transition-colors"
-                                                >
-                                                    <div className="flex items-center gap-3">
-                                                        <div className={`w-3 h-3 rounded-full ${build.building ? 'bg-yellow-500 animate-pulse' :
-                                                            build.result === 'SUCCESS' ? 'bg-green-500' :
-                                                                build.result === 'FAILURE' ? 'bg-red-500' :
-                                                                    'bg-gray-500'
-                                                            }`} />
-                                                        <div>
-                                                            <p className="font-medium text-sm">Build #{build.number}</p>
-                                                            <p className="text-xs text-muted-foreground">
-                                                                {build.building ? 'Running...' : build.result || 'Unknown'}
-                                                                {' • '}
-                                                                {formatDuration(build.duration)}
-                                                            </p>
+                            <motion.div
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.3 }}
+                                className="lg:col-span-7"
+                            >
+                                <Card className="border-t-4 border-t-blue-500 shadow-lg h-full">
+                                    <CardHeader className="p-3 md:pb-3">
+                                        <CardTitle className="flex items-center gap-2 text-sm md:text-base">
+                                            <FileText className="w-4 h-4 md:w-5 md:h-5 text-blue-500" />
+                                            <span className="truncate">
+                                                {selectedJob ? `Builds - ${selectedJob.name}` : 'Build History'}
+                                            </span>
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="p-3 pt-0">
+                                        {!selectedJob ? (
+                                            <div className="text-center py-8 text-muted-foreground">
+                                                <p>Select a job to see build history</p>
+                                            </div>
+                                        ) : jobBuilds.length === 0 ? (
+                                            <div className="text-center py-8 text-muted-foreground">
+                                                <p>No builds found</p>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                                                {jobBuilds.slice(0, 10).map((build: any) => (
+                                                    <div
+                                                        key={build.number}
+                                                        className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent/50 transition-colors"
+                                                    >
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={`w-3 h-3 rounded-full ${build.building ? 'bg-yellow-500 animate-pulse' :
+                                                                build.result === 'SUCCESS' ? 'bg-green-500' :
+                                                                    build.result === 'FAILURE' ? 'bg-red-500' :
+                                                                        'bg-gray-500'
+                                                                }`} />
+                                                            <div>
+                                                                <p className="font-medium text-sm">Build #{build.number}</p>
+                                                                <p className="text-xs text-muted-foreground">
+                                                                    {build.building ? 'Running...' : build.result || 'Unknown'}
+                                                                    {' • '}
+                                                                    {formatDuration(build.duration)}
+                                                                </p>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-xs text-muted-foreground">
-                                                            {formatTimestamp(build.timestamp)}
-                                                        </span>
-                                                        {build.building && (
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-xs text-muted-foreground">
+                                                                {formatTimestamp(build.timestamp)}
+                                                            </span>
+                                                            {build.building && (
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="destructive"
+                                                                    onClick={() => stopJenkinsBuild(selectedJob.name, build.number)}
+                                                                    disabled={jenkinsLoading}
+                                                                    className="h-7"
+                                                                >
+                                                                    <Square className="w-3 h-3" />
+                                                                </Button>
+                                                            )}
                                                             <Button
                                                                 size="sm"
-                                                                variant="destructive"
-                                                                onClick={() => stopJenkinsBuild(selectedJob.name, build.number)}
+                                                                variant="ghost"
+                                                                onClick={() => startLiveConsole(selectedJob.name, build.number)}
                                                                 disabled={jenkinsLoading}
-                                                                className="h-7"
                                                             >
-                                                                <Square className="w-3 h-3" />
+                                                                <Terminal className="w-4 h-4" />
                                                             </Button>
-                                                        )}
-                                                        <Button
-                                                            size="sm"
-                                                            variant="ghost"
-                                                            onClick={() => startLiveConsole(selectedJob.name, build.number)}
-                                                            disabled={jenkinsLoading}
-                                                        >
-                                                            <Terminal className="w-4 h-4" />
-                                                        </Button>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-
-                                    {/* Build Trend Chart */}
-                                    {selectedJob && jobBuilds.length > 0 && (
-                                        <div className="mt-4 pt-4 border-t">
-                                            <p className="text-xs font-medium text-muted-foreground mb-2">📈 Build Trend (last 10)</p>
-                                            <div className="flex items-end gap-1 h-16">
-                                                {getBuildTrend().map((build, i) => (
-                                                    <div
-                                                        key={i}
-                                                        className={`flex-1 rounded-t transition-all ${build.success ? 'bg-green-500' : 'bg-red-500'}`}
-                                                        style={{ height: `${Math.max(20, Math.min(100, (build.duration / 1000 / 60) * 10))}%` }}
-                                                        title={`#${build.number} - ${build.success ? 'SUCCESS' : 'FAILURE'} - ${formatDuration(build.duration)}`}
-                                                    />
                                                 ))}
                                             </div>
-                                            <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                                                <span>Older</span>
-                                                <span>Latest</span>
+                                        )}
+
+                                        {/* Build Trend Chart */}
+                                        {selectedJob && jobBuilds.length > 0 && (
+                                            <div className="mt-4 pt-4 border-t">
+                                                <p className="text-xs font-medium text-muted-foreground mb-2">📈 Build Trend (last 10)</p>
+                                                <div className="flex items-end gap-1 h-16">
+                                                    {getBuildTrend().map((build, i) => (
+                                                        <div
+                                                            key={i}
+                                                            className={`flex-1 rounded-t transition-all ${build.success ? 'bg-green-500' : 'bg-red-500'}`}
+                                                            style={{ height: `${Math.max(20, Math.min(100, (build.duration / 1000 / 60) * 10))}%` }}
+                                                            title={`#${build.number} - ${build.success ? 'SUCCESS' : 'FAILURE'} - ${formatDuration(build.duration)}`}
+                                                        />
+                                                    ))}
+                                                </div>
+                                                <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                                                    <span>Older</span>
+                                                    <span>Latest</span>
+                                                </div>
                                             </div>
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            </motion.div>
                         </div>
 
                         {/* Console Output Modal with Live Update */}
