@@ -192,22 +192,26 @@ public class DeployService {
         File binDir = new File(tomcatDir, "bin");
         
         String os = System.getProperty("os.name").toLowerCase();
-        String startupScript = os.contains("win") ? "startup.bat" : "startup.sh";
         
-        File scriptFile = new File(binDir, startupScript);
-        if (!scriptFile.exists()) {
-            throw new IOException("Tomcat startup script not found: " + scriptFile.getAbsolutePath());
+        // Check for catalina.bat (preferred) or startup.bat
+        File catalinaScript = new File(binDir, os.contains("win") ? "catalina.bat" : "catalina.sh");
+        if (!catalinaScript.exists()) {
+            throw new IOException("Tomcat catalina script not found: " + catalinaScript.getAbsolutePath());
         }
 
-        // Use unique window title based on tomcat folder name
-        String windowTitle = "Tomcat-" + tomcatDir.getName();
+        // Use unique window title based on tomcat folder name for easy identification
+        String windowTitle = "DevHelper-Tomcat-" + tomcatDir.getName();
 
         ProcessBuilder pb;
         if (os.contains("win")) {
-            // Use "start" command with unique window title
-            pb = new ProcessBuilder("cmd.exe", "/c", "start", "\"" + windowTitle + "\"", startupScript);
+            // Use catalina.bat run to run Tomcat in foreground within our window
+            // This keeps the window open and under our control with a specific title
+            // The "title" command sets the window title, then catalina.bat run starts Tomcat
+            pb = new ProcessBuilder("cmd.exe", "/c", 
+                "start \"" + windowTitle + "\" /D \"" + binDir.getAbsolutePath() + "\" " +
+                "cmd /c \"title " + windowTitle + " && catalina.bat run\"");
         } else {
-            pb = new ProcessBuilder("./" + startupScript);
+            pb = new ProcessBuilder("./catalina.sh", "run");
         }
         
         pb.directory(binDir);
@@ -228,41 +232,55 @@ public class DeployService {
         
         String os = System.getProperty("os.name").toLowerCase();
         
-        // Unique window title based on tomcat folder name
-        String windowTitle = "Tomcat-" + tomcatDir.getName();
+        // Use the same unique window title as in startTomcat
+        String windowTitle = "DevHelper-Tomcat-" + tomcatDir.getName();
 
         if (os.contains("win")) {
-            // First, close the CMD window with the specific title using taskkill
+            // Method 1: Use taskkill with /T to kill the window and ALL child processes (including Java)
             try {
-                ProcessBuilder killPb = new ProcessBuilder("cmd.exe", "/c", 
-                    "taskkill", "/FI", "WINDOWTITLE eq " + windowTitle + "*", "/F");
-                killPb.redirectErrorStream(true);
-                Process killProcess = killPb.start();
-                killProcess.waitFor(5, java.util.concurrent.TimeUnit.SECONDS);
+                // /T = tree kill (kills all child processes)
+                // /F = force kill
+                // /FI = filter by window title
+                ProcessBuilder killTreePb = new ProcessBuilder("cmd.exe", "/c", 
+                    "taskkill /FI \"WINDOWTITLE eq " + windowTitle + "\" /T /F");
+                killTreePb.redirectErrorStream(true);
+                Process killProcess = killTreePb.start();
+                killProcess.waitFor(3, java.util.concurrent.TimeUnit.SECONDS);
             } catch (Exception e) {
-                // Ignore errors if no window found
+                // Ignore errors
             }
-        }
 
-        String shutdownScript = os.contains("win") ? "shutdown.bat" : "shutdown.sh";
-        
-        File scriptFile = new File(binDir, shutdownScript);
-        if (!scriptFile.exists()) {
-            throw new IOException("Tomcat shutdown script not found: " + scriptFile.getAbsolutePath());
-        }
+            // Method 2: Also try to kill by partial title match (in case title changed slightly)
+            try {
+                ProcessBuilder killPartialPb = new ProcessBuilder("cmd.exe", "/c", 
+                    "taskkill /FI \"WINDOWTITLE eq " + windowTitle + "*\" /T /F");
+                killPartialPb.redirectErrorStream(true);
+                Process killProcess = killPartialPb.start();
+                killProcess.waitFor(2, java.util.concurrent.TimeUnit.SECONDS);
+            } catch (Exception e) {
+                // Ignore errors
+            }
 
-        ProcessBuilder pb;
-        if (os.contains("win")) {
-            pb = new ProcessBuilder("cmd.exe", "/c", shutdownScript);
+            // Method 3: Run catalina.bat stop as backup to ensure Tomcat process stops
+            try {
+                File catalinaScript = new File(binDir, "catalina.bat");
+                if (catalinaScript.exists()) {
+                    ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", 
+                        "cd /d \"" + binDir.getAbsolutePath() + "\" && catalina.bat stop");
+                    pb.directory(binDir);
+                    pb.redirectErrorStream(true);
+                    pb.start();
+                }
+            } catch (Exception e) {
+                // Ignore errors
+            }
         } else {
-            pb = new ProcessBuilder("./" + shutdownScript);
+            // Linux/Mac: use catalina.sh stop
+            ProcessBuilder pb = new ProcessBuilder("./catalina.sh", "stop");
+            pb.directory(binDir);
+            pb.redirectErrorStream(true);
+            pb.start();
         }
-        
-        pb.directory(binDir);
-        pb.redirectErrorStream(true);
-        
-        // Start the process but don't wait for it
-        pb.start();
 
         return "Tomcat stopping...";
     }

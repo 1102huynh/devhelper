@@ -101,6 +101,25 @@ export default function JacocoRunnerPage() {
     const [runningTomcats, setRunningTomcats] = useState<Set<string>>(new Set())
     const [loadingTomcats, setLoadingTomcats] = useState(false)
 
+    // Deploy tab improvements
+    const [deploymentHistory, setDeploymentHistory] = useState<{
+        id: string
+        projectName: string
+        tomcatName: string
+        action: 'deploy' | 'redeploy' | 'undeploy'
+        status: 'success' | 'failed'
+        timestamp: string
+        duration?: number
+    }[]>([])
+    const [healthCheckResults, setHealthCheckResults] = useState<Record<string, { healthy: boolean; responseTime?: number; lastCheck?: string }>>({})
+    const [checkingHealth, setCheckingHealth] = useState<string | null>(null)
+    const [showTomcatLogs, setShowTomcatLogs] = useState(false)
+    const [tomcatLogs, setTomcatLogs] = useState('')
+    const [loadingLogs, setLoadingLogs] = useState(false)
+    const [quickDeployProject, setQuickDeployProject] = useState<string>('')
+    const [quickDeploying, setQuickDeploying] = useState(false)
+    const [deployProgress, setDeployProgress] = useState<{ step: string; progress: number } | null>(null)
+
     // Test states
     const [selectedTestProject, setSelectedTestProject] = useState<Project | null>(null)
     const [testCommand, setTestCommand] = useState('mvn test')
@@ -1451,7 +1470,216 @@ export default function JacocoRunnerPage() {
         })
     }
 
-    // Apply database configuration to selected projects (properties files only)
+    // Restart Tomcat Server
+    const restartTomcatServer = async (tomcat: TomcatInfo) => {
+        showNotification('success', `Restarting ${tomcat.name}...`)
+
+        // Stop first
+        setRunningTomcats(prev => {
+            const newSet = new Set(prev)
+            newSet.delete(tomcat.path)
+            return newSet
+        })
+
+        try {
+            await fetch(`${API_BASE}/deploy/tomcat/stop`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tomcatPath: tomcat.path })
+            })
+
+            // Wait for graceful shutdown
+            await new Promise(resolve => setTimeout(resolve, 3000))
+
+            // Start again
+            await fetch(`${API_BASE}/deploy/tomcat/start`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tomcatPath: tomcat.path })
+            })
+
+            setRunningTomcats(prev => new Set([...prev, tomcat.path]))
+            showNotification('success', `${tomcat.name} restarted successfully!`)
+        } catch (error) {
+            showNotification('error', 'Failed to restart Tomcat')
+        }
+    }
+
+    // Quick Deploy: Build -> Prepare -> Deploy in one click
+    const quickDeploy = async (projectPath: string) => {
+        const project = projects.find(p => p.path === projectPath)
+        if (!project) {
+            showNotification('error', 'Project not found')
+            return
+        }
+
+        if (!selectedTomcat) {
+            showNotification('error', 'Please select a Tomcat first')
+            return
+        }
+
+        setQuickDeploying(true)
+        const startTime = Date.now()
+
+        try {
+            // Step 1: Build
+            setDeployProgress({ step: 'Building project...', progress: 20 })
+            const buildRes = await fetch(`${API_BASE}/projects/maven/build`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ projectPath: project.path })
+            })
+            const buildResult = await buildRes.json()
+            if (!buildResult.success) {
+                throw new Error(buildResult.error || 'Build failed')
+            }
+
+            // Step 2: Prepare Deployment
+            setDeployProgress({ step: 'Preparing artifact...', progress: 50 })
+            const prepRes = await fetch(`${API_BASE}/deploy/prepare`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    projectPath: project.path,
+                    projectName: project.name
+                })
+            })
+            if (!prepRes.ok) throw new Error('Failed to prepare deployment')
+            const newDeployment = await prepRes.json()
+
+            // Step 3: Deploy to Tomcat
+            setDeployProgress({ step: 'Deploying to Tomcat...', progress: 80 })
+            const deployRes = await fetch(`${API_BASE}/deploy/to-tomcat`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    deploymentId: newDeployment.id,
+                    tomcatPath: selectedTomcat.path
+                })
+            })
+            if (!deployRes.ok) throw new Error('Failed to deploy to Tomcat')
+
+            setDeployProgress({ step: 'Complete!', progress: 100 })
+            const duration = Date.now() - startTime
+
+            // Add to deployment history
+            addToDeploymentHistory({
+                projectName: project.name,
+                tomcatName: selectedTomcat.name,
+                action: 'deploy',
+                status: 'success',
+                duration
+            })
+
+            showNotification('success', `Quick deploy completed in ${(duration / 1000).toFixed(1)}s!`)
+            await loadDeployments()
+
+        } catch (error: any) {
+            addToDeploymentHistory({
+                projectName: project.name,
+                tomcatName: selectedTomcat?.name || 'Unknown',
+                action: 'deploy',
+                status: 'failed'
+            })
+            showNotification('error', error.message || 'Quick deploy failed')
+        } finally {
+            setQuickDeploying(false)
+            setTimeout(() => setDeployProgress(null), 2000)
+        }
+    }
+
+    // Add to deployment history
+    const addToDeploymentHistory = (entry: Omit<typeof deploymentHistory[0], 'id' | 'timestamp'>) => {
+        const newEntry = {
+            ...entry,
+            id: Date.now().toString(),
+            timestamp: new Date().toLocaleString()
+        }
+        setDeploymentHistory(prev => [newEntry, ...prev].slice(0, 20)) // Keep last 20 entries
+    }
+
+    // Health Check for deployed application
+    const checkDeploymentHealth = async (deployment: Deployment) => {
+        if (!deployment.contextPath) return
+
+        setCheckingHealth(deployment.id)
+        const startTime = Date.now()
+
+        try {
+            // Try to reach the deployed app
+            const url = `http://localhost:8080${deployment.contextPath}`
+            const controller = new AbortController()
+            const timeoutId = setTimeout(() => controller.abort(), 10000) // 10s timeout
+
+            const response = await fetch(url, {
+                method: 'HEAD',
+                signal: controller.signal,
+                mode: 'no-cors' // Avoid CORS issues for health check
+            })
+
+            clearTimeout(timeoutId)
+            const responseTime = Date.now() - startTime
+
+            setHealthCheckResults(prev => ({
+                ...prev,
+                [deployment.id]: {
+                    healthy: true,
+                    responseTime,
+                    lastCheck: new Date().toLocaleTimeString()
+                }
+            }))
+        } catch (error) {
+            setHealthCheckResults(prev => ({
+                ...prev,
+                [deployment.id]: {
+                    healthy: false,
+                    lastCheck: new Date().toLocaleTimeString()
+                }
+            }))
+        } finally {
+            setCheckingHealth(null)
+        }
+    }
+
+    // Check all deployments health
+    const checkAllDeploymentsHealth = async () => {
+        for (const deployment of deployments.filter(d => d.status === 'deployed' && d.contextPath)) {
+            await checkDeploymentHealth(deployment)
+        }
+    }
+
+    // View Tomcat Logs
+    const viewTomcatLogs = async (tomcat: TomcatInfo) => {
+        setShowTomcatLogs(true)
+        setLoadingLogs(true)
+        setTomcatLogs('')
+
+        try {
+            const response = await fetch(`${API_BASE}/deploy/tomcat/logs?tomcatPath=${encodeURIComponent(tomcat.path)}`)
+            if (response.ok) {
+                const data = await response.json()
+                setTomcatLogs(data.logs || 'No logs available')
+            } else {
+                setTomcatLogs('Failed to load logs')
+            }
+        } catch (error) {
+            setTomcatLogs('Error loading logs: ' + (error as Error).message)
+        } finally {
+            setLoadingLogs(false)
+        }
+    }
+
+    // Get deploy statistics
+    const getDeployStats = () => {
+        const runningCount = tomcats.filter(t => runningTomcats.has(t.path)).length
+        const deployedCount = deployments.filter(d => d.status === 'deployed').length
+        const pendingCount = deployments.filter(d => d.status === 'pending').length
+        const totalSize = deployments.reduce((acc, d) => acc + (d.warFileSize || 0), 0)
+        const healthyCount = Object.values(healthCheckResults).filter(h => h.healthy).length
+        return { runningCount, deployedCount, pendingCount, totalSize, healthyCount }
+    }
+
+
     const applyDatabaseConfig = async () => {
         if (selectedConfigProjects.size === 0) {
             showNotification('error', 'Please select at least one project')
@@ -2988,258 +3216,645 @@ export default function JacocoRunnerPage() {
                     </TabsContent>
 
                     {/* Tab 3: Deploy */}
-                    <TabsContent value="deploy" className="space-y-4">
-                        {/* Tomcat Configuration */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Rocket className="w-5 h-5" />
-                                    Load Tomcat Servers
-                                </CardTitle>
-                                <CardDescription>
-                                    Enter the folder containing your Tomcat installations
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="flex gap-3">
-                                    <Input
-                                        value={tomcatBasePath}
-                                        onChange={(e) => setTomcatBasePath(e.target.value)}
-                                        placeholder="e.g., C:\Servers or D:\apache"
-                                        className="flex-1 font-mono"
-                                    />
-                                    <Button
-                                        onClick={loadTomcats}
-                                        disabled={loadingTomcats || !tomcatBasePath}
-                                        className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700"
-                                    >
-                                        {loadingTomcats ? (
-                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                        ) : (
-                                            <Search className="w-4 h-4 mr-2" />
-                                        )}
-                                        Load Tomcats
-                                    </Button>
+                    <TabsContent value="deploy" className="space-y-6">
+                        {/* Dashboard Overview Stats */}
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.1 }}
+                                className="bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl p-4 text-white shadow-lg"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-white/20 rounded-lg">
+                                        <Server className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <p className="text-2xl font-bold">{getDeployStats().runningCount}/{tomcats.length}</p>
+                                        <p className="text-xs opacity-80">Tomcats Running</p>
+                                    </div>
                                 </div>
+                            </motion.div>
 
-                                {/* Tomcat List */}
-                                {tomcats.length > 0 && (
-                                    <div className="space-y-2">
-                                        <Label className="text-sm text-muted-foreground">Tomcat Servers:</Label>
-                                        <div className="grid grid-cols-1 gap-3">
-                                            {tomcats.map((tomcat) => (
-                                                <div
-                                                    key={tomcat.path}
-                                                    onClick={() => {
-                                                        setSelectedTomcat(tomcat)
-                                                        localStorage.setItem(SELECTED_TOMCAT_KEY, tomcat.path)
-                                                    }}
-                                                    className={`p-4 border rounded-lg cursor-pointer transition-all ${selectedTomcat?.path === tomcat.path
-                                                        ? 'border-purple-500 bg-purple-500/10 ring-2 ring-purple-500/30'
-                                                        : 'hover:border-purple-500/50 hover:bg-accent/5'
-                                                        }`}
-                                                >
-                                                    <div className="flex items-center justify-between">
-                                                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                                                            <Rocket className={`w-5 h-5 flex-shrink-0 ${selectedTomcat?.path === tomcat.path ? 'text-purple-500' : 'text-muted-foreground'}`} />
-                                                            <span className="font-semibold truncate">{tomcat.name}</span>
-                                                            {tomcat.version && (
-                                                                <Badge variant="outline" className="text-xs flex-shrink-0">{tomcat.version}</Badge>
-                                                            )}
-                                                            {runningTomcats.has(tomcat.path) ? (
-                                                                <Badge className="text-xs bg-green-500 hover:bg-green-600 animate-pulse flex-shrink-0">
-                                                                    <span className="mr-1">●</span> Running
-                                                                </Badge>
-                                                            ) : (
-                                                                <Badge variant="secondary" className="text-xs flex-shrink-0">
-                                                                    Stopped
-                                                                </Badge>
-                                                            )}
-                                                        </div>
-                                                        <div className="flex gap-2 ml-3 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                                                            {runningTomcats.has(tomcat.path) ? (
-                                                                <Button
-                                                                    size="sm"
-                                                                    variant="destructive"
-                                                                    onClick={() => stopTomcatServer(tomcat)}
-                                                                    className="h-8"
-                                                                >
-                                                                    <Square className="w-3.5 h-3.5 mr-1" />
-                                                                    Stop
-                                                                </Button>
-                                                            ) : (
-                                                                <Button
-                                                                    size="sm"
-                                                                    onClick={() => startTomcatServer(tomcat)}
-                                                                    className="h-8 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
-                                                                >
-                                                                    <Play className="w-3.5 h-3.5 mr-1" />
-                                                                    Start
-                                                                </Button>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                    <p className="text-xs text-muted-foreground mt-1 truncate">{tomcat.path}</p>
-                                                </div>
-                                            ))}
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.15 }}
+                                className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl p-4 text-white shadow-lg"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-white/20 rounded-lg">
+                                        <CheckCircle2 className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <p className="text-2xl font-bold">{getDeployStats().deployedCount}</p>
+                                        <p className="text-xs opacity-80">Deployed Apps</p>
+                                    </div>
+                                </div>
+                            </motion.div>
+
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.2 }}
+                                className="bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl p-4 text-white shadow-lg"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-white/20 rounded-lg">
+                                        <Package className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <p className="text-2xl font-bold">{getDeployStats().pendingCount}</p>
+                                        <p className="text-xs opacity-80">Pending Deploy</p>
+                                    </div>
+                                </div>
+                            </motion.div>
+
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.25 }}
+                                className="bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl p-4 text-white shadow-lg"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-white/20 rounded-lg">
+                                        <Activity className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <p className="text-2xl font-bold">{getDeployStats().healthyCount}</p>
+                                        <p className="text-xs opacity-80">Healthy Apps</p>
+                                    </div>
+                                </div>
+                            </motion.div>
+
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.3 }}
+                                className="bg-gradient-to-br from-slate-600 to-slate-800 rounded-xl p-4 text-white shadow-lg"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-white/20 rounded-lg">
+                                        <Archive className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <p className="text-2xl font-bold">{(getDeployStats().totalSize / 1024 / 1024).toFixed(0)} MB</p>
+                                        <p className="text-xs opacity-80">Total Size</p>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </div>
+
+                        {/* Quick Deploy Card */}
+                        <Card className="border-2 border-dashed border-purple-300 dark:border-purple-800 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30">
+                            <CardContent className="p-4">
+                                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg">
+                                            <Rocket className="w-5 h-5 text-white" />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-semibold text-purple-700 dark:text-purple-300">Quick Deploy</h3>
+                                            <p className="text-xs text-muted-foreground">Build + Prepare + Deploy in one click</p>
                                         </div>
                                     </div>
+                                    <div className="flex flex-col md:flex-row items-center gap-3 flex-1 md:max-w-md">
+                                        <div className="relative flex-1 w-full">
+                                            <FolderOpen className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
+                                            <select
+                                                className="w-full h-10 pl-9 pr-3 rounded-md border border-input bg-background text-sm focus:ring-2 focus:ring-purple-500 transition-all"
+                                                value={quickDeployProject}
+                                                onChange={(e) => setQuickDeployProject(e.target.value)}
+                                                disabled={quickDeploying}
+                                            >
+                                                <option value="">Select Maven Project...</option>
+                                                {projects.filter(p => p.isMavenProject).map(p => (
+                                                    <option key={p.path} value={p.path}>{p.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <Button
+                                            onClick={() => quickDeploy(quickDeployProject)}
+                                            disabled={!quickDeployProject || !selectedTomcat || quickDeploying}
+                                            className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white min-w-[140px]"
+                                        >
+                                            {quickDeploying ? (
+                                                <>
+                                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                    {deployProgress?.step || 'Deploying...'}
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Rocket className="w-4 h-4 mr-2" />
+                                                    Quick Deploy
+                                                </>
+                                            )}
+                                        </Button>
+                                    </div>
+                                </div>
+                                {/* Progress Bar */}
+                                {deployProgress && (
+                                    <motion.div
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: 'auto' }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        className="mt-4"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex-1 h-2 bg-purple-200 dark:bg-purple-900 rounded-full overflow-hidden">
+                                                <motion.div
+                                                    className="h-full bg-gradient-to-r from-purple-500 to-pink-600"
+                                                    initial={{ width: 0 }}
+                                                    animate={{ width: `${deployProgress.progress}%` }}
+                                                    transition={{ duration: 0.3 }}
+                                                />
+                                            </div>
+                                            <span className="text-sm font-medium text-purple-600">{deployProgress.progress}%</span>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground mt-1">{deployProgress.step}</p>
+                                    </motion.div>
                                 )}
-
-                                {tomcats.length === 0 && tomcatBasePath && (
-                                    <p className="text-sm text-muted-foreground text-center py-4">
-                                        No Tomcat installations found. Click "Load Tomcats" to scan.
+                                {!selectedTomcat && (
+                                    <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+                                        <AlertCircle className="w-3 h-3" />
+                                        Please select a Tomcat server below first
                                     </p>
                                 )}
                             </CardContent>
                         </Card>
 
-                        {/* Pending Deployments */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <Upload className="w-5 h-5" />
-                                        Pending Deployments
-                                        {deployments.length > 0 && (
-                                            <Badge variant="secondary">{deployments.length}</Badge>
-                                        )}
-                                    </div>
-                                    {selectedTomcat && deployments.length > 0 && (
-                                        <Button
-                                            size="sm"
-                                            onClick={() => deployAllToTomcat(selectedTomcat)}
-                                            disabled={!!deployLoading}
-                                            className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700"
-                                        >
-                                            {deployLoading === 'all' ? (
-                                                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                                            ) : (
-                                                <Rocket className="w-4 h-4 mr-2" />
-                                            )}
-                                            Copy All to {selectedTomcat.name}
-                                        </Button>
-                                    )}
-                                </CardTitle>
-                                <CardDescription>
-                                    WAR files ready to deploy to Tomcat
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                {deployments.length === 0 ? (
-                                    <div className="py-8 text-center text-muted-foreground">
-                                        <Package className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                                        <p>No pending deployments</p>
-                                        <p className="text-sm mt-1">Click "Deploy" on a Maven project to add one</p>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-3">
-                                        {deployments.map((deployment) => (
-                                            <div
-                                                key={deployment.id}
-                                                className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/5"
-                                            >
-                                                <div className="flex-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="font-semibold">{deployment.projectName}</span>
-                                                        <Badge variant={deployment.fileType === 'WAR' ? 'default' : 'outline'} className="text-xs">
-                                                            {deployment.fileType || 'WAR'}
-                                                        </Badge>
-                                                        <Badge variant={deployment.status === 'deployed' ? 'default' : 'secondary'}>
-                                                            {deployment.status}
-                                                        </Badge>
-                                                    </div>
-                                                    <p className="text-sm text-muted-foreground mt-1">
-                                                        {deployment.warFileName} ({(deployment.warFileSize / 1024 / 1024).toFixed(2)} MB)
-                                                    </p>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        Added: {deployment.createdAt}
-                                                        {deployment.deployedAt && ` • Deployed: ${deployment.deployedAt}`}
-                                                    </p>
-                                                </div>
-                                                <div className="flex gap-2">
-                                                    {/* Open in Browser */}
-                                                    {deployment.status === 'deployed' && deployment.contextPath && (
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            onClick={() => openInBrowser(deployment)}
-                                                            className="text-blue-500 hover:text-blue-600 hover:bg-blue-50"
-                                                        >
-                                                            <ExternalLink className="w-4 h-4 mr-1" />
-                                                            Open App
-                                                        </Button>
-                                                    )}
-
-                                                    {/* Re-deploy (Build + Deploy) */}
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        onClick={() => handleRedeploy(deployment)}
-                                                        disabled={
-                                                            !selectedTomcat ||
-                                                            deployLoading === deployment.id ||
-                                                            (deployment.status === 'deployed' && selectedTomcat && !runningTomcats.has(selectedTomcat.path))
-                                                        }
-                                                        className="text-orange-500 hover:text-orange-600 hover:bg-orange-50"
-                                                    >
-                                                        {deployLoading === deployment.id ? (
-                                                            <Loader2 className="w-4 h-4 animate-spin" />
-                                                        ) : (
-                                                            <RotateCw className="w-4 h-4 mr-1" />
-                                                        )}
-                                                        Re-deploy
-                                                    </Button>
-
-                                                    {/* Initial Deploy */}
-                                                    {deployment.status === 'pending' && (
-                                                        <Button
-                                                            size="sm"
-                                                            onClick={() => deployToTomcat(deployment.id)}
-                                                            disabled={!selectedTomcat || deployLoading === deployment.id}
-                                                            className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700"
-                                                        >
-                                                            {deployLoading === deployment.id ? (
-                                                                <Loader2 className="w-4 h-4 animate-spin" />
-                                                            ) : (
-                                                                <>
-                                                                    <Rocket className="w-4 h-4 mr-1" />
-                                                                    Deploy
-                                                                </>
-                                                            )}
-                                                        </Button>
-                                                    )}
-                                                    <Button
-                                                        size="sm"
-                                                        variant="ghost"
-                                                        onClick={() => removeDeployment(deployment.id)}
-                                                    >
-                                                        <Trash2 className="w-4 h-4 text-red-500" />
-                                                    </Button>
-                                                </div>
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                            {/* Left Column: Tomcat Management */}
+                            <div className="lg:col-span-5 space-y-4">
+                                {/* Tomcat Configuration */}
+                                <Card className="border-t-4 border-t-purple-500 shadow-lg">
+                                    <CardHeader className="pb-3">
+                                        <CardTitle className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <Server className="w-5 h-5 text-purple-500" />
+                                                Tomcat Servers
                                             </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
+                                            {selectedTomcat && (
+                                                <Badge variant="outline" className="text-purple-600 border-purple-300">
+                                                    Selected: {selectedTomcat.name}
+                                                </Badge>
+                                            )}
+                                        </CardTitle>
+                                        <CardDescription>
+                                            Manage your Tomcat installations
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <div className="flex gap-3">
+                                            <Input
+                                                value={tomcatBasePath}
+                                                onChange={(e) => setTomcatBasePath(e.target.value)}
+                                                placeholder="e.g., C:\Servers or D:\apache"
+                                                className="flex-1 font-mono text-sm"
+                                            />
+                                            <Button
+                                                onClick={loadTomcats}
+                                                disabled={loadingTomcats || !tomcatBasePath}
+                                                size="sm"
+                                                className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700"
+                                            >
+                                                {loadingTomcats ? (
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                ) : (
+                                                    <Search className="w-4 h-4" />
+                                                )}
+                                            </Button>
+                                        </div>
 
-                        {/* Deploy Guide */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2 text-base">
-                                    <AlertCircle className="w-5 h-5 text-blue-500" />
-                                    Deployment Guide
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="text-sm text-muted-foreground space-y-2">
-                                <p>1. <strong>Build</strong> your Maven project first (Build Maven button)</p>
-                                <p>2. Click <strong>Deploy</strong> on the project card to add WAR to pending list</p>
-                                <p>3. Enter your <strong>Tomcat path</strong> above (e.g., C:\apache-tomcat-9.0.80)</p>
-                                <p>4. Click <strong>Deploy to Tomcat</strong> to copy WAR to webapps folder</p>
-                                <p>5. Click <strong>Start Tomcat</strong> to run the server</p>
-                            </CardContent>
-                        </Card>
+                                        {/* Tomcat List */}
+                                        {tomcats.length > 0 && (
+                                            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                                                {tomcats.map((tomcat) => {
+                                                    const isRunning = runningTomcats.has(tomcat.path)
+                                                    const isSelected = selectedTomcat?.path === tomcat.path
+                                                    return (
+                                                        <motion.div
+                                                            key={tomcat.path}
+                                                            initial={{ opacity: 0, x: -20 }}
+                                                            animate={{ opacity: 1, x: 0 }}
+                                                            onClick={() => {
+                                                                setSelectedTomcat(tomcat)
+                                                                localStorage.setItem(SELECTED_TOMCAT_KEY, tomcat.path)
+                                                            }}
+                                                            className={`p-3 border-2 rounded-xl cursor-pointer transition-all ${isSelected
+                                                                ? 'border-purple-500 bg-purple-500/10 ring-2 ring-purple-500/30 shadow-lg'
+                                                                : 'border-transparent bg-muted/30 hover:border-purple-300 hover:bg-purple-50/50 dark:hover:bg-purple-950/20'
+                                                                }`}
+                                                        >
+                                                            <div className="flex items-center justify-between">
+                                                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                                    <div className={`p-2 rounded-lg ${isRunning ? 'bg-green-500' : 'bg-gray-400'}`}>
+                                                                        <Server className="w-4 h-4 text-white" />
+                                                                    </div>
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className="font-semibold truncate">{tomcat.name}</span>
+                                                                            {tomcat.version && (
+                                                                                <Badge variant="outline" className="text-xs">{tomcat.version}</Badge>
+                                                                            )}
+                                                                        </div>
+                                                                        <p className="text-xs text-muted-foreground truncate">{tomcat.path}</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                                                    {isRunning ? (
+                                                                        <Badge className="bg-green-500 hover:bg-green-600 animate-pulse text-xs">
+                                                                            <span className="mr-1">●</span> Running
+                                                                        </Badge>
+                                                                    ) : (
+                                                                        <Badge variant="secondary" className="text-xs">Stopped</Badge>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            {/* Quick Actions */}
+                                                            <div className="flex gap-1 mt-2 pt-2 border-t border-dashed" onClick={(e) => e.stopPropagation()}>
+                                                                {isRunning ? (
+                                                                    <>
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="outline"
+                                                                            onClick={() => restartTomcatServer(tomcat)}
+                                                                            className="h-7 text-xs flex-1"
+                                                                        >
+                                                                            <RotateCw className="w-3 h-3 mr-1" />
+                                                                            Restart
+                                                                        </Button>
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="destructive"
+                                                                            onClick={() => stopTomcatServer(tomcat)}
+                                                                            className="h-7 text-xs flex-1"
+                                                                        >
+                                                                            <Square className="w-3 h-3 mr-1" />
+                                                                            Stop
+                                                                        </Button>
+                                                                    </>
+                                                                ) : (
+                                                                    <Button
+                                                                        size="sm"
+                                                                        onClick={() => startTomcatServer(tomcat)}
+                                                                        className="h-7 text-xs flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+                                                                    >
+                                                                        <Play className="w-3 h-3 mr-1" />
+                                                                        Start Server
+                                                                    </Button>
+                                                                )}
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    onClick={() => viewTomcatLogs(tomcat)}
+                                                                    className="h-7 text-xs"
+                                                                    title="View Logs"
+                                                                >
+                                                                    <FileText className="w-3 h-3" />
+                                                                </Button>
+                                                            </div>
+                                                        </motion.div>
+                                                    )
+                                                })}
+                                            </div>
+                                        )}
+
+                                        {tomcats.length === 0 && tomcatBasePath && (
+                                            <div className="py-6 text-center text-muted-foreground">
+                                                <Server className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                                                <p className="text-sm">No Tomcat installations found</p>
+                                                <p className="text-xs">Click the search button to scan</p>
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+
+                                {/* Deployment History */}
+                                <Card className="border-t-4 border-t-blue-500 shadow-lg">
+                                    <CardHeader className="pb-3">
+                                        <CardTitle className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <Activity className="w-5 h-5 text-blue-500" />
+                                                Deployment History
+                                            </div>
+                                            {deploymentHistory.length > 0 && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    onClick={() => setDeploymentHistory([])}
+                                                    className="h-7 text-xs text-muted-foreground"
+                                                >
+                                                    Clear
+                                                </Button>
+                                            )}
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {deploymentHistory.length === 0 ? (
+                                            <div className="py-6 text-center text-muted-foreground">
+                                                <Activity className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                                                <p className="text-sm">No deployment history yet</p>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-2 max-h-[250px] overflow-y-auto">
+                                                {deploymentHistory.map((entry) => (
+                                                    <div
+                                                        key={entry.id}
+                                                        className={`flex items-center justify-between p-2 rounded-lg text-sm ${entry.status === 'success'
+                                                            ? 'bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900'
+                                                            : 'bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900'
+                                                            }`}
+                                                    >
+                                                        <div className="flex items-center gap-2">
+                                                            {entry.status === 'success' ? (
+                                                                <CheckCircle2 className="w-4 h-4 text-green-500" />
+                                                            ) : (
+                                                                <XCircle className="w-4 h-4 text-red-500" />
+                                                            )}
+                                                            <div>
+                                                                <span className="font-medium">{entry.projectName}</span>
+                                                                <span className="text-xs text-muted-foreground ml-1">→ {entry.tomcatName}</span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <div className="text-xs text-muted-foreground">{entry.timestamp}</div>
+                                                            {entry.duration && (
+                                                                <div className="text-xs font-mono text-green-600">{(entry.duration / 1000).toFixed(1)}s</div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            </div>
+
+                            {/* Right Column: Deployments */}
+                            <div className="lg:col-span-7 space-y-4">
+                                {/* Pending Deployments */}
+                                <Card className="border-t-4 border-t-orange-500 shadow-lg">
+                                    <CardHeader className="pb-3">
+                                        <CardTitle className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <Upload className="w-5 h-5 text-orange-500" />
+                                                Deployments
+                                                {deployments.length > 0 && (
+                                                    <Badge variant="secondary">{deployments.length}</Badge>
+                                                )}
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={checkAllDeploymentsHealth}
+                                                    disabled={deployments.filter(d => d.status === 'deployed').length === 0}
+                                                    className="h-8 text-xs"
+                                                >
+                                                    <Activity className="w-3 h-3 mr-1" />
+                                                    Check Health
+                                                </Button>
+                                                {selectedTomcat && deployments.length > 0 && (
+                                                    <Button
+                                                        size="sm"
+                                                        onClick={() => deployAllToTomcat(selectedTomcat)}
+                                                        disabled={!!deployLoading}
+                                                        className="h-8 text-xs bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700"
+                                                    >
+                                                        {deployLoading === 'all' ? (
+                                                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                                        ) : (
+                                                            <Rocket className="w-3 h-3 mr-1" />
+                                                        )}
+                                                        Deploy All
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </CardTitle>
+                                        <CardDescription>
+                                            WAR/JAR files ready to deploy
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {deployments.length === 0 ? (
+                                            <div className="py-8 text-center text-muted-foreground">
+                                                <Package className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                                                <p>No pending deployments</p>
+                                                <p className="text-sm mt-1">Use "Quick Deploy" or click "Deploy" on a Maven project</p>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-3 max-h-[500px] overflow-y-auto">
+                                                {deployments.map((deployment) => {
+                                                    const health = healthCheckResults[deployment.id]
+                                                    return (
+                                                        <motion.div
+                                                            key={deployment.id}
+                                                            initial={{ opacity: 0, y: 10 }}
+                                                            animate={{ opacity: 1, y: 0 }}
+                                                            className={`p-4 border-2 rounded-xl transition-all ${deployment.status === 'deployed'
+                                                                ? 'border-green-200 bg-green-50/50 dark:bg-green-950/20 dark:border-green-900'
+                                                                : 'border-orange-200 bg-orange-50/50 dark:bg-orange-950/20 dark:border-orange-900'
+                                                                }`}
+                                                        >
+                                                            <div className="flex items-start justify-between">
+                                                                <div className="flex-1">
+                                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                                        <span className="font-semibold">{deployment.projectName}</span>
+                                                                        <Badge variant={deployment.fileType === 'WAR' ? 'default' : 'outline'} className="text-xs">
+                                                                            {deployment.fileType || 'WAR'}
+                                                                        </Badge>
+                                                                        <Badge variant={deployment.status === 'deployed' ? 'default' : 'secondary'} className={deployment.status === 'deployed' ? 'bg-green-500' : ''}>
+                                                                            {deployment.status}
+                                                                        </Badge>
+                                                                        {/* Health Status */}
+                                                                        {deployment.status === 'deployed' && health && (
+                                                                            <Badge variant="outline" className={health.healthy ? 'border-green-500 text-green-600' : 'border-red-500 text-red-600'}>
+                                                                                {health.healthy ? (
+                                                                                    <>✓ {health.responseTime}ms</>
+                                                                                ) : (
+                                                                                    <>✗ Unhealthy</>
+                                                                                )}
+                                                                            </Badge>
+                                                                        )}
+                                                                        {checkingHealth === deployment.id && (
+                                                                            <Loader2 className="w-3 h-3 animate-spin text-blue-500" />
+                                                                        )}
+                                                                    </div>
+                                                                    <p className="text-sm text-muted-foreground mt-1">
+                                                                        {deployment.warFileName}
+                                                                        <span className="font-mono ml-2">({(deployment.warFileSize / 1024 / 1024).toFixed(2)} MB)</span>
+                                                                    </p>
+                                                                    <p className="text-xs text-muted-foreground">
+                                                                        Added: {deployment.createdAt}
+                                                                        {deployment.deployedAt && <> • Deployed: {deployment.deployedAt}</>}
+                                                                        {deployment.tomcatName && <> • To: {deployment.tomcatName}</>}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex gap-2 mt-3 pt-3 border-t border-dashed">
+                                                                {/* Open in Browser */}
+                                                                {deployment.status === 'deployed' && deployment.contextPath && (
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="outline"
+                                                                        onClick={() => openInBrowser(deployment)}
+                                                                        className="h-8 text-xs text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                                                                    >
+                                                                        <ExternalLink className="w-3 h-3 mr-1" />
+                                                                        Open App
+                                                                    </Button>
+                                                                )}
+
+                                                                {/* Health Check */}
+                                                                {deployment.status === 'deployed' && deployment.contextPath && (
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="outline"
+                                                                        onClick={() => checkDeploymentHealth(deployment)}
+                                                                        disabled={checkingHealth === deployment.id}
+                                                                        className="h-8 text-xs"
+                                                                    >
+                                                                        {checkingHealth === deployment.id ? (
+                                                                            <Loader2 className="w-3 h-3 animate-spin" />
+                                                                        ) : (
+                                                                            <Activity className="w-3 h-3 mr-1" />
+                                                                        )}
+                                                                        Health
+                                                                    </Button>
+                                                                )}
+
+                                                                {/* Re-deploy */}
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    onClick={() => handleRedeploy(deployment)}
+                                                                    disabled={
+                                                                        !selectedTomcat ||
+                                                                        deployLoading === deployment.id
+                                                                    }
+                                                                    className="h-8 text-xs text-orange-500 hover:text-orange-600 hover:bg-orange-50"
+                                                                >
+                                                                    {deployLoading === deployment.id ? (
+                                                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                                                    ) : (
+                                                                        <RotateCw className="w-3 h-3 mr-1" />
+                                                                    )}
+                                                                    Re-deploy
+                                                                </Button>
+
+                                                                {/* Initial Deploy */}
+                                                                {deployment.status === 'pending' && (
+                                                                    <Button
+                                                                        size="sm"
+                                                                        onClick={() => deployToTomcat(deployment.id)}
+                                                                        disabled={!selectedTomcat || deployLoading === deployment.id}
+                                                                        className="h-8 text-xs bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700"
+                                                                    >
+                                                                        {deployLoading === deployment.id ? (
+                                                                            <Loader2 className="w-3 h-3 animate-spin" />
+                                                                        ) : (
+                                                                            <>
+                                                                                <Rocket className="w-3 h-3 mr-1" />
+                                                                                Deploy
+                                                                            </>
+                                                                        )}
+                                                                    </Button>
+                                                                )}
+
+                                                                <div className="flex-1" />
+
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="ghost"
+                                                                    onClick={() => removeDeployment(deployment.id)}
+                                                                    className="h-8"
+                                                                >
+                                                                    <Trash2 className="w-3 h-3 text-red-500" />
+                                                                </Button>
+                                                            </div>
+                                                        </motion.div>
+                                                    )
+                                                })}
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+
+                                {/* Deploy Tips */}
+                                <Card className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 border-blue-200 dark:border-blue-900">
+                                    <CardHeader className="pb-2">
+                                        <CardTitle className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
+                                            <AlertCircle className="w-4 h-4" />
+                                            Quick Tips
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="text-xs text-muted-foreground space-y-1">
+                                        <p>• Use <strong className="text-blue-600">Quick Deploy</strong> for one-click build + deploy</p>
+                                        <p>• <strong className="text-green-600">Health checks</strong> verify your app is responding</p>
+                                        <p>• <strong className="text-orange-600">Restart</strong> Tomcat to apply configuration changes</p>
+                                        <p>• View <strong>Tomcat logs</strong> to debug startup issues</p>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </div>
+
+                        {/* Tomcat Logs Modal */}
+                        <AnimatePresence>
+                            {showTomcatLogs && (
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+                                    onClick={() => setShowTomcatLogs(false)}
+                                >
+                                    <motion.div
+                                        initial={{ scale: 0.9, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
+                                        exit={{ scale: 0.9, opacity: 0 }}
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="bg-background rounded-xl shadow-2xl w-full max-w-4xl max-h-[80vh] flex flex-col overflow-hidden"
+                                    >
+                                        {/* Terminal Header */}
+                                        <div className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-slate-800 to-slate-900">
+                                            <div className="flex gap-1.5">
+                                                <button
+                                                    onClick={() => setShowTomcatLogs(false)}
+                                                    className="w-3 h-3 bg-red-500 rounded-full hover:bg-red-600 transition-colors"
+                                                />
+                                                <div className="w-3 h-3 bg-yellow-500 rounded-full" />
+                                                <div className="w-3 h-3 bg-green-500 rounded-full" />
+                                            </div>
+                                            <span className="text-sm text-slate-300 ml-3 font-mono">
+                                                {selectedTomcat?.name} — catalina.out
+                                            </span>
+                                            <div className="flex-1" />
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() => selectedTomcat && viewTomcatLogs(selectedTomcat)}
+                                                className="h-7 text-slate-400 hover:text-white"
+                                            >
+                                                <RefreshCw className={`w-4 h-4 ${loadingLogs ? 'animate-spin' : ''}`} />
+                                            </Button>
+                                        </div>
+                                        {/* Terminal Body */}
+                                        <div className="flex-1 overflow-auto bg-slate-950 p-4">
+                                            {loadingLogs ? (
+                                                <div className="flex items-center justify-center h-full">
+                                                    <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+                                                </div>
+                                            ) : (
+                                                <pre className="text-sm text-green-400 font-mono whitespace-pre-wrap">
+                                                    {tomcatLogs || 'No logs available'}
+                                                </pre>
+                                            )}
+                                        </div>
+                                    </motion.div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </TabsContent>
 
                     {/* Tab 4: Run Test */}
