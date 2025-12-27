@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { Code2, FileJson, Terminal, Zap, StickyNote, Home, Moon, Sun, Binary, Link2, Hash, KeyRound, Clock, Fingerprint, FileCode, Calendar, GitCompare, Type, Palette, Code, FileText, QrCode, Info, Sparkles, Database, Target, FileCheck, Globe, Server, Menu, ChevronLeft, ChevronDown, ChevronRight, Wrench, FlaskConical, TestTube2, FileImage, Shield, Scissors, Brush } from 'lucide-react'
+import { Code2, FileJson, Terminal, Zap, StickyNote, Home, Moon, Sun, Binary, Link2, Hash, KeyRound, Clock, Fingerprint, FileCode, Calendar, GitCompare, Type, Palette, Code, FileText, QrCode, Info, Sparkles, Database, Target, FileCheck, Globe, Server, Menu, ChevronLeft, ChevronDown, ChevronRight, Wrench, FlaskConical, TestTube2, FileImage, Shield, Scissors, Brush, Search, X } from 'lucide-react'
 import { Button } from './ui/button'
 import { useTheme } from 'next-themes'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -13,6 +13,7 @@ import GitHubStarButton from './github-star-button'
 // Top-level navigation items
 const topNavigation = [
   { name: 'Home', href: '/', icon: Home, color: 'text-blue-500' },
+  { name: 'About', href: '/about', icon: Info, color: 'text-purple-500' },
 ]
 
 // Dev Tools category (sorted alphabetically)
@@ -77,6 +78,7 @@ export function Sidebar() {
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const [isOpen, setIsOpen] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({
     'dev-tools': true,
     'automation': true,
@@ -92,6 +94,14 @@ export function Sidebar() {
   // Check if a category has an active item
   const isCategoryActive = (items: typeof devTools) => {
     return items.some(item => pathname === item.href)
+  }
+
+  // Filter items based on search
+  const filterItems = (items: typeof devTools) => {
+    if (!searchQuery) return items
+    return items.filter(item =>
+      item.name.toLowerCase().includes(searchQuery.toLowerCase())
+    )
   }
 
   useEffect(() => {
@@ -201,6 +211,35 @@ export function Sidebar() {
         </motion.div>
       </div>
 
+      {/* Search Input */}
+      {isOpen && (
+        <div className="px-3 pb-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search tools..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-9 py-2 text-sm border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+          {searchQuery && (
+            <p className="text-xs text-muted-foreground mt-1 ml-1">
+              {filterItems([...devTools, ...automationTools]).length} result(s)
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Navigation with custom scrollbar */}
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         {/* Top-level navigation (Home) */}
@@ -304,7 +343,7 @@ export function Sidebar() {
                     className="overflow-hidden"
                   >
                     <div className="ml-3 pl-3 border-l-2 border-border/50 mt-1 space-y-0.5">
-                      {category.items.map((item, itemIndex) => {
+                      {filterItems(category.items).map((item, itemIndex) => {
                         const isActive = pathname === item.href
                         return (
                           <motion.div
@@ -341,6 +380,11 @@ export function Sidebar() {
                           </motion.div>
                         )
                       })}
+                      {filterItems(category.items).length === 0 && searchQuery && (
+                        <p className="text-xs text-muted-foreground py-2 px-3">
+                          No tools found
+                        </p>
+                      )}
                     </div>
                   </motion.div>
                 )}

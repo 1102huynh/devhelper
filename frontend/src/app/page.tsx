@@ -1,197 +1,65 @@
 'use client'
 
+import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Code2, FileJson, Terminal, Zap, StickyNote, Binary, Link2, Hash, KeyRound, Clock, Fingerprint, FileCode, Calendar, GitCompare, Type, Palette, Code, FileText, QrCode, Info, Sparkles, Rocket, Star, Database, Target, FileCheck, Globe, Server } from 'lucide-react'
+import { Code2, FileJson, Terminal, Zap, StickyNote, Binary, Link2, Hash, KeyRound, Clock, Fingerprint, FileCode, Calendar, GitCompare, Type, Palette, Code, FileText, QrCode, Info, Sparkles, Rocket, Star, Database, Target, FileCheck, Globe, Server, Search, TrendingUp, Shield, CheckCircle2, Zap as ZapIcon, FileImage, Brush, Scissors } from 'lucide-react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
 import GitHubStarButton from '@/components/github-star-button'
 
 const tools = [
-  {
-    title: 'Regex Tester',
-    description: 'Test regular expressions with live matching and highlighting',
-    icon: Code2,
-    href: '/regex-tester',
-    color: 'text-blue-500',
-  },
-  {
-    title: 'JSON Formatter',
-    description: 'Format, validate, and beautify JSON with syntax highlighting',
-    icon: FileJson,
-    href: '/json-formatter',
-    color: 'text-green-500',
-  },
-  {
-    title: 'XML Formatter',
-    description: 'Format, validate, and beautify XML documents',
-    icon: FileCode,
-    href: '/xml-formatter',
-    color: 'text-amber-500',
-  },
-  {
-    title: 'Base64 Encoder',
-    description: 'Encode and decode Base64 strings',
-    icon: Binary,
-    href: '/base64',
-    color: 'text-orange-500',
-  },
-  {
-    title: 'URL Encoder',
-    description: 'Encode and decode URLs and query parameters',
-    icon: Link2,
-    href: '/url-encoder',
-    color: 'text-cyan-500',
-  },
-  {
-    title: 'Hash Generator',
-    description: 'Generate MD5, SHA-1, SHA-256, SHA-512 hashes',
-    icon: Hash,
-    href: '/hash-generator',
-    color: 'text-indigo-500',
-  },
-  {
-    title: 'JWT Decoder',
-    description: 'Decode and inspect JSON Web Tokens',
-    icon: KeyRound,
-    href: '/jwt-decoder',
-    color: 'text-emerald-500',
-  },
-  {
-    title: 'UUID Generator',
-    description: 'Generate random UUIDs (v4)',
-    icon: Fingerprint,
-    href: '/uuid-generator',
-    color: 'text-violet-500',
-  },
-  {
-    title: 'Timestamp Converter',
-    description: 'Convert Unix timestamps to readable dates',
-    icon: Clock,
-    href: '/timestamp',
-    color: 'text-teal-500',
-  },
-  {
-    title: 'Cron Parser',
-    description: 'Parse and understand cron expressions',
-    icon: Calendar,
-    href: '/cron-parser',
-    color: 'text-rose-500',
-  },
-  {
-    title: 'Diff Checker',
-    description: 'Compare two text blocks and highlight differences',
-    icon: GitCompare,
-    href: '/diff-checker',
-    color: 'text-slate-500',
-  },
-  {
-    title: 'Text Utilities',
-    description: 'Transform and manipulate text with various operations',
-    icon: Type,
-    href: '/text-utils',
-    color: 'text-fuchsia-500',
-  },
-  {
-    title: 'Color Converter',
-    description: 'Convert between HEX, RGB, and HSL color formats',
-    icon: Palette,
-    href: '/color-converter',
-    color: 'text-red-500',
-  },
-  {
-    title: 'HTML Encoder',
-    description: 'Encode and decode HTML entities',
-    icon: Code,
-    href: '/html-encoder',
-    color: 'text-lime-500',
-  },
-  {
-    title: 'Lorem Ipsum',
-    description: 'Generate placeholder text for your designs',
-    icon: FileText,
-    href: '/lorem-ipsum',
-    color: 'text-sky-500',
-  },
-  {
-    title: 'QR Code Generator',
-    description: 'Generate QR codes for URLs, text, and more',
-    icon: QrCode,
-    href: '/qr-generator',
-    color: 'text-neutral-500',
-  },
-  {
-    title: 'HTTP Status Codes',
-    description: 'Quick reference guide for HTTP status codes',
-    icon: Info,
-    href: '/http-status',
-    color: 'text-blue-600',
-  },
-  {
-    title: 'SSH Commands',
-    description: 'Store and manage frequently used SSH commands',
-    icon: Terminal,
-    href: '/ssh-commands',
-    color: 'text-purple-500',
-  },
-  {
-    title: 'API Tester',
-    description: 'Quick REST API testing tool',
-    icon: Zap,
-    href: '/api-tester',
-    color: 'text-yellow-500',
-  },
-  {
-    title: 'Task Notes',
-    description: 'Lightning-fast notes with Ctrl+Space shortcut',
-    icon: StickyNote,
-    href: '/notes',
-    color: 'text-pink-500',
-  },
-  {
-    title: 'Test Data Generator',
-    description: 'Generate realistic test data for automation testing',
-    icon: Database,
-    href: '/test-data-generator',
-    color: 'text-purple-600',
-  },
-  {
-    title: 'Selector Tester',
-    description: 'Test and validate CSS selectors and XPath expressions',
-    icon: Target,
-    href: '/selector-tester',
-    color: 'text-cyan-600',
-  },
-  {
-    title: 'JSON Schema Validator',
-    description: 'Validate JSON data against schemas for API testing',
-    icon: FileCheck,
-    href: '/json-schema-validator',
-    color: 'text-emerald-600',
-  },
-  {
-    title: 'HTTP Headers Analyzer',
-    description: 'Analyze security, caching, and performance headers',
-    icon: Globe,
-    href: '/http-headers-analyzer',
-    color: 'text-orange-600',
-  },
-  {
-    title: 'Mock API Generator',
-    description: 'Generate mock API responses for testing',
-    icon: Server,
-    href: '/mock-api-generator',
-    color: 'text-indigo-600',
-  },
+  { title: 'API Tester', description: 'Professional REST API testing with collections & history', icon: Zap, href: '/api-tester', color: 'text-yellow-500', category: 'dev', popular: true },
+  { title: 'Base64', description: 'Encode/decode Base64 with file & image support', icon: Binary, href: '/base64', color: 'text-orange-500', category: 'dev' },
+  { title: 'Color Converter', description: 'Convert between 8 color formats with live preview', icon: Palette, href: '/color-converter', color: 'text-red-500', category: 'dev' },
+  { title: 'Cron Parser', description: 'Parse cron expressions with next run calculations', icon: Calendar, href: '/cron-parser', color: 'text-rose-500', category: 'dev' },
+  { title: 'CSS Formatter', description: 'Format, minify & auto-prefix CSS stylesheets', icon: Brush, href: '/css-formatter', color: 'text-pink-600', category: 'dev', popular: true },
+  { title: 'Diff Checker', description: 'Compare text with 3 view modes (unified/split/side)', icon: GitCompare, href: '/diff-checker', color: 'text-slate-500', category: 'dev' },
+  { title: 'Hash Generator', description: 'Generate MD5, SHA hashes with file & HMAC support', icon: Hash, href: '/hash-generator', color: 'text-indigo-500', category: 'dev' },
+  { title: 'HTML Encoder', description: 'Encode/decode HTML entities with 35+ references', icon: Code, href: '/html-encoder', color: 'text-lime-500', category: 'dev' },
+  { title: 'HTTP Status', description: 'Complete HTTP status code reference guide', icon: Info, href: '/http-status', color: 'text-blue-600', category: 'dev' },
+  { title: 'Image Converter', description: 'Convert, resize, rotate, flip & apply filters', icon: FileImage, href: '/image-converter', color: 'text-emerald-600', category: 'dev', popular: true },
+  { title: 'JS Obfuscator', description: 'Protect JavaScript code with 7 obfuscation techniques', icon: Shield, href: '/js-obfuscator', color: 'text-purple-600', category: 'dev', popular: true },
+  { title: 'JSON Formatter', description: 'Format, validate & convert JSON with sorting', icon: FileJson, href: '/json-formatter', color: 'text-green-500', category: 'dev', popular: true },
+  { title: 'JWT Decoder', description: 'Decode & validate JSON Web Tokens', icon: KeyRound, href: '/jwt-decoder', color: 'text-emerald-500', category: 'dev' },
+  { title: 'Lorem Ipsum', description: 'Generate customizable placeholder text', icon: FileText, href: '/lorem-ipsum', color: 'text-sky-500', category: 'dev' },
+  { title: 'Markdown Preview', description: 'Live markdown preview with themes & export', icon: FileText, href: '/markdown-preview', color: 'text-cyan-600', category: 'dev', popular: true },
+  { title: 'Notes', description: 'Lightning-fast notes with Ctrl+Space shortcut', icon: StickyNote, href: '/notes', color: 'text-pink-500', category: 'dev' },
+  { title: 'PDF Tools', description: 'Merge & split PDF files client-side', icon: Scissors, href: '/pdf-tools', color: 'text-red-600', category: 'dev' },
+  { title: 'QR Generator', description: 'Generate customizable QR codes instantly', icon: QrCode, href: '/qr-generator', color: 'text-neutral-500', category: 'dev' },
+  { title: 'Regex Tester', description: 'Test regex with 50 patterns & live highlighting', icon: Code2, href: '/regex-tester', color: 'text-blue-500', category: 'dev', popular: true },
+  { title: 'SSH Commands', description: 'Manage frequently used SSH command library', icon: Terminal, href: '/ssh-commands', color: 'text-purple-500', category: 'dev' },
+  { title: 'Text Utils', description: 'Transform text with 50+ operations', icon: Type, href: '/text-utils', color: 'text-fuchsia-500', category: 'dev' },
+  { title: 'Timestamp', description: 'Convert Unix timestamps across 10 timezones', icon: Clock, href: '/timestamp', color: 'text-teal-500', category: 'dev' },
+  { title: 'URL Encoder', description: 'Encode/decode URLs with query builder', icon: Link2, href: '/url-encoder', color: 'text-cyan-500', category: 'dev' },
+  { title: 'UUID Generator', description: 'Generate & validate UUIDs with batch support', icon: Fingerprint, href: '/uuid-generator', color: 'text-violet-500', category: 'dev' },
+  { title: 'XML Formatter', description: 'Format, validate & convert XML to JSON', icon: FileCode, href: '/xml-formatter', color: 'text-amber-500', category: 'dev' },
+  { title: 'HTTP Headers Analyzer', description: 'Analyze security, caching & performance headers', icon: Globe, href: '/http-headers-analyzer', color: 'text-orange-600', category: 'automation' },
+  { title: 'JSON Schema Validator', description: 'Validate JSON data against schemas', icon: FileCheck, href: '/json-schema-validator', color: 'text-emerald-600', category: 'automation' },
+  { title: 'Mock API Generator', description: 'Generate realistic mock API responses', icon: Server, href: '/mock-api-generator', color: 'text-indigo-600', category: 'automation' },
+  { title: 'Selector Tester', description: 'Test CSS selectors & XPath expressions', icon: Target, href: '/selector-tester', color: 'text-cyan-600', category: 'automation' },
+  { title: 'Test Data Generator', description: 'Generate realistic test data for automation', icon: Database, href: '/test-data-generator', color: 'text-purple-600', category: 'automation' },
 ]
 
 export default function Home() {
+  const [searchQuery, setSearchQuery] = useState('')
+
+  const popularTools = tools.filter(t => t.popular)
+  const filteredTools = searchQuery
+    ? tools.filter(t =>
+      t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      t.description.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    : tools
+
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-primary/10 via-purple-500/5 to-pink-500/10 border-b border-border/50">
         <div className="absolute inset-0 bg-grid-white/10 bg-[size:20px_20px]" />
-        <div className="container mx-auto px-4 py-16 relative">
+        <div className="container mx-auto px-4 py-20 relative">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -205,24 +73,24 @@ export default function Home() {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6"
             >
               <Sparkles className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium">25 Professional Tools</span>
+              <span className="text-sm font-medium">30 Professional Developer Tools</span>
             </motion.div>
 
-            <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
+            <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
               Welcome to{' '}
               <span className="gradient-text">Dev Helper</span>
             </h1>
 
-            <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+            <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-2xl mx-auto">
               Your comprehensive suite of professional developer productivity tools.
               Built for engineers who demand excellence.
             </p>
 
-            <div className="flex flex-wrap gap-4 justify-center items-center">
+            <div className="flex flex-wrap gap-4 justify-center items-center mb-12">
               <Link href="#tools">
-                <Button size="lg" className="rounded-xl shadow-lg hover:shadow-xl transition-all">
+                <Button size="lg" className="rounded-xl shadow-lg hover:shadow-xl transition-all text-lg px-8 py-6">
                   <Rocket className="w-5 h-5 mr-2" />
-                  Get Started
+                  Explore All Tools
                 </Button>
               </Link>
               <GitHubStarButton
@@ -236,43 +104,106 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.4 }}
-              className="grid grid-cols-3 gap-8 mt-16 max-w-2xl mx-auto"
+              className="grid grid-cols-3 gap-8 max-w-2xl mx-auto"
             >
               <div className="text-center">
-                <div className="text-3xl font-bold text-primary mb-1">20</div>
-                <div className="text-sm text-muted-foreground">Tools</div>
+                <div className="text-4xl md:text-5xl font-bold gradient-text mb-1">30</div>
+                <div className="text-sm text-muted-foreground">Professional Tools</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-purple-500 mb-1">25+</div>
-                <div className="text-sm text-muted-foreground">APIs</div>
+                <div className="text-4xl md:text-5xl font-bold text-purple-500 mb-1">∞</div>
+                <div className="text-sm text-muted-foreground">No Limits</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-pink-500 mb-1">100%</div>
-                <div className="text-sm text-muted-foreground">Free</div>
+                <div className="text-4xl md:text-5xl font-bold text-pink-500 mb-1">100%</div>
+                <div className="text-sm text-muted-foreground">Free Forever</div>
               </div>
             </motion.div>
           </motion.div>
         </div>
       </section>
 
-      {/* Tools Grid */}
-      <section id="tools" className="container mx-auto px-4 py-16">
+      {/* Popular Tools Section */}
+      <section className="container mx-auto px-4 py-16">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
+          transition={{ duration: 0.5 }}
         >
-          <h2 className="text-3xl font-bold mb-8 text-center">
-            All Tools
-          </h2>
+          <div className="flex items-center gap-3 mb-8">
+            <TrendingUp className="w-6 h-6 text-primary" />
+            <h2 className="text-3xl font-bold">Most Popular Tools</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {popularTools.map((tool, index) => (
+              <motion.div
+                key={tool.href}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3, delay: index * 0.05 }}
+              >
+                <Link href={tool.href}>
+                  <Card className="modern-card group cursor-pointer h-full hover:border-primary/50 transition-all">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center gap-3">
+                        <div className={`${tool.color} p-2 rounded-lg bg-secondary/50`}>
+                          <tool.icon className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1">
+                          <CardTitle className="text-base group-hover:text-primary transition-colors">
+                            {tool.title}
+                          </CardTitle>
+                        </div>
+                        <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                      </div>
+                    </CardHeader>
+                    <CardContent className="pb-4">
+                      <CardDescription className="text-xs leading-relaxed">
+                        {tool.description}
+                      </CardDescription>
+                    </CardContent>
+                  </Card>
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      </section>
+
+      {/* All Tools Section with Search */}
+      <section id="tools" className="container mx-auto px-4 py-16 border-t border-border/50">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="max-w-2xl mx-auto mb-12">
+            <h2 className="text-3xl font-bold mb-4 text-center">All 30 Tools</h2>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search tools... (e.g., JSON, image, regex)"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 h-12 text-base"
+              />
+            </div>
+            {searchQuery && (
+              <p className="text-sm text-muted-foreground mt-2 text-center">
+                Found {filteredTools.length} tool{filteredTools.length !== 1 ? 's' : ''}
+              </p>
+            )}
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {tools.map((tool, index) => (
+            {filteredTools.map((tool, index) => (
               <motion.div
                 key={tool.href}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: index * 0.03 }}
+                transition={{ duration: 0.4, delay: searchQuery ? 0 : index * 0.02 }}
               >
                 <Link href={tool.href}>
                   <Card className="modern-card group cursor-pointer h-full">
@@ -284,9 +215,14 @@ export default function Home() {
                         >
                           <tool.icon className="w-6 h-6" />
                         </motion.div>
-                        <CardTitle className="text-lg group-hover:text-primary transition-colors">
-                          {tool.title}
-                        </CardTitle>
+                        <div className="flex-1">
+                          <CardTitle className="text-lg group-hover:text-primary transition-colors">
+                            {tool.title}
+                          </CardTitle>
+                          {tool.popular && (
+                            <Badge variant="secondary" className="text-xs mt-1">Popular</Badge>
+                          )}
+                        </div>
                       </div>
                     </CardHeader>
                     <CardContent>
@@ -299,6 +235,15 @@ export default function Home() {
               </motion.div>
             ))}
           </div>
+
+          {filteredTools.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground mb-4">No tools found matching "{searchQuery}"</p>
+              <Button onClick={() => setSearchQuery('')} variant="outline">
+                Clear Search
+              </Button>
+            </div>
+          )}
         </motion.div>
       </section>
 
@@ -310,63 +255,63 @@ export default function Home() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.7 }}
-            className="max-w-4xl mx-auto"
+            className="max-w-5xl mx-auto"
           >
-            <h2 className="text-3xl font-bold mb-8 text-center">Why Dev Helper?</h2>
+            <h2 className="text-3xl font-bold mb-12 text-center">Why Choose Dev Helper?</h2>
 
-            <div className="grid md:grid-cols-2 gap-8">
-              <Card className="glass-card">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <Card className="glass-card text-center">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Zap className="w-5 h-5 text-yellow-500" />
-                    Lightning Fast
-                  </CardTitle>
+                  <div className="mx-auto w-12 h-12 rounded-full bg-yellow-500/10 flex items-center justify-center mb-3">
+                    <ZapIcon className="w-6 h-6 text-yellow-500" />
+                  </div>
+                  <CardTitle className="text-lg">Lightning Fast</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-muted-foreground">
-                    All tools are optimized for speed. No waiting, no lag. Just instant results.
+                  <p className="text-sm text-muted-foreground">
+                    Instant results. No waiting, no lag. Optimized for speed.
                   </p>
                 </CardContent>
               </Card>
 
-              <Card className="glass-card">
+              <Card className="glass-card text-center">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-primary" />
-                    Beautiful Design
-                  </CardTitle>
+                  <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+                    <Sparkles className="w-6 h-6 text-primary" />
+                  </div>
+                  <CardTitle className="text-lg">Beautiful UI</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-muted-foreground">
-                    Modern, clean interface with dark mode support. Professional and pleasing to use.
+                  <p className="text-sm text-muted-foreground">
+                    Modern design with dark mode. Professional and pleasing.
                   </p>
                 </CardContent>
               </Card>
 
-              <Card className="glass-card">
+              <Card className="glass-card text-center">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Terminal className="w-5 h-5 text-purple-500" />
-                    Developer First
-                  </CardTitle>
+                  <div className="mx-auto w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center mb-3">
+                    <CheckCircle2 className="w-6 h-6 text-purple-500" />
+                  </div>
+                  <CardTitle className="text-lg">Feature Rich</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-muted-foreground">
-                    Built by developers, for developers. Every tool is designed with your workflow in mind.
+                  <p className="text-sm text-muted-foreground">
+                    30 comprehensive tools with advanced features built-in.
                   </p>
                 </CardContent>
               </Card>
 
-              <Card className="glass-card">
+              <Card className="glass-card text-center">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Rocket className="w-5 h-5 text-pink-500" />
-                    Always Free
-                  </CardTitle>
+                  <div className="mx-auto w-12 h-12 rounded-full bg-pink-500/10 flex items-center justify-center mb-3">
+                    <Rocket className="w-6 h-6 text-pink-500" />
+                  </div>
+                  <CardTitle className="text-lg">Always Free</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-muted-foreground">
-                    All 20 tools are completely free. No subscriptions, no limits, no catches.
+                  <p className="text-sm text-muted-foreground">
+                    No subscriptions, no limits, no catches. Free forever.
                   </p>
                 </CardContent>
               </Card>
@@ -375,47 +320,27 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Quick Tips Section */}
-      <section className="container mx-auto px-4 py-16">
+      {/* CTA Section */}
+      <section className="container mx-auto px-4 py-20">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7 }}
-          className="max-w-2xl mx-auto"
+          className="max-w-3xl mx-auto text-center"
         >
-          <Card className="modern-card overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-purple-500/5" />
-            <CardHeader className="relative">
-              <CardTitle className="text-2xl">⚡ Quick Tips</CardTitle>
-              <CardDescription>Master Dev Helper in seconds</CardDescription>
-            </CardHeader>
-            <CardContent className="relative">
-              <ul className="space-y-3">
-                <li className="flex items-start gap-3">
-                  <span className="text-primary font-semibold">•</span>
-                  <span>
-                    Press <kbd>Ctrl+Space</kbd> anywhere to quickly add a note
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-purple-500 font-semibold">•</span>
-                  <span>All tools work offline with mock data</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-pink-500 font-semibold">•</span>
-                  <span>Toggle dark/light theme from the sidebar</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-blue-500 font-semibold">•</span>
-                  <span>One-click copy functionality on all outputs</span>
-                </li>
-              </ul>
-            </CardContent>
-          </Card>
+          <h2 className="text-4xl font-bold mb-6">Ready to boost your productivity?</h2>
+          <p className="text-xl text-muted-foreground mb-8">
+            Join thousands of developers who use Dev Helper daily
+          </p>
+          <Link href="#tools">
+            <Button size="lg" className="text-lg px-8 py-6">
+              <Rocket className="w-5 h-5 mr-2" />
+              Start Using Dev Helper Now
+            </Button>
+          </Link>
         </motion.div>
       </section>
     </div>
   )
 }
-
