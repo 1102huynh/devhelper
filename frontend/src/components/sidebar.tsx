@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { Code2, FileJson, Terminal, Zap, StickyNote, Home, Moon, Sun, Binary, Link2, Hash, KeyRound, Clock, Fingerprint, FileCode, Calendar, GitCompare, Type, Palette, Code, FileText, QrCode, Info, Sparkles, Database, Target, FileCheck, Globe, Server, Menu, ChevronLeft, ChevronDown, ChevronRight, Wrench, FlaskConical, TestTube2 } from 'lucide-react'
+import { Code2, FileJson, Terminal, Zap, StickyNote, Home, Moon, Sun, Binary, Link2, Hash, KeyRound, Clock, Fingerprint, FileCode, Calendar, GitCompare, Type, Palette, Code, FileText, QrCode, Info, Sparkles, Database, Target, FileCheck, Globe, Server, Menu, ChevronLeft, ChevronDown, ChevronRight, Wrench, FlaskConical, TestTube2, FileImage, Shield, Scissors, Brush } from 'lucide-react'
 import { Button } from './ui/button'
 import { useTheme } from 'next-themes'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -15,38 +15,43 @@ const topNavigation = [
   { name: 'Home', href: '/', icon: Home, color: 'text-blue-500' },
 ]
 
-// Dev Tools category
+// Dev Tools category (sorted alphabetically)
 const devTools = [
-  { name: 'Regex Tester', href: '/regex-tester', icon: Code2, color: 'text-blue-500' },
-  { name: 'JSON Formatter', href: '/json-formatter', icon: FileJson, color: 'text-green-500' },
-  { name: 'XML Formatter', href: '/xml-formatter', icon: FileCode, color: 'text-amber-500' },
-  { name: 'Base64', href: '/base64', icon: Binary, color: 'text-orange-500' },
-  { name: 'URL Encoder', href: '/url-encoder', icon: Link2, color: 'text-cyan-500' },
-  { name: 'HTML Encoder', href: '/html-encoder', icon: Code, color: 'text-lime-500' },
-  { name: 'Hash Generator', href: '/hash-generator', icon: Hash, color: 'text-indigo-500' },
-  { name: 'JWT Decoder', href: '/jwt-decoder', icon: KeyRound, color: 'text-emerald-500' },
-  { name: 'UUID Generator', href: '/uuid-generator', icon: Fingerprint, color: 'text-violet-500' },
-  { name: 'Timestamp', href: '/timestamp', icon: Clock, color: 'text-teal-500' },
-  { name: 'Cron Parser', href: '/cron-parser', icon: Calendar, color: 'text-rose-500' },
-  { name: 'Diff Checker', href: '/diff-checker', icon: GitCompare, color: 'text-slate-500' },
-  { name: 'Text Utils', href: '/text-utils', icon: Type, color: 'text-fuchsia-500' },
-  { name: 'Color Converter', href: '/color-converter', icon: Palette, color: 'text-red-500' },
-  { name: 'Lorem Ipsum', href: '/lorem-ipsum', icon: FileText, color: 'text-sky-500' },
-  { name: 'QR Generator', href: '/qr-generator', icon: QrCode, color: 'text-neutral-500' },
-  { name: 'HTTP Status', href: '/http-status', icon: Info, color: 'text-blue-600' },
-  { name: 'SSH Commands', href: '/ssh-commands', icon: Terminal, color: 'text-purple-500' },
   { name: 'API Tester', href: '/api-tester', icon: Zap, color: 'text-yellow-500' },
+  { name: 'Base64', href: '/base64', icon: Binary, color: 'text-orange-500' },
+  { name: 'Color Converter', href: '/color-converter', icon: Palette, color: 'text-red-500' },
+  { name: 'Cron Parser', href: '/cron-parser', icon: Calendar, color: 'text-rose-500' },
+  { name: 'CSS Formatter', href: '/css-formatter', icon: Brush, color: 'text-pink-600' },
+  { name: 'Diff Checker', href: '/diff-checker', icon: GitCompare, color: 'text-slate-500' },
+  { name: 'Hash Generator', href: '/hash-generator', icon: Hash, color: 'text-indigo-500' },
+  { name: 'HTML Encoder', href: '/html-encoder', icon: Code, color: 'text-lime-500' },
+  { name: 'HTTP Status', href: '/http-status', icon: Info, color: 'text-blue-600' },
+  { name: 'Image Converter', href: '/image-converter', icon: FileImage, color: 'text-emerald-600' },
+  { name: 'JS Obfuscator', href: '/js-obfuscator', icon: Shield, color: 'text-purple-600' },
+  { name: 'JSON Formatter', href: '/json-formatter', icon: FileJson, color: 'text-green-500' },
+  { name: 'JWT Decoder', href: '/jwt-decoder', icon: KeyRound, color: 'text-emerald-500' },
+  { name: 'Lorem Ipsum', href: '/lorem-ipsum', icon: FileText, color: 'text-sky-500' },
+  { name: 'Markdown Preview', href: '/markdown-preview', icon: FileText, color: 'text-cyan-600' },
   { name: 'Notes', href: '/notes', icon: StickyNote, color: 'text-pink-500' },
+  { name: 'PDF Tools', href: '/pdf-tools', icon: Scissors, color: 'text-red-600' },
+  { name: 'QR Generator', href: '/qr-generator', icon: QrCode, color: 'text-neutral-500' },
+  { name: 'Regex Tester', href: '/regex-tester', icon: Code2, color: 'text-blue-500' },
+  { name: 'SSH Commands', href: '/ssh-commands', icon: Terminal, color: 'text-purple-500' },
+  { name: 'Text Utils', href: '/text-utils', icon: Type, color: 'text-fuchsia-500' },
+  { name: 'Timestamp', href: '/timestamp', icon: Clock, color: 'text-teal-500' },
+  { name: 'URL Encoder', href: '/url-encoder', icon: Link2, color: 'text-cyan-500' },
+  { name: 'UUID Generator', href: '/uuid-generator', icon: Fingerprint, color: 'text-violet-500' },
+  { name: 'XML Formatter', href: '/xml-formatter', icon: FileCode, color: 'text-amber-500' },
 ]
 
-// Automation Testing Tools category
+// Automation Testing Tools category (sorted alphabetically)
 const automationTools = [
-  { name: 'Test Data Generator', href: '/test-data-generator', icon: Database, color: 'text-purple-600' },
-  { name: 'Selector Tester', href: '/selector-tester', icon: Target, color: 'text-cyan-600' },
-  { name: 'JSON Schema Validator', href: '/json-schema-validator', icon: FileCheck, color: 'text-emerald-600' },
   { name: 'HTTP Headers Analyzer', href: '/http-headers-analyzer', icon: Globe, color: 'text-orange-600' },
-  { name: 'Mock API Generator', href: '/mock-api-generator', icon: Server, color: 'text-indigo-600' },
   { name: 'Jacoco Runner', href: '/jacoco-runner', icon: TestTube2, color: 'text-green-600' },
+  { name: 'JSON Schema Validator', href: '/json-schema-validator', icon: FileCheck, color: 'text-emerald-600' },
+  { name: 'Mock API Generator', href: '/mock-api-generator', icon: Server, color: 'text-indigo-600' },
+  { name: 'Selector Tester', href: '/selector-tester', icon: Target, color: 'text-cyan-600' },
+  { name: 'Test Data Generator', href: '/test-data-generator', icon: Database, color: 'text-purple-600' },
 ]
 
 // Category definitions
@@ -190,7 +195,7 @@ export function Sidebar() {
               exit={{ opacity: 0 }}
               className="text-xs text-muted-foreground"
             >
-              27 Professional Tools
+              30 Professional Tools
             </motion.p>
           )}
         </motion.div>

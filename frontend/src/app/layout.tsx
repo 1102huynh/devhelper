@@ -13,9 +13,9 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'Dev Helper - 20 Professional Developer Tools',
-  description: 'Comprehensive suite of professional developer productivity tools including Regex Tester, JSON Formatter, UUID Generator, and more.',
-  keywords: ['developer tools', 'regex tester', 'json formatter', 'uuid generator', 'productivity'],
+  title: 'Dev Helper - 30 Professional Developer Tools',
+  description: 'Comprehensive suite of 30 professional developer productivity tools including Regex Tester, JSON Formatter, Markdown Preview, Image Converter, PDF Tools, and more.',
+  keywords: ['developer tools', 'regex tester', 'json formatter', 'uuid generator', 'markdown preview', 'css formatter', 'image converter', 'pdf tools', 'productivity'],
 }
 
 export default function RootLayout({
