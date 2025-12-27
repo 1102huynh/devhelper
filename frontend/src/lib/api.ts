@@ -18,7 +18,10 @@ const getApiBaseUrl = () => {
 
 const API_BASE_URL = getApiBaseUrl();
 
-console.log('🔧 API Base URL:', API_BASE_URL);
+// Only log in development
+if (process.env.NODE_ENV === 'development') {
+  console.log('🔧 API Base URL:', API_BASE_URL);
+}
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -28,10 +31,13 @@ export const api = axios.create({
   timeout: 30000, // 30 seconds timeout
 });
 
-// Add request interceptor for debugging
+// Add request interceptor
 api.interceptors.request.use(
   (config) => {
-    console.log('API Request:', config.method?.toUpperCase(), config.url);
+    // Only log in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('API Request:', config.method?.toUpperCase(), config.url);
+    }
     return config;
   },
   (error) => {
@@ -40,10 +46,13 @@ api.interceptors.request.use(
   }
 );
 
-// Add response interceptor for debugging
+// Add response interceptor
 api.interceptors.response.use(
   (response) => {
-    console.log('API Response:', response.status, response.config.url);
+    // Only log in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('API Response:', response.status, response.config.url);
+    }
     return response;
   },
   (error) => {
