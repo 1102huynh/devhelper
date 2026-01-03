@@ -67,24 +67,38 @@ public class ProjectService {
                     project.setGitRepo(isGitRepo);
                     
                     if (isGitRepo) {
-                        // Get current branch
-                        String branch = executeGitCommand(dir.toFile(), "git", "rev-parse", "--abbrev-ref", "HEAD");
-                        project.setCurrentBranch(branch.trim());
-                        
-                        // Check for uncommitted changes
-                        String status = executeGitCommand(dir.toFile(), "git", "status", "--porcelain");
-                        project.setUncommittedChanges(!status.trim().isEmpty());
-                        
-                        // Get recent branches (up to 5)
-                        String branchesOutput = executeGitCommand(dir.toFile(), "git", "branch", "--sort=-committerdate");
-                        List<String> branches = new ArrayList<>();
-                        for (String line : branchesOutput.split("\n")) {
-                            String branchName = line.trim().replace("* ", "");
-                            if (!branchName.isEmpty() && branches.size() < 5) {
-                                branches.add(branchName);
-                            }
+
+
+                        try {
+                            // Get current branch
+                            String branch = executeGitCommand(dir.toFile(), "git", "rev-parse", "--abbrev-ref", "HEAD");
+                            project.setCurrentBranch(branch.trim());
+                        } catch (Exception e) {
+                            project.setCurrentBranch("No commits");
                         }
-                        project.setRecentBranches(branches);
+
+                        try {
+                            // Check for uncommitted changes
+                            String status = executeGitCommand(dir.toFile(), "git", "status", "--porcelain");
+                            project.setUncommittedChanges(!status.trim().isEmpty());
+                        } catch (Exception e) {
+                            project.setUncommittedChanges(false);
+                        }
+
+                        try {
+                            // Get recent branches (up to 5)
+                            String branchesOutput = executeGitCommand(dir.toFile(), "git", "branch", "--sort=-committerdate");
+                            List<String> branches = new ArrayList<>();
+                            for (String line : branchesOutput.split("\n")) {
+                                String branchName = line.trim().replace("* ", "");
+                                if (!branchName.isEmpty() && branches.size() < 5) {
+                                    branches.add(branchName);
+                                }
+                            }
+                            project.setRecentBranches(branches);
+                        } catch (Exception e) {
+                            project.setRecentBranches(new ArrayList<>());
+                        }
                     }
                     
                     // Check if it's a Maven project (has pom.xml)
