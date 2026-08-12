@@ -2,7 +2,10 @@ import axios from 'axios';
 
 // API Base URL - ensure /api is appended
 const getApiBaseUrl = () => {
-  const configuredBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://devhelper-37jw.onrender.com';
+  const configuredBaseUrl = process.env.NEXT_PUBLIC_API_URL ||
+    (process.env.NODE_ENV === 'development'
+      ? 'http://localhost:8080'
+      : 'https://devhelper-37jw.onrender.com');
   return configuredBaseUrl.endsWith('/api') ? configuredBaseUrl : `${configuredBaseUrl}/api`;
 };
 

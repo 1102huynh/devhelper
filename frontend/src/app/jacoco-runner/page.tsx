@@ -61,7 +61,21 @@ interface TestSuite {
     type: 'junit' | 'cucumber' | 'xifinportal' | 'engine' | 'restapi'
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')}/api` : 'https://devhelper-37jw.onrender.com/api'
+const resolveApiBase = () => {
+    const configuredBase = process.env.NEXT_PUBLIC_API_URL ||
+        (process.env.NODE_ENV === 'development'
+            ? 'http://localhost:8080'
+            : 'https://devhelper-37jw.onrender.com')
+
+    return configuredBase.endsWith('/api')
+        ? configuredBase.replace(/\/$/, '')
+        : `${configuredBase.replace(/\/$/, '')}/api`
+}
+
+const API_BASE = resolveApiBase()
+const IS_LOCAL_BACKEND = API_BASE.includes('localhost') || API_BASE.includes('127.0.0.1')
+const DEFAULT_PROJECT_BASE_PATH = IS_LOCAL_BACKEND ? 'D:\\learn' : '/opt/render/project/data'
+const DEFAULT_TOMCAT_BASE_PATH = IS_LOCAL_BACKEND ? 'D:\\opt' : '/opt'
 const ITEMS_PER_PAGE_OPTIONS = [6, 12, 24, 48]
 const STORAGE_KEY = 'jacoco-runner-base-path'
 const TOMCAT_STORAGE_KEY = 'jacoco-runner-tomcat-base-path'
@@ -74,7 +88,7 @@ export default function JacocoRunnerPage() {
     const [isLoading, setIsLoading] = useState(false)
     const [loadingProject, setLoadingProject] = useState<string | null>(null)
     const [loadingAction, setLoadingAction] = useState<string | null>(null)
-    const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null)
+    const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'info', message: string } | null>(null)
 
     // Search, Pagination and Filter
     const [searchQuery, setSearchQuery] = useState('')
@@ -1050,14 +1064,14 @@ export default function JacocoRunnerPage() {
         if (savedPath) {
             setBasePath(savedPath)
         } else {
-            setBasePath('D:\\learn')
+            setBasePath(DEFAULT_PROJECT_BASE_PATH)
         }
 
         const savedTomcat = localStorage.getItem(TOMCAT_STORAGE_KEY)
         if (savedTomcat) {
             setTomcatBasePath(savedTomcat)
         } else {
-            setTomcatBasePath('D:\\opt')
+            setTomcatBasePath(DEFAULT_TOMCAT_BASE_PATH)
         }
 
         // Load VPN credentials from localStorage
@@ -1168,7 +1182,7 @@ export default function JacocoRunnerPage() {
         return filteredProjects.slice(startIndex, startIndex + itemsPerPage)
     }, [filteredProjects, currentPage, itemsPerPage])
 
-    const showNotification = (type: 'success' | 'error', message: string) => {
+    const showNotification = (type: 'success' | 'error' | 'info', message: string) => {
         setNotification({ type, message })
         setTimeout(() => setNotification(null), 5000)
     }
@@ -2525,11 +2539,15 @@ export default function JacocoRunnerPage() {
                             exit={{ opacity: 0, y: -20 }}
                             className={`mb-4 p-4 rounded-lg flex items-center gap-2 ${notification.type === 'success'
                                 ? 'bg-green-500/10 border border-green-500/20 text-green-600'
-                                : 'bg-red-500/10 border border-red-500/20 text-red-600'
+                                : notification.type === 'info'
+                                    ? 'bg-blue-500/10 border border-blue-500/20 text-blue-600'
+                                    : 'bg-red-500/10 border border-red-500/20 text-red-600'
                                 }`}
                         >
                             {notification.type === 'success' ? (
                                 <CheckCircle2 className="w-5 h-5" />
+                            ) : notification.type === 'info' ? (
+                                <AlertCircle className="w-5 h-5" />
                             ) : (
                                 <XCircle className="w-5 h-5" />
                             )}

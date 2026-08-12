@@ -133,8 +133,12 @@ npm start
 
 Create `.env.local` file:
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:8080/api
+NEXT_PUBLIC_API_URL=http://localhost:8080
 ```
+
+Environment behavior:
+- Local `npm run dev`: frontend calls `http://localhost:8080` and local-path features use your machine paths (for example `D:\\learn`).
+- Production deploy: frontend calls Render backend URL and server-side path features use server paths.
 
 ### API Configuration
 

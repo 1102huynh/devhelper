@@ -181,10 +181,16 @@ Profile mapping:
 NEXT_PUBLIC_API_URL=http://localhost:8080
 ```
 
+You can also use committed `frontend/.env.development` for local defaults.
+
 **Production** (`.env.production`):
 ```env
 NEXT_PUBLIC_API_URL=https://devhelper-37jw.onrender.com
 ```
+
+Environment path split:
+- Local run (`backend` with `local` profile + `frontend` dev): uses local machine paths, for example `D:/devhelper-data` and `D:\\learn`.
+- Render deploy (`SPRING_PROFILES_ACTIVE=prod`): uses server paths, for example `/opt/render/project/data` and `/opt/render/project/data/logs`.
 
 ## 📡 API Endpoints
 
