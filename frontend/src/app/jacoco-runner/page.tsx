@@ -76,6 +76,23 @@ const API_BASE = resolveApiBase()
 const IS_LOCAL_BACKEND = API_BASE.includes('localhost') || API_BASE.includes('127.0.0.1')
 const DEFAULT_PROJECT_BASE_PATH = IS_LOCAL_BACKEND ? 'D:\\learn' : '/opt/render/project/data'
 const DEFAULT_TOMCAT_BASE_PATH = IS_LOCAL_BACKEND ? 'D:\\opt' : '/opt'
+
+const isWindowsPath = (value: string) => /^[a-zA-Z]:\\/.test(value)
+const isUnixPath = (value: string) => value.startsWith('/')
+
+const normalizePathForEnvironment = (savedPath: string | null, fallbackPath: string) => {
+    if (!savedPath) return fallbackPath
+
+    if (IS_LOCAL_BACKEND && isUnixPath(savedPath)) {
+        return fallbackPath
+    }
+
+    if (!IS_LOCAL_BACKEND && isWindowsPath(savedPath)) {
+        return fallbackPath
+    }
+
+    return savedPath
+}
 const ITEMS_PER_PAGE_OPTIONS = [6, 12, 24, 48]
 const STORAGE_KEY = 'jacoco-runner-base-path'
 const TOMCAT_STORAGE_KEY = 'jacoco-runner-tomcat-base-path'
@@ -1061,17 +1078,17 @@ export default function JacocoRunnerPage() {
     // Load basePath and tomcatPath from localStorage on mount
     useEffect(() => {
         const savedPath = localStorage.getItem(STORAGE_KEY)
-        if (savedPath) {
-            setBasePath(savedPath)
-        } else {
-            setBasePath(DEFAULT_PROJECT_BASE_PATH)
+        const normalizedBasePath = normalizePathForEnvironment(savedPath, DEFAULT_PROJECT_BASE_PATH)
+        setBasePath(normalizedBasePath)
+        if (normalizedBasePath !== savedPath) {
+            localStorage.setItem(STORAGE_KEY, normalizedBasePath)
         }
 
         const savedTomcat = localStorage.getItem(TOMCAT_STORAGE_KEY)
-        if (savedTomcat) {
-            setTomcatBasePath(savedTomcat)
-        } else {
-            setTomcatBasePath(DEFAULT_TOMCAT_BASE_PATH)
+        const normalizedTomcatPath = normalizePathForEnvironment(savedTomcat, DEFAULT_TOMCAT_BASE_PATH)
+        setTomcatBasePath(normalizedTomcatPath)
+        if (normalizedTomcatPath !== savedTomcat) {
+            localStorage.setItem(TOMCAT_STORAGE_KEY, normalizedTomcatPath)
         }
 
         // Load VPN credentials from localStorage
