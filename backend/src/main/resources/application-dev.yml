@@ -7,6 +7,16 @@ file:
   storage:
     base-path: ${FILE_STORAGE_BASE_PATH:/opt/render/project/data}
 
+app:
+  logging:
+    path: ${LOG_PATH:/opt/render/project/data/logs}
+    level:
+      com:
+        devhelper: DEBUG
+      org:
+        springframework:
+          web: INFO
+
 server:
   port: ${PORT:10000}
   compression:

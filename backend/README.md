@@ -146,6 +146,18 @@ Edit these files to configure:
 - CORS settings
 - Logging levels
 
+### Logging (Log4j2)
+
+Backend uses Log4j2 with config at `src/main/resources/log4j2-spring.xml`.
+
+Logs are written to:
+- Console (for Render live logs)
+- Rolling file `devhelper.log`
+
+Default log directories:
+- local: `D:/devhelper-data/logs`
+- dev/staging/prod: `/opt/render/project/data/logs`
+
 ## 🎯 Sample Data
 
 The application automatically initializes with sample data:

@@ -8,6 +8,16 @@ file:
   storage:
     base-path: D:/devhelper-data
 
+app:
+  logging:
+    path: D:/devhelper-data/logs
+    level:
+      com:
+        devhelper: DEBUG
+      org:
+        springframework:
+          web: INFO
+
 logging:
   level:
     com.devhelper: DEBUG

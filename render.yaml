@@ -18,6 +18,8 @@ services:
         value: prod
       - key: FILE_STORAGE_BASE_PATH
         value: /opt/render/project/data
+      - key: LOG_PATH
+        value: /opt/render/project/data/logs
     disk:
       name: devhelper-data
       mountPath: /opt/render/project/data
