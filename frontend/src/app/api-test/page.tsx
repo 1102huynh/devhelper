@@ -9,7 +9,7 @@ export default function ApiTestPage() {
   const [results, setResults] = useState<any>({})
   const [loading, setLoading] = useState(false)
 
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://devhelper-37jw.onrender.com'
   const API_URL_WITH_PATH = API_BASE_URL.endsWith('/api') ? API_BASE_URL : `${API_BASE_URL}/api`
 
   const tests = [

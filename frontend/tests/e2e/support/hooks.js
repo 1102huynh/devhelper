@@ -13,7 +13,7 @@ Before(async function () {
   });
   this.page = await this.context.newPage();
   this.baseUrl = process.env.BASE_URL || 'http://localhost:3000';
-  this.apiUrl = process.env.API_URL || 'http://localhost:8080';
+  this.apiUrl = process.env.API_URL || 'https://devhelper-37jw.onrender.com';
 });
 
 After(async function () {

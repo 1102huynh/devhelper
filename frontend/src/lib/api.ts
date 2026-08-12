@@ -2,18 +2,8 @@ import axios from 'axios';
 
 // API Base URL - ensure /api is appended
 const getApiBaseUrl = () => {
-  // Check if we're in browser
-  if (typeof window !== 'undefined') {
-    // In production (deployed), use production backend
-    if (window.location.hostname !== 'localhost') {
-      return 'https://devhelper-37jw.onrender.com/api';
-    }
-  }
-
-  // For local development or if env var is set
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-  // If URL doesn't end with /api, append it
-  return baseUrl.endsWith('/api') ? baseUrl : `${baseUrl}/api`;
+  const configuredBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://devhelper-37jw.onrender.com';
+  return configuredBaseUrl.endsWith('/api') ? configuredBaseUrl : `${configuredBaseUrl}/api`;
 };
 
 const API_BASE_URL = getApiBaseUrl();

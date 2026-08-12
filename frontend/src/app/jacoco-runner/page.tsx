@@ -61,7 +61,7 @@ interface TestSuite {
     type: 'junit' | 'cucumber' | 'xifinportal' | 'engine' | 'restapi'
 }
 
-const API_BASE = 'http://localhost:8080/api'
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')}/api` : 'https://devhelper-37jw.onrender.com/api'
 const ITEMS_PER_PAGE_OPTIONS = [6, 12, 24, 48]
 const STORAGE_KEY = 'jacoco-runner-base-path'
 const TOMCAT_STORAGE_KEY = 'jacoco-runner-tomcat-base-path'
