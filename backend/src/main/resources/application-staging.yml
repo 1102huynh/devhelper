@@ -1,27 +1,17 @@
 spring:
-  application:
-    name: devhelper-backend
+  config:
+    activate:
+      on-profile: staging
 
-  jackson:
-    default-property-inclusion: non_null
-    serialization:
-      indent_output: true
-
-
-# File Storage Configuration
 file:
   storage:
     base-path: ${FILE_STORAGE_BASE_PATH:/opt/render/project/data}
 
 server:
   port: ${PORT:10000}
-  error:
-    include-message: always
-    include-binding-errors: always
   compression:
     enabled: true
   forward-headers-strategy: framework
-
 
 logging:
   level:
@@ -30,7 +20,6 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
 
-# Actuator for health checks
 management:
   endpoints:
     web:
@@ -39,4 +28,3 @@ management:
   endpoint:
     health:
       show-details: when-authorized
-

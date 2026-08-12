@@ -2,10 +2,19 @@ spring:
   application:
     name: devhelper-backend
 
+  profiles:
+    default: local
+
   jackson:
     default-property-inclusion: non_null
     serialization:
       indent_output: true
+
+
+# Default storage path (overridden per profile)
+file:
+  storage:
+    base-path: ./data
 
 
 server:
@@ -17,5 +26,5 @@ server:
 
 logging:
   level:
-    com.devhelper: DEBUG
+    com.devhelper: INFO
     org.springframework.web: INFO

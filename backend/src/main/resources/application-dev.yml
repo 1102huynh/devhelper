@@ -1,0 +1,28 @@
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+file:
+  storage:
+    base-path: ${FILE_STORAGE_BASE_PATH:/opt/render/project/data}
+
+server:
+  port: ${PORT:10000}
+  compression:
+    enabled: true
+  forward-headers-strategy: framework
+
+logging:
+  level:
+    com.devhelper: DEBUG
+    org.springframework.web: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always

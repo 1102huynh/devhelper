@@ -39,7 +39,7 @@ trap cleanup EXIT INT TERM
 # Start backend
 echo "Starting Backend on http://localhost:8080..."
 cd backend
-mvn spring-boot:run > ../backend.log 2>&1 &
+mvn spring-boot:run -Dspring-boot.run.profiles=local > ../backend.log 2>&1 &
 BACKEND_PID=$!
 cd ..
 

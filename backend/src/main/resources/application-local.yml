@@ -1,4 +1,14 @@
-# Local Development Environment Variables
-# Override storage path for Windows development
-file.storage.base-path=D:/devhelper-data/
+spring:
+  config:
+    activate:
+      on-profile: local
+
+# Local storage path for Windows development
+file:
+  storage:
+    base-path: D:/devhelper-data
+
+logging:
+  level:
+    com.devhelper: DEBUG
 

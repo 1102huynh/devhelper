@@ -33,7 +33,7 @@ echo.
 
 REM Start backend in new window
 echo Starting Backend on http://localhost:8080...
-start "Dev Helper Backend" cmd /k "cd backend && mvn spring-boot:run"
+start "Dev Helper Backend" cmd /k "cd backend && mvn spring-boot:run -Dspring-boot.run.profiles=local"
 
 REM Wait a bit for backend to start
 echo Waiting 10 seconds for backend to start...

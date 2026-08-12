@@ -70,7 +70,10 @@ devhelper/
 │   │   │   │   └── config/        # Configuration
 │   │   │   └── resources/
 │   │   │       ├── application.yml
-│   │   │       └── application-production.yml
+│   │   │       ├── application-local.yml
+│   │   │       ├── application-dev.yml
+│   │   │       ├── application-staging.yml
+│   │   │       └── application-prod.yml
 │   │   └── test/         # Backend tests
 │   ├── Dockerfile
 │   └── pom.xml
@@ -98,7 +101,7 @@ cd devhelper
 #### 2. Start Backend
 ```bash
 cd backend
-mvn spring-boot:run
+mvn spring-boot:run -Dspring-boot.run.profiles=local
 ```
 Backend runs on: http://localhost:8080
 
@@ -118,7 +121,7 @@ Frontend runs on: http://localhost:3000
 - **Storage**: `/opt/render/project/data`
 - **Environment**: 
   - `PORT=10000`
-  - `SPRING_PROFILES_ACTIVE=production`
+  - `SPRING_PROFILES_ACTIVE=prod`
 
 #### Frontend (Vercel)
 - **Auto-deploy**: Enabled on `develop` branch
@@ -130,17 +133,28 @@ Frontend runs on: http://localhost:3000
 
 ### Backend Environment Variables
 
-**Development** (`application.yml`):
+**Default (shared)** (`application.yml`):
 ```yaml
+spring:
+  profiles:
+    default: local
+
+file:
+  storage:
+    base-path: ./data
+
 server:
   port: 8080
+```
 
+**Local** (`application-local.yml`):
+```yaml
 logging:
   level:
     com.devhelper: DEBUG
 ```
 
-**Production** (`application-production.yml`):
+**Dev/Staging/Prod** (`application-dev.yml`, `application-staging.yml`, `application-prod.yml`):
 ```yaml
 server:
   port: ${PORT:10000}
@@ -151,8 +165,14 @@ file:
 
 logging:
   level:
-    com.devhelper: INFO
+    com.devhelper: INFO|DEBUG
 ```
+
+Profile mapping:
+- `local`: Local machine (localhost)
+- `dev`: Shared dev environment
+- `staging`: Pre-production validation
+- `prod`: Production deployment (Render)
 
 ### Frontend Environment Variables
 
@@ -233,7 +253,8 @@ public class CorsConfig {
 
 ### File-Based Storage
 Data is stored in JSON files:
-- **Development**: `./data/`
+- **Local**: `D:/devhelper-data/`
+- **Default fallback**: `./data/`
 - **Production**: `/opt/render/project/data/`
 
 Files:
@@ -245,7 +266,10 @@ Files:
 ### Backend
 ```bash
 mvn clean install        # Build
-mvn spring-boot:run      # Run dev
+mvn spring-boot:run -Dspring-boot.run.profiles=local    # Run local
+mvn spring-boot:run -Dspring-boot.run.profiles=dev      # Run dev
+mvn spring-boot:run -Dspring-boot.run.profiles=staging  # Run staging
+mvn spring-boot:run -Dspring-boot.run.profiles=prod     # Run prod
 mvn test                 # Run tests
 ```
 

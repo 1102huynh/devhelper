@@ -47,7 +47,11 @@ backend/
 │       ├── RegexService.java
 │       └── SshCommandService.java
 └── src/main/resources/
-    └── application.yml
+    ├── application.yml
+    ├── application-local.yml
+    ├── application-dev.yml
+    ├── application-staging.yml
+    └── application-prod.yml
 ```
 
 ## 🛠️ Setup & Run
@@ -59,10 +63,25 @@ backend/
 ### Run Locally
 ```bash
 cd backend
-mvn spring-boot:run
+mvn spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
 Server will start on http://localhost:8080
+
+### Run By Profile
+```bash
+# Local machine
+mvn spring-boot:run -Dspring-boot.run.profiles=local
+
+# Shared development environment
+mvn spring-boot:run -Dspring-boot.run.profiles=dev
+
+# Staging environment
+mvn spring-boot:run -Dspring-boot.run.profiles=staging
+
+# Production-like environment
+mvn spring-boot:run -Dspring-boot.run.profiles=prod
+```
 
 ### Build
 ```bash
@@ -114,7 +133,14 @@ Using H2 in-memory database. Access H2 console at:
 
 ## 🔧 Configuration
 
-Edit `src/main/resources/application.yml` to configure:
+Profile files:
+- `src/main/resources/application.yml` (shared config + default profile)
+- `src/main/resources/application-local.yml`
+- `src/main/resources/application-dev.yml`
+- `src/main/resources/application-staging.yml`
+- `src/main/resources/application-prod.yml`
+
+Edit these files to configure:
 - Server port
 - Database settings
 - CORS settings
