@@ -62,6 +62,13 @@ interface TestSuite {
 }
 
 const resolveApiBase = () => {
+    const isLocalRuntime = typeof window !== 'undefined' &&
+        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+
+    if (isLocalRuntime) {
+        return 'http://localhost:8080/api'
+    }
+
     const configuredBase = process.env.NEXT_PUBLIC_API_URL ||
         (process.env.NODE_ENV === 'development'
             ? 'http://localhost:8080'
@@ -73,21 +80,22 @@ const resolveApiBase = () => {
 }
 
 const API_BASE = resolveApiBase()
-const IS_LOCAL_BACKEND = API_BASE.includes('localhost') || API_BASE.includes('127.0.0.1')
-const DEFAULT_PROJECT_BASE_PATH = IS_LOCAL_BACKEND ? 'D:\\learn' : '/opt/render/project/data'
-const DEFAULT_TOMCAT_BASE_PATH = IS_LOCAL_BACKEND ? 'D:\\opt' : '/opt'
+const LOCAL_PROJECT_BASE_PATH = 'D:\\learn'
+const LOCAL_TOMCAT_BASE_PATH = 'D:\\opt'
+const REMOTE_PROJECT_BASE_PATH = '/opt/render/project/data'
+const REMOTE_TOMCAT_BASE_PATH = '/opt'
 
 const isWindowsPath = (value: string) => /^[a-zA-Z]:\\/.test(value)
 const isUnixPath = (value: string) => value.startsWith('/')
 
-const normalizePathForEnvironment = (savedPath: string | null, fallbackPath: string) => {
+const normalizePathForEnvironment = (savedPath: string | null, fallbackPath: string, isLocalRuntime: boolean) => {
     if (!savedPath) return fallbackPath
 
-    if (IS_LOCAL_BACKEND && isUnixPath(savedPath)) {
+    if (isLocalRuntime && isUnixPath(savedPath)) {
         return fallbackPath
     }
 
-    if (!IS_LOCAL_BACKEND && isWindowsPath(savedPath)) {
+    if (!isLocalRuntime && isWindowsPath(savedPath)) {
         return fallbackPath
     }
 
@@ -1077,15 +1085,20 @@ export default function JacocoRunnerPage() {
 
     // Load basePath and tomcatPath from localStorage on mount
     useEffect(() => {
+        const isLocalRuntime = typeof window !== 'undefined' &&
+            (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+        const defaultProjectBasePath = isLocalRuntime ? LOCAL_PROJECT_BASE_PATH : REMOTE_PROJECT_BASE_PATH
+        const defaultTomcatBasePath = isLocalRuntime ? LOCAL_TOMCAT_BASE_PATH : REMOTE_TOMCAT_BASE_PATH
+
         const savedPath = localStorage.getItem(STORAGE_KEY)
-        const normalizedBasePath = normalizePathForEnvironment(savedPath, DEFAULT_PROJECT_BASE_PATH)
+        const normalizedBasePath = normalizePathForEnvironment(savedPath, defaultProjectBasePath, isLocalRuntime)
         setBasePath(normalizedBasePath)
         if (normalizedBasePath !== savedPath) {
             localStorage.setItem(STORAGE_KEY, normalizedBasePath)
         }
 
         const savedTomcat = localStorage.getItem(TOMCAT_STORAGE_KEY)
-        const normalizedTomcatPath = normalizePathForEnvironment(savedTomcat, DEFAULT_TOMCAT_BASE_PATH)
+        const normalizedTomcatPath = normalizePathForEnvironment(savedTomcat, defaultTomcatBasePath, isLocalRuntime)
         setTomcatBasePath(normalizedTomcatPath)
         if (normalizedTomcatPath !== savedTomcat) {
             localStorage.setItem(TOMCAT_STORAGE_KEY, normalizedTomcatPath)

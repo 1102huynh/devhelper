@@ -2,6 +2,13 @@ import axios from 'axios';
 
 // API Base URL - ensure /api is appended
 const getApiBaseUrl = () => {
+  const isLocalRuntime = typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+  if (isLocalRuntime) {
+    return 'http://localhost:8080/api';
+  }
+
   const configuredBaseUrl = process.env.NEXT_PUBLIC_API_URL ||
     (process.env.NODE_ENV === 'development'
       ? 'http://localhost:8080'
