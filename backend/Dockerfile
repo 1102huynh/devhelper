@@ -16,6 +16,6 @@ EXPOSE 10000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
   CMD curl -f http://localhost:${PORT:-10000}/actuator/health || exit 1
 
-# Use PORT environment variable from Render
-ENTRYPOINT ["sh", "-c", "java ${JAVA_TOOL_OPTIONS} -Dserver.port=${PORT:-10000} -jar app.jar"]
+# Use Render env vars; if profile is missing, default to prod in container runtime.
+ENTRYPOINT ["sh", "-c", "java ${JAVA_TOOL_OPTIONS} -Dserver.port=${PORT:-10000} -Dspring.profiles.active=${SPRING_PROFILES_ACTIVE:-prod} -jar app.jar"]
 
